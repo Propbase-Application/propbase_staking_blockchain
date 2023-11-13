@@ -94,7 +94,7 @@ module propbase::propbase_staking {
         amount: u64
     }
 
-    struct UpdateRewardsEvent has drop, store {UpdateRewardsEvent
+    struct UpdateRewardsEvent has drop, store {
         old_rewards: u64,
         new_rewards: u64
     }
