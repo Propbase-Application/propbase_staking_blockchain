@@ -14,37 +14,42 @@ module propbase::propbase_staking {
     use aptos_framework::timestamp;
     use aptos_framework::resource_account;
 
-    struct StakePool has key {
+    struct StakeApp has key {
+        app_name: String,
         signer_cap: account::SignerCapability,
         admin: address,
         treasury: address,
-        pool_name: String,
+        set_admin_events: EventHandle<SetAdminEvent>,
+        set_treasury_events: EventHandle<SetTreasuryEvent>,
+    }
+
+    struct StakePool has key {
         principal_amounts: TableWithLength<address, u64>,
         epoch_start_time: u64,
         epoch_end_time: u64,
-        staked_size: u64,
+        staked_amount: u64,
         is_pool_started: bool,
-        set_admin_events: EventHandle<SetAdminEvent>,
-        set_treasury_events: EventHandle<SetTreasuryEvent>,
         set_start_time_events: EventHandle<SetStartTimeEvent>,
         set_end_time_events: EventHandle<SetEndTimeEvent>,
         set_pool_started_event: EventHandle<bool>
     }
 
     struct RewardPool has key {
-        pool_cap: u64,
-        intrest_rate_apy: u64,
-        intrest_rate_per_day: RatePerDay,
-        claimed_rewards: TableWithLength<address, u64>,
-        claimable_rewards: TableWithLength<address, u64>,
-        update_intrest_rate_events: EventHandle<UpdateIntrestRateEvent>,
+        availabe_rewards: u64,
+        threshold: u64,
+        updated_rewards: u64,
     }
 
     struct ClaimPool has key {
         total_claimed: u64,
         penality_rate: u64,
         penality_rate_per_day: RatePerDay,
-        claim_event: EventHandle<ClaimEvent>,
+        pool_cap: u64,
+        interest_rate_apy: u64,
+        interest_rate_per_day: RatePerDay,
+        claimed_rewards: TableWithLength<address, u64>,
+        claimable_rewards: TableWithLength<address, u64>,
+        update_interest_rate_events: EventHandle<UpdateInterestRateEvent>,
         update_penality_rate_events: EventHandle<UpdatePenalityRateEvent>,
         update_total_claimed_events: EventHandle<u64>,
     }
@@ -74,7 +79,7 @@ module propbase::propbase_staking {
         new_start_time: u64
     }
 
-    struct UpdateIntrestRateEvent has drop, store {
+    struct UpdateInterestRateEvent has drop, store {
         old_intrest_rate: u64,
         new_intrest_rate: u64
     }
