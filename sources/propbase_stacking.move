@@ -2,6 +2,7 @@ module propbase::propbase_staking {
     use std::string::{Self,String};
     use std::signer;
     use std::vector;
+    use std::error;
 
     use aptos_framework::event::{Self, EventHandle};
     use aptos_std::math64::{max};
@@ -14,19 +15,23 @@ module propbase::propbase_staking {
     use aptos_framework::timestamp;
     use aptos_framework::resource_account;
 
+    use aptos_std::table::{Self, Table};
+    
     struct StakeApp has key {
         app_name: String,
         signer_cap: account::SignerCapability,
         admin: address,
         treasury: address,
         treasurers: TableWithLength<address, bool>,
-        pool_cap: u64,
         set_admin_events: EventHandle<SetAdminEvent>,
         set_treasury_events: EventHandle<SetTreasuryEvent>,
+        set_treasurers_events: EventHandle<vector<address>>
+        unset_treasurers_events: EventHandle<vector<address>>
     }
 
     struct StakePool has key {
         principal_amounts: TableWithLength<address, u64>,
+        pool_cap: u64,
         epoch_start_time: u64,
         epoch_end_time: u64,
         staked_amount: u64,
@@ -100,6 +105,8 @@ module propbase::propbase_staking {
         new_rewards: u64
     }
 
+    const ENOT_AUTHORIZED: u64 = 1;
+
     fun init_module(resource_account: &signer){
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);        
         init_config(resource_account,resource_signer_cap);
@@ -116,7 +123,8 @@ module propbase::propbase_staking {
             pool_cap: 0,
             set_admin_events: account::new_event_handle<SetAdminEvent>(resource_account),
             set_treasury_events: account::new_event_handle<SetTreasuryEvent>(resource_account),
-            
+            set_treasurers_events: account::new_event_handle<vector<address>>(resource_account)
+
         });
 
         move_to(resource_account, StakePool {
@@ -150,7 +158,85 @@ module propbase::propbase_staking {
             update_penality_rate_events: account::new_event_handle<UpdatePenalityRateEvent>(resource_account),
             update_total_claimed_events: account::new_event_handle<u64>(resource_account),
                     
-        })
+        });
     }
+
+    //setter functions
+
+    public entry fun set_admin(
+        admin: &signer,
+        new_admin_address: address
+    ) acquires StakeApp {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let old_admin = contract_config.admin;
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        contract_config.admin = new_admin_address;
+
+        event::emit_event<SetAdminEvent>(
+            &mut contract_config.set_admin_events,
+            SetAdminEvent {
+                old_admin: old_admin,
+                new_admin: new_admin_address
+            }
+        );
+    }
+
+    public entry fun set_treasury(
+        admin: &signer,
+        new_treasury_address: address
+    ) acquires StakeApp {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let old_treasury = contract_config.treasury;
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        contract_config.treasury = new_treasury_address;
+
+        event::emit_event<SetTreasuryEvent>(
+            &mut contract_config.set_treasury_events,
+            SetTreasuryEvent {
+                old_treasury: old_treasury,
+                new_treasury: new_treasury_address
+            }
+        );
+    }
+
+    public entry fun add_treasurers(
+        admin: &signer,
+        new_treasurers: vector<address>
+    ) acquires StakeApp {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        let index = 0;
+        let length = vector::length(&new_treasurers);
+        while (index < length){
+            let element= *vector::borrow(&new_treasurers,index);
+            Table::upsert<address,bool>(&mut contract_config.treasurers,element,true);
+            index= index+1;
+        };
+        event::emit_event<vector<address>>(
+            &mut contract_config.set_treasurers_events,
+            new_treasurers
+        );
+    }
+
+    public entry fun remove_treasurers(
+        admin: &signer,
+        new_treasurers: vector<address>
+    ) acquires StakeApp {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        let index = 0;
+        let length = vector::length(&new_treasurers);
+        while (index < length){
+            let element= *vector::borrow(&new_treasurers,index);
+            Table::upsert<address,bool>(&mut contract_config.treasurers,element,false);
+            index= index+1;
+        };
+        event::emit_event<vector<address>>(
+            &mut contract_config.unset_treasurers_events,
+            new_treasurers
+        );
+    }
+
+    
 
 }
