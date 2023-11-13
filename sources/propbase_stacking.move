@@ -37,7 +37,7 @@ module propbase::propbase_staking {
     struct RewardPool has key {
         availabe_rewards: u64,
         threshold: u64,
-        updated_rewards: u64,
+        updated_rewards: EventHandle<UpdateRewards>,
     }
 
     struct ClaimPool has key {
@@ -92,6 +92,11 @@ module propbase::propbase_staking {
     struct ClaimEvent has drop, store {
         user: address,
         amount: u64
+    }
+
+    struct UpdateRewards has drop, store {
+        old_rewards: u64,
+        new_rewards: u64
     }
 
 }
