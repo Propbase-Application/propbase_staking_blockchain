@@ -38,11 +38,15 @@ module propbase::propbase_staking {
         pool_cap: u64,
         epoch_start_time: u64,
         epoch_end_time: u64,
-        staked_amount: u64,
+        penality_rate: u64,
+        interest_rate: u64,
+        stacked_amount: u64,
         is_pool_started: bool,
         set_start_time_events: EventHandle<SetStartTimeEvent>,
         set_end_time_events: EventHandle<SetEndTimeEvent>,
-        set_pool_started_event: EventHandle<bool>
+        set_pool_cap_events: EventHandle<SetPoolCapEvent>,
+        update_interest_rate_events: EventHandle<UpdateInterestRateEvent>,
+        update_penality_rate_events: EventHandle<UpdatePenalityRateEvent>,
 
     }
 
@@ -55,22 +59,24 @@ module propbase::propbase_staking {
 
     struct ClaimPool has key {
         total_claimed: u64,
-        penality_rate: u64,
-        penality_rate_per_day: RatePerDay,
-        interest_rate: u64,
-        interest_rate_per_day: RatePerDay,
         claimed_rewards: TableWithLength<address, u64>,
         claimable_rewards: TableWithLength<address, u64>,
-        update_interest_rate_events: EventHandle<UpdateInterestRateEvent>,
-        update_penality_rate_events: EventHandle<UpdatePenalityRateEvent>,
         update_total_claimed_events: EventHandle<u64>,
 
     }
 
-    struct RatePerDay has store {
-        rate: u64,
-        decimals: u16,
+    struct UserInfo has key {
+        principal: u64,
+        withdrawn: u64,
+        stake_events: vector<Stake>,
+        unstake_events: vector<Stake>,
+        accumulated_rewards: u64,
+        last_staked_time: u64,
+    }
 
+    struct Stake has drop, store {
+        timestamp:u64,
+        amount: u64,
     }
 
     struct SetAdminEvent has drop, store {
@@ -91,14 +97,19 @@ module propbase::propbase_staking {
     }
 
     struct SetEndTimeEvent has drop, store {
-        old_start_time: u64,
-        new_start_time: u64,
+        old_end_time: u64,
+        new_end_time: u64,
 
     }
 
+    struct SetPoolCapEvent has drop, store {
+        old_pool_cap: u64,
+        new_pool_cap: u64,
+    }
+
     struct UpdateInterestRateEvent has drop, store {
-        old_intrest_rate: u64,
-        new_intrest_rate: u64,
+        old_interest_rate: u64,
+        new_interest_rate: u64,
 
     }
 
@@ -122,6 +133,10 @@ module propbase::propbase_staking {
 
     const ENOT_AUTHORIZED: u64 = 1;
     const ENOT_NOT_A_TREASURER: u64 = 2;
+    const ESTAKE_POOL_ALREADY_CREATED: u64 = 3;
+    const ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME: u64 = 4;
+    const ESTAKE_NOT_INTIALIZED: u64 = 5;
+    const ESTAKE_ALREADY_STARTED: u64 = 6;
 
     fun init_module(resource_account: &signer){
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -137,7 +152,7 @@ module propbase::propbase_staking {
     fun init_config(resource_account: &signer, resource_signer_cap: SignerCapability) {
 
         move_to(resource_account, StakeApp {
-            app_name: string::utf8(b"POOL_NAME"),
+            app_name: string::utf8(b""),
             signer_cap: resource_signer_cap,
             admin: @source_addr,
             treasury: @source_addr,
@@ -154,11 +169,15 @@ module propbase::propbase_staking {
             pool_cap: 0,
             epoch_start_time: 0,
             epoch_end_time: 0,
-            staked_amount: 0,
+            penality_rate: 0,
+            interest_rate: 0,
+            stacked_amount: 0,
             is_pool_started: false,
             set_start_time_events: account::new_event_handle<SetStartTimeEvent>(resource_account),
             set_end_time_events: account::new_event_handle<SetEndTimeEvent>(resource_account),
-            set_pool_started_event: account::new_event_handle<bool>(resource_account),
+            set_pool_cap_events: account::new_event_handle<SetPoolCapEvent>(resource_account),
+            update_interest_rate_events: account::new_event_handle<UpdateInterestRateEvent>(resource_account),
+            update_penality_rate_events: account::new_event_handle<UpdatePenalityRateEvent>(resource_account),
 
         });
 
@@ -171,14 +190,8 @@ module propbase::propbase_staking {
 
         move_to(resource_account, ClaimPool {
             total_claimed: 0,
-            penality_rate: 0,
-            penality_rate_per_day: RatePerDay{ rate:0,decimals:0 },
-            interest_rate: 0,
-            interest_rate_per_day: RatePerDay{ rate:0,decimals:0 },
             claimed_rewards: Table::new(),
             claimable_rewards: Table::new(),
-            update_interest_rate_events: account::new_event_handle<UpdateInterestRateEvent>(resource_account),
-            update_penality_rate_events: account::new_event_handle<UpdatePenalityRateEvent>(resource_account),
             update_total_claimed_events: account::new_event_handle<u64>(resource_account),
                     
         });
@@ -280,14 +293,188 @@ module propbase::propbase_staking {
         );
     }
 
+    public entry fun create_stake_pool(
+        admin: &signer,
+        pool_name: String,
+        pool_cap: u64,
+        epoch_start_time: u64,
+        epoch_end_time: u64,
+        penality_rate: u64,
+        interest_rate: u64
+
+    ) acquires StakePool,StakeApp {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+
+        assert!(contract_config.app_name == string::utf8(b""), error::already_exists(ESTAKE_POOL_ALREADY_CREATED));
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(epoch_start_time < epoch_end_time , error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
+
+        contract_config.app_name = pool_name;
+        stake_pool_config.pool_cap = pool_cap;
+        stake_pool_config.epoch_start_time = epoch_start_time;
+        stake_pool_config.epoch_end_time = epoch_end_time;
+        stake_pool_config.penality_rate = penality_rate;
+        stake_pool_config.interest_rate = interest_rate;
+
+    }
+
+    public entry fun update_stake_start_time(
+        admin:&signer,
+        new_start_time:u64,
+
+    ) acquires StakePool,StakeApp  {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let old_start_time = stake_pool_config.epoch_start_time;
+
+        assert!(contract_config.app_name != string::utf8(b""), error::invalid_state(ESTAKE_NOT_INTIALIZED));
+        assert!(check_stake_pool_not_started(old_start_time), error::permission_denied(ESTAKE_ALREADY_STARTED));
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(new_start_time < stake_pool_config.epoch_end_time , error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
+        
+        stake_pool_config.epoch_start_time = new_start_time;
+
+        event::emit_event<SetStartTimeEvent>(
+            &mut stake_pool_config.set_start_time_events,
+            SetStartTimeEvent{
+                old_start_time,
+                new_start_time
+            }
+
+        );
+    }
+
+    public entry fun update_stake_end_time(
+        admin:&signer,
+        new_end_time:u64,
+
+    ) acquires StakePool,StakeApp  {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let old_end_time = stake_pool_config.epoch_end_time;
+
+        assert!(contract_config.app_name != string::utf8(b""), error::invalid_state(ESTAKE_NOT_INTIALIZED));
+        assert!(check_stake_pool_not_started(stake_pool_config.epoch_start_time), error::permission_denied(ESTAKE_ALREADY_STARTED));
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        
+        stake_pool_config.epoch_end_time = new_end_time;
+
+        event::emit_event<SetEndTimeEvent>(
+            &mut stake_pool_config.set_end_time_events,
+            SetEndTimeEvent{
+                old_end_time,
+                new_end_time
+            }
+
+        );
+    }
+
+    public entry fun update_pool_cap(
+        admin:&signer,
+        new_pool_cap:u64,
+
+    ) acquires StakePool,StakeApp  {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let old_pool_cap = stake_pool_config.pool_cap;
+
+        assert!(contract_config.app_name != string::utf8(b""), error::invalid_state(ESTAKE_NOT_INTIALIZED));
+        assert!(check_stake_pool_not_started(stake_pool_config.epoch_start_time), error::permission_denied(ESTAKE_ALREADY_STARTED));
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        
+        stake_pool_config.pool_cap = new_pool_cap;
+
+        event::emit_event<SetPoolCapEvent>(
+            &mut stake_pool_config.set_pool_cap_events,
+            SetPoolCapEvent{
+                old_pool_cap,
+                new_pool_cap
+            }
+
+        );
+    }
+
+    public entry fun update_interest_rate(
+        admin:&signer,
+        new_interest_rate:u64,
+
+    ) acquires StakePool,StakeApp  {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let old_interest_rate = stake_pool_config.interest_rate;
+
+        assert!(contract_config.app_name != string::utf8(b""), error::invalid_state(ESTAKE_NOT_INTIALIZED));
+        assert!(check_stake_pool_not_started(stake_pool_config.epoch_start_time), error::permission_denied(ESTAKE_ALREADY_STARTED));
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        
+        stake_pool_config.interest_rate = new_interest_rate;
+
+        event::emit_event<UpdateInterestRateEvent>(
+            &mut stake_pool_config.update_interest_rate_events,
+            UpdateInterestRateEvent{
+                old_interest_rate,
+                new_interest_rate
+            }
+
+        );
+    }
+
+    public entry fun update_penality_rate(
+        admin:&signer,
+        new_penality_rate:u64,
+
+    ) acquires StakePool,StakeApp  {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let old_penality_rate = stake_pool_config.penality_rate;
+
+        assert!(contract_config.app_name != string::utf8(b""), error::invalid_state(ESTAKE_NOT_INTIALIZED));
+        assert!(check_stake_pool_not_started(stake_pool_config.epoch_start_time), error::permission_denied(ESTAKE_ALREADY_STARTED));
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        
+        stake_pool_config.penality_rate = new_penality_rate;
+
+        event::emit_event<UpdatePenalityRateEvent>(
+            &mut stake_pool_config.update_penality_rate_events,
+            UpdatePenalityRateEvent{
+                old_penality_rate,
+                new_penality_rate
+            }
+
+        );
+    }
+
+
+    inline fun check_stake_pool_not_started(epoch_start_time:u64):bool{
+        let now = timestamp::now_seconds();
+        if(now < epoch_start_time){
+            true
+        }else{
+            false
+        }
+    }
+
+    inline fun calculate_time_in_days(from:u64, to:u64):u64{
+        let difference = to - from;
+        difference / 86400
+    }
 
     //view functions
     #[test_only]
     #[view]
     public fun get_app_config(
-    ): (String,address,address) acquires StakeApp {
+    ): (String, address, address) acquires StakeApp {
         let staking_config = borrow_global<StakeApp>(@propbase);
         (staking_config.app_name, staking_config.admin, staking_config.treasury)
+    }
+
+    #[test_only]
+    #[view]
+    public fun get_stake_pool_config(
+    ): (u64, u64, u64, u64, u64) acquires StakePool {
+        let staking_pool_config = borrow_global<StakePool>(@propbase);
+        (staking_pool_config.pool_cap, staking_pool_config.epoch_start_time, staking_pool_config.epoch_end_time, staking_pool_config.penality_rate, staking_pool_config.interest_rate)
     }
 
     #[view]
