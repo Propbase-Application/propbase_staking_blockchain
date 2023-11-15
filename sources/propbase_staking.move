@@ -3,6 +3,7 @@ module propbase::propbase_staking {
     use std::signer;
     use std::vector;
     use std::error;
+    use std::debug;
 
     #[test_only]
     friend propbase::propbase_staking_tests;
@@ -446,6 +447,24 @@ module propbase::propbase_staking {
         );
     }
 
+    public entry fun get_rewards (
+        principal: u64,
+        intrest_rate: u64,
+        from: u64,
+        to: u64,
+
+    ) {
+        let rewards= calculate_rewards(from, to, intrest_rate, principal);
+        debug::print<String>(&string::utf8(b"this is rewards result===================== #1"));
+        debug::print(&rewards);
+
+    }
+    inline fun calculate_rewards(from:u64, to:u64, intrest_rate:u64, principal: u64):u64 {
+        let days= calculate_time_in_days(from,to);
+        debug::print<String>(&string::utf8(b"this is days result===================== #1"));
+        debug::print(&days);
+        ((principal * intrest_rate) / 366 )  * (days) / 100
+    }
 
     inline fun check_stake_pool_not_started(epoch_start_time:u64):bool{
         let now = timestamp::now_seconds();

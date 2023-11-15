@@ -655,4 +655,20 @@ module propbase::propbase_staking_tests {
 
     }
 
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    fun test_sucessfull_get_rewards(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 1000);
+        propbase_staking::get_rewards(10000000000, 40, 1000, 87400);
+        propbase_staking::get_rewards(10000000000, 40, 1000, 2593000);
+        propbase_staking::get_rewards(10000000000, 40, 1000, 2679400);
+
+    }
+
 }
