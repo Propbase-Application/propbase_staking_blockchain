@@ -5,7 +5,7 @@ module propbase::propbase_staking {
     use std::error;
 
     #[test_only]
-    friend propbase::propbase_stacking_tests;
+    friend propbase::propbase_staking_tests;
 
     use aptos_framework::event::{Self, EventHandle};
     use aptos_std::math64::{max};
@@ -319,7 +319,7 @@ module propbase::propbase_staking {
 
     }
 
-    public entry fun update_stake_start_time(
+    public entry fun update_epoch_time(
         admin:&signer,
         new_start_time:u64,
 

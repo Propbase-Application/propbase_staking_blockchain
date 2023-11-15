@@ -1,5 +1,5 @@
 #[test_only]
-module propbase::propbase_stacking_tests {
+module propbase::propbase_staking_tests {
 
     use std::string::{Self, String};
     use std::signer;
@@ -133,7 +133,7 @@ module propbase::propbase_stacking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB)]
-    fun test_successful_add_treasurers(
+    fun test_successful_add_reward_treasurers(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -154,7 +154,7 @@ module propbase::propbase_stacking_tests {
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB)]
     #[expected_failure(abort_code = 0x50001, location = propbase_staking )]
-    fun test_failure_add_treasurers_not_admin(
+    fun test_failure_add_reward_treasurers_not_admin(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -172,7 +172,7 @@ module propbase::propbase_stacking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB)]
-    fun test_successful_remove_treasurers(
+    fun test_successful_remove_reward_treasurers(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -197,7 +197,7 @@ module propbase::propbase_stacking_tests {
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB)]
     #[expected_failure(abort_code = 0x50001, location = propbase_staking )]
-    fun test_failure_remove_treasurers_not_admin(
+    fun test_failure_remove_reward_treasurers_not_admin(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -285,7 +285,7 @@ module propbase::propbase_stacking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_successful_update_stake_start_time(
+    fun test_successful_update_epoch_time(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -295,7 +295,7 @@ module propbase::propbase_stacking_tests {
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
         propbase_staking::create_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50);
-        propbase_staking::update_stake_start_time(admin,90000);
+        propbase_staking::update_epoch_time(admin,90000);
 
         let (pool_cap, epoch_start_time, epoch_end_time, penality_rate, interest_rate) = propbase_staking::get_stake_pool_config();
 
@@ -305,7 +305,7 @@ module propbase::propbase_stacking_tests {
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x50001, location = propbase_staking )]
-    fun test_failure_update_stake_start_time(
+    fun test_failure_update_epoch_time(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -315,13 +315,13 @@ module propbase::propbase_stacking_tests {
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
         propbase_staking::create_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50);
-        propbase_staking::update_stake_start_time(address_1,90000);
+        propbase_staking::update_epoch_time(address_1,90000);
 
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x30005, location = propbase_staking )]
-    fun test_failure_update_stake_start_time_stake_not_initialized(
+    fun test_failure_update_epoch_time_stake_not_initialized(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -330,13 +330,13 @@ module propbase::propbase_stacking_tests {
     ) {
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::update_stake_start_time(admin,90000);
+        propbase_staking::update_epoch_time(admin,90000);
 
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x50006, location = propbase_staking )]
-    fun test_failure_update_stake_start_time_pool_already_started(
+    fun test_failure_update_epoch_time_pool_already_started(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -347,13 +347,13 @@ module propbase::propbase_stacking_tests {
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
         propbase_staking::create_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50);
         fast_forward_secs(30000);
-        propbase_staking::update_stake_start_time(admin,90000);
+        propbase_staking::update_epoch_time(admin,90000);
 
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x10004, location = propbase_staking )]
-    fun test_failure_update_stake_start_time_end_time_shuld_be_greater_than_start(
+    fun test_failure_update_epoch_time_end_time_shuld_be_greater_than_start(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -363,7 +363,7 @@ module propbase::propbase_stacking_tests {
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
         propbase_staking::create_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50);
-        propbase_staking::update_stake_start_time(admin,250000);
+        propbase_staking::update_epoch_time(admin,250000);
 
         let (pool_cap, epoch_start_time, epoch_end_time, penality_rate, interest_rate) = propbase_staking::get_stake_pool_config();
 
