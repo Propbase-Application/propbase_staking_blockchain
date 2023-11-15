@@ -319,7 +319,7 @@ module propbase::propbase_staking {
 
     }
 
-    public entry fun update_epoch_time(
+    public entry fun update_epoch_start_time(
         admin:&signer,
         new_start_time:u64,
 
@@ -345,7 +345,7 @@ module propbase::propbase_staking {
         );
     }
 
-    public entry fun update_stake_end_time(
+    public entry fun update_epoch_end_time(
         admin:&signer,
         new_end_time:u64,
 
@@ -357,6 +357,7 @@ module propbase::propbase_staking {
         assert!(contract_config.app_name != string::utf8(b""), error::invalid_state(ESTAKE_NOT_INTIALIZED));
         assert!(check_stake_pool_not_started(stake_pool_config.epoch_start_time), error::permission_denied(ESTAKE_ALREADY_STARTED));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(new_end_time > stake_pool_config.epoch_start_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
         
         stake_pool_config.epoch_end_time = new_end_time;
 
