@@ -11,6 +11,7 @@ Assuming this is a Long term => 40% APY, Jan 01, 2024 to Dec 31, 2024
 number of days in epoch = epoch_in_days = 366 days
 
 Assuming the observer is visiting the days at the exact time always.
+interval - seconds
 
 Jan 1 - User stake -> 100 PROPS -> Principal (P) = 100
     set stake_1_amount = 100
@@ -38,9 +39,9 @@ Feb 01 - rewards accumulated
 
 Feb 01 - User stake -> another 100 PROPS -> Principal (P) Total = 200
     set rewards_accumulated = rewards = stake_1_amount * ((current_time - stake_1_time) / epoch_in_days) * stake_1_rate / 100
-    rewards_accumulated = 100 * (31/366) * 40 / 100
+    rewards_accumulated = 100 * (31/366) * 40 / 100 = 3.387978142076503
 
-    set stake_2_amount = 200
+    set stake_2_amount = 100
 
     epoch left = 335 days (366 - 31)
     new rate for new stake = 335 * 40 / 366 = 36.612021857923494 %
@@ -85,10 +86,18 @@ March 1 - user unstake 100
 
 
     penalty = 5% = 0.05
-    total_penalty = total_staked_amount * penalty
-    total_pentaly = 200 * 0.05 = 10 $PROPS
-    total_pentaly goes to treasury
+    total_penalty = withdraw * penalty
+    total_pentaly = 100 * 0.05 = 5 $PROPS == ?
+    Qn - total_pentaly goes to treasury after period ends - can we hold the penalty in contract till the period end  the treasurer can claim the penantly ?
     withdraw = 100
+
+    The UX should show the calculation of penalty as follows:
+    entered amount = 100 , penalty = 100 * 0.05 = 5
+    actual withdraw amount = 100 - 5 = 95
+    Qn - Need to verify this
+
+    validation to check if user has staked amount >= 100
+
 
     stake_1_time = current_time
     stake_2_time = current_time
@@ -170,7 +179,7 @@ March 4 - rewards accumulated
 ```
 When user  unstake,
     set rewards_accumulated
-    reser all stake time to be current time
+    reset all stake time to be current time
     set stake amount as follows:
 
     if (withdraw <= stake_2_amount) {
@@ -189,6 +198,59 @@ When user  unstake,
         rewards = (stake_1_amount * ((current_time - stake_1_time) / 366) * stake_1_rate / 100 ) +
             (stake_2_amount * ((current_time - stake_2_time) / 366) * stake_2_rate / 100 ) + .... (Sum of n series)
     }
+
+
+
+stake_amount = [100, 100]
+stake_time = [Jan1, Mar1]
+stake_rate = [40, 36.612021857923494]
+
+expected reward:
+
+i = 0
+reward = 0
+while(i < stake_amount.length) {
+    reward = reward + (stake_amount[i] * ((epoch_end_time - stake_time[i]) / 366) * stake_rate[i] / 100 )
+}
+
+exact reward so far:
+
+i = 0
+reward = 0
+while(i < stake_amount.length) {
+    reward = reward + (stake_amount[i] * ((current_time - stake_time[i]) / 366) * stake_rate[i] / 100 )
+    i ++
+}
+
+
+<!-- Unstake and set rate and amount
+
+if (withdraw <= stake_amount[i]) {
+        stake_2_amount = stake_2_amount - withdraw
+        return
+    }
+
+add_upto_withdraw = 0
+i = stake_amount.length - 1
+reward = 0
+while(i >= 0) {
+     if (withdraw <= add_upto_withdraw) {
+        stake_2_amount = add_upto_withdraw - withdraw
+        return
+    } else {
+        add_upto_withdraw = add_upto_withdraw + stake_2_amount
+    }
+
+}
+
+    elseif (withdraw <= stake_1_amount + stake_2_amount) {
+        stake_2_amount = 0
+        stake_1_amount = withdraw - stake_2_amount
+    }
+} -->
+
+
+
 
 
 ```
