@@ -8,11 +8,8 @@ module propbase::propbase_staking {
     #[test_only]
     friend propbase::propbase_staking_tests;
 
-
     use aptos_framework::event::{Self, EventHandle};
-    use aptos_framework::aptos_account;
     use aptos_std::table_with_length::{Self as Table, TableWithLength};
-    use aptos_std::type_info;
 
     use aptos_framework::account::{Self, SignerCapability};
     use aptos_framework::timestamp;
@@ -65,7 +62,7 @@ module propbase::propbase_staking {
 
     struct Stake has drop, store {
         timestamp:u64,
-        amount: u128,
+        amount: u64,
     }
 
     struct SetAdminEvent has drop, store {
@@ -101,6 +98,7 @@ module propbase::propbase_staking {
     const EINVALID_AMOUNT: u64 = 8;
     const ENOT_IN_STAKING_RANGE: u64 = 9;
     const ENOT_STAKED_USER: u64 = 10;
+<<<<<<< HEAD
     const EACCOUNT_DOES_NOT_EXIST: u64 = 11;
     const ESTAKE_POOL_INTEREST_OUT_OF_RANGE: u64 = 12;
     const ESTAKE_POOL_PENALTY_OUT_OF_RANGE: u64 = 13;
@@ -108,6 +106,8 @@ module propbase::propbase_staking {
     const ESTAKE_START_TIME_OUT_OF_RANGE : u64 = 15;
     const ESTAKE_END_TIME_OUT_OF_RANGE : u64 = 16;
     const ESTAKE_POOL_NAME_CANT_BE_EMPTY : u64 = 17;
+=======
+>>>>>>> 36970cc (initial user stake)
 
     fun init_module(resource_account: &signer){
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -329,9 +329,9 @@ module propbase::propbase_staking {
         assert!(type_info::type_name<CoinType>() == string::utf8(b"0x1::propbase::PROP"), error::invalid_argument(ENOT_PROPS));
         assert!(amount >= 1000000000, error::invalid_argument(EINVALID_AMOUNT));
         assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(ENOT_IN_STAKING_RANGE));
-        assert!(stake_pool_config.stacked_amount + (amount as u64) <= stake_pool_config.pool_cap , error::resource_exhausted(ESTAKE_POOL_EXHAUSTED));
+        assert!(stake_pool_config.staked_amount + (amount as u64) <= stake_pool_config.pool_cap , error::resource_exhausted(ESTAKE_POOL_EXHAUSTED));
 
-        stake_pool_config.stacked_amount = stake_pool_config.stacked_amount + (amount as u64);
+        stake_pool_config.staked_amount = stake_pool_config.staked_amount + (amount as u64);
 
         if(!exists<UserInfo>(signer::address_of(user))){
  
@@ -349,8 +349,8 @@ module propbase::propbase_staking {
 
             });
 
-            let prev_amount = stake_pool_config.stacked_amount;
-            stake_pool_config.stacked_amount = prev_amount + (amount as u64);
+            let prev_amount = stake_pool_config.staked_amount;
+            stake_pool_config.staked_amount = prev_amount + (amount as u64);
 
             aptos_account::transfer_coins<CoinType>(user, @propbase, (amount as u64));
 
@@ -363,8 +363,8 @@ module propbase::propbase_staking {
             user_state.principal = user_state.principal + amount;
             user_state.last_staked_time = now;
 
-            let prev_amount = stake_pool_config.stacked_amount;
-            stake_pool_config.stacked_amount = prev_amount + (amount as u64);
+            let prev_amount = stake_pool_config.staked_amount;
+            stake_pool_config.staked_amount = prev_amount + (amount as u64);
 
             aptos_account::transfer_coins<CoinType>(user, @propbase, (amount as u64));
 
@@ -379,17 +379,17 @@ module propbase::propbase_staking {
         from: u64,
         to: u64,
     ) {
-        let rewards= calculate_rewards(from, to, intrest_rate, (principal as u128));
+        let rewards= calculate_rewards(from, to, interest_rate, (principal as u128));
         debug::print<String>(&string::utf8(b"this is rewards result===================== #1"));
         debug::print(&rewards);
 
     }
 
-    inline fun calculate_rewards(from:u64, to:u64, intrest_rate:u64, principal: u128):u128 {
+    inline fun calculate_rewards(from:u64, to:u64, interest_rate:u64, principal: u128):u128 {
         let time= calculate_time(from,to);
         debug::print<String>(&string::utf8(b"this is time result===================== #1"));
         debug::print(&time);
-        let interest_per_second = (principal * (intrest_rate as u128));
+        let interest_per_second = (principal * (interest_rate as u128));
         let interest_per_day = interest_per_second / 31622400;
         let remainder = interest_per_second % 31622400;
         let total_interest = (interest_per_day * (time as u128)) + ((remainder * (time as u128)) / 31622400);
