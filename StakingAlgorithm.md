@@ -10,6 +10,8 @@ number of days in epoch = epoch_in_days = 366 days
 
 Assuming the observer is visiting the days at the exact time always.
 
+Pool cap => 20 million , 40% APY,  reward =  capped
+
 Jan 1 - User stake -> 100 PROPS -> Principal (P) = 100
 Jan 2 - rewards accumulated = PNR/100
     P = Principal = 100
@@ -63,14 +65,42 @@ March 1 - user unstake 100
     total_returns = 209.726775956284154
 
     penalty = 5% = 0.05
-    total_penalty = total_staked_amount * penalty
-    total_pentaly = 200 * 0.05 = 10 $PROPS
-    total_pentaly goes to treasury
+    total_penalty = withdraw * penalty
+    total_pentaly = 100 * 0.05 = 5 $PROPS == ?
+    Qn - total_pentaly goes to treasury after period ends - can we hold the penalty in contract till the period end  the treasurer can claim the penalty ?
+    Ans -> treasurer - need to transfer rewards at any time when the penalty is deducted
     withdraw = 100
 
-    total_returns = total_returns - withdraw - total_pentaly
-    total_returns = 209.726775956284154 - 100 - 10
+    The UX should show the calculation of penalty as follows:
+    entered amount = 100 , penalty = 100 * 0.05 = 5
+    actual withdraw amount = 100 - 5 = 95
+    user to confirm
+
+
+
+    validation to check if user has staked amount >= 100
+    actual withdraw amount = 100 - 5 = 95
+
+
+    total_returns = total_returns - withdraw
+    total_returns = 209.726775956284154 - 100
     total_returns = 99.72677595628414
+
+
+    Rewards - 2 - first
+    Capital - 100 - second
+
+after withdraw:
+   Capital - 2 - second
+    Rewards - 0 - first
+
+    no fee for reward claim
+
+When user unstake, there are 3 options, which is best?
+    - should the reward (first) and capital be withdrawn
+    - only capital be withdrawn, rewards be claimed as per vesting schedule - no exit strategy
+    - separate exit strategy - unstake only, unstake & exit (if total capital is to be withdrawn)
+
 
 March 2 - rewards accumulated
     rewards_accumulated = rewards_accumulated + (P * ((current_time - rewards_accumulation_calculated_time) / 366) * R / 100 )
@@ -84,15 +114,18 @@ March 3 - user stakes 150
     rewards_accumulated = 9.945355191256832
 
 
+When user stakes or unstake,
+    set rewards_accumulated
+    set rewards_accumulation_calculated_time = current_time
+    set P =  effective available principal amount
+
+
+initial value, rewards_accumulated = 0
+
 IF rewards_accumulated
     rewards = rewards_accumulated +  (P * ((current_time - rewards_accumulation_calculated_time) / 366) * R / 100)
 ELSE
     rewards = P * ((current_time - last_staked_time) / epoch_in_days) * R / 100
-
-When user stakes or unstake,
-    set rewards_accumulated
-    set rewards_accumulation_calculated_time = current_time
-    set P = current principal amount
 
 
 ```
