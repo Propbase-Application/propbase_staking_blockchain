@@ -9,7 +9,9 @@ module propbase::propbase_staking {
     friend propbase::propbase_staking_tests;
 
     use aptos_framework::event::{Self, EventHandle};
+    use aptos_framework::aptos_account;
     use aptos_std::table_with_length::{Self as Table, TableWithLength};
+    use aptos_std::type_info;
 
     use aptos_framework::account::{Self, SignerCapability};
     use aptos_framework::timestamp;
@@ -93,12 +95,12 @@ module propbase::propbase_staking {
     const ENOT_NOT_A_TREASURER: u64 = 2;
     const ESTAKE_POOL_ALREADY_CREATED: u64 = 3;
     const ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME: u64 = 4;
-    const ESTAKE_ALREADY_STARTED : u64 = 6;
+    const ESTAKE_POOL_EXHAUSTED : u64 = 5;
+    const ESTAKE_ALREADY_STARTED: u64 = 6;
     const ENOT_PROPS: u64 = 7;
     const EINVALID_AMOUNT: u64 = 8;
     const ENOT_IN_STAKING_RANGE: u64 = 9;
     const ENOT_STAKED_USER: u64 = 10;
-<<<<<<< HEAD
     const EACCOUNT_DOES_NOT_EXIST: u64 = 11;
     const ESTAKE_POOL_INTEREST_OUT_OF_RANGE: u64 = 12;
     const ESTAKE_POOL_PENALTY_OUT_OF_RANGE: u64 = 13;
@@ -106,8 +108,6 @@ module propbase::propbase_staking {
     const ESTAKE_START_TIME_OUT_OF_RANGE : u64 = 15;
     const ESTAKE_END_TIME_OUT_OF_RANGE : u64 = 16;
     const ESTAKE_POOL_NAME_CANT_BE_EMPTY : u64 = 17;
-=======
->>>>>>> 36970cc (initial user stake)
 
     fun init_module(resource_account: &signer){
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -277,6 +277,10 @@ module propbase::propbase_staking {
         let set_interest_rate = *vector::borrow(&value_config, 4);
         let set_penalty_rate = *vector::borrow(&value_config, 5);
 
+        if(set_epoch_start_time && set_epoch_end_time){
+            assert!(epoch_start_time < epoch_end_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME))
+        };
+
         if(set_pool_cap){
             assert!(pool_cap > 0, error::invalid_argument(ESTAKE_POOL_CAP_OUT_OF_RANGE));
             stake_pool_config.pool_cap = pool_cap;          
@@ -317,9 +321,10 @@ module propbase::propbase_staking {
 
     }
 
+
     public entry fun stake_prop<CoinType> (
         user: &signer,
-        amount: u128
+        amount: u64
 
     )acquires  UserInfo, StakePool{
 
@@ -329,21 +334,21 @@ module propbase::propbase_staking {
         assert!(type_info::type_name<CoinType>() == string::utf8(b"0x1::propbase::PROP"), error::invalid_argument(ENOT_PROPS));
         assert!(amount >= 1000000000, error::invalid_argument(EINVALID_AMOUNT));
         assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(ENOT_IN_STAKING_RANGE));
-        assert!(stake_pool_config.staked_amount + (amount as u64) <= stake_pool_config.pool_cap , error::resource_exhausted(ESTAKE_POOL_EXHAUSTED));
+        assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap , error::resource_exhausted(ESTAKE_POOL_EXHAUSTED));
 
-        stake_pool_config.staked_amount = stake_pool_config.staked_amount + (amount as u64);
+        stake_pool_config.staked_amount = stake_pool_config.staked_amount + amount;
 
         if(!exists<UserInfo>(signer::address_of(user))){
  
             let stake_buffer = vector::empty<Stake>();
             let unstake_buffer = vector::empty<Stake>();
-            vector::push_back(&mut stake_buffer, Stake{timestamp: now, amount});
+            vector::push_back(&mut stake_buffer, Stake{timestamp: now, amount });
 
             move_to(user, UserInfo{
                 principal: amount,
                 withdrawn: 0,
-                stake_events: stake_buffer,
-                unstake_events: unstake_buffer,
+                staked_items: stake_buffer,
+                unstaked_items: unstake_buffer,
                 accumulated_rewards: 0,
                 last_staked_time: now,
 
@@ -359,14 +364,14 @@ module propbase::propbase_staking {
             let user_state = borrow_global_mut<UserInfo>(signer::address_of(user));
             let accumulated_rewards = calculate_rewards(user_state.last_staked_time, now, stake_pool_config.interest_rate, user_state.principal );
             
-            user_state.accumulated_rewards = accumulated_rewards;
+            user_state.accumulated_rewards = (accumulated_rewards as u64);
             user_state.principal = user_state.principal + amount;
             user_state.last_staked_time = now;
 
             let prev_amount = stake_pool_config.staked_amount;
-            stake_pool_config.staked_amount = prev_amount + (amount as u64);
+            stake_pool_config.staked_amount = prev_amount + (amount);
 
-            aptos_account::transfer_coins<CoinType>(user, @propbase, (amount as u64));
+            aptos_account::transfer_coins<CoinType>(user, @propbase, (amount));
 
         }
 
@@ -379,17 +384,17 @@ module propbase::propbase_staking {
         from: u64,
         to: u64,
     ) {
-        let rewards= calculate_rewards(from, to, interest_rate, (principal as u128));
+        let rewards= calculate_rewards(from, to, interest_rate, principal);
         debug::print<String>(&string::utf8(b"this is rewards result===================== #1"));
         debug::print(&rewards);
 
     }
 
-    inline fun calculate_rewards(from:u64, to:u64, interest_rate:u64, principal: u128):u128 {
+    inline fun calculate_rewards(from:u64, to:u64, interest_rate:u64, principal: u64):u128 {
         let time= calculate_time(from,to);
         debug::print<String>(&string::utf8(b"this is time result===================== #1"));
         debug::print(&time);
-        let interest_per_second = (principal * (interest_rate as u128));
+        let interest_per_second = ((principal as u128) * (interest_rate as u128));
         let interest_per_day = interest_per_second / 31622400;
         let remainder = interest_per_second % 31622400;
         let total_interest = (interest_per_day * (time as u128)) + ((remainder * (time as u128)) / 31622400);
@@ -445,14 +450,14 @@ module propbase::propbase_staking {
     public fun get_stake_amounts(
         user:address,
 
-    ): vector<u128> acquires UserInfo{
+    ): vector<u64> acquires UserInfo{
         assert!(exists<UserInfo>(user), error::invalid_argument(ENOT_STAKED_USER));
         let user_config = borrow_global<UserInfo>(user);
-        let amounts= vector::empty<u128>();
+        let amounts= vector::empty<u64>();
         let i = 0;
-        let len = vector::length(&user_config.stake_events);
+        let len = vector::length(&user_config.staked_items);
         while (i < len){
-            let element = vector::borrow(&user_config.stake_events, i);
+            let element = vector::borrow(&user_config.staked_items, i);
             vector::push_back(&mut amounts, element.amount);
         };
         amounts
@@ -468,9 +473,9 @@ module propbase::propbase_staking {
         let user_config = borrow_global<UserInfo>(user);
         let timestamps= vector::empty<u64>();
         let i = 0;
-        let len = vector::length(&user_config.stake_events);
+        let len = vector::length(&user_config.staked_items);
         while (i < len){
-            let element = vector::borrow(&user_config.stake_events, i);
+            let element = vector::borrow(&user_config.staked_items, i);
             vector::push_back(&mut timestamps, element.timestamp);
         };
         timestamps
@@ -488,7 +493,7 @@ module propbase::propbase_staking {
 
         if(user_config.accumulated_rewards != 0){
             let current_rewards= calculate_rewards(user_config.last_staked_time, now, stake_pool_config.interest_rate, user_config.principal);
-            ((current_rewards as u64) + (user_config.accumulated_rewards as u64) )
+            ((current_rewards as u64) + user_config.accumulated_rewards )
         }else{
             let rewards = calculate_rewards(user_config.last_staked_time, now, stake_pool_config.interest_rate, user_config.principal); 
             (rewards as u64)   

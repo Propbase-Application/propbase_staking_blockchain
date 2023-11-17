@@ -7,7 +7,6 @@ module propbase::propbase_staking_tests {
     use std::error;
 
     use propbase::propbase_staking;
-    use propbase::prop_coin::{Self,PROP};
 
     use aptos_framework::event::{Self, EventHandle};
     use aptos_std::math64::{max};
@@ -888,6 +887,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
 
@@ -923,6 +923,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
 
@@ -950,6 +951,7 @@ module propbase::propbase_staking_tests {
         aptos_framework: &signer,
     ) {
         let update_config2 = vector::empty<bool>();
+        vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
@@ -1206,27 +1208,6 @@ module propbase::propbase_staking_tests {
         propbase_staking::get_rewards(10000000000, 40, 1000, 87400);
         propbase_staking::get_rewards(10000000000, 40, 1000, 2593000);
         propbase_staking::get_rewards(10000000000, 40, 1000, 2679400);
-
-    }
-
-    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_successful_stake_token(
-        resource: &signer,
-        admin: &signer,
-        address_1: &signer,
-        address_2: &signer,
-        aptos_framework: &signer,
-    ) {
-        let update_config2 = vector::empty<bool>();
-        vector::push_back(&mut update_config2, false);
-        vector::push_back(&mut update_config2, false);
-        vector::push_back(&mut update_config2, false);
-        vector::push_back(&mut update_config2, true);
-        vector::push_back(&mut update_config2, false);
-
-        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
-
 
     }
 
