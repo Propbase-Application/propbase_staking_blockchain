@@ -32,14 +32,14 @@ module propbase::propbase_staking {
         pool_cap: u64,
         epoch_start_time: u64,
         epoch_end_time: u64,
-        penality_rate: u64,
         interest_rate: u64,
+        penalty_rate: u64,
         staked_amount: u64,
         set_pool_config_events: EventHandle<SetStakePoolEvent>,
     }
 
     struct RewardPool has key {
-        availabe_rewards: u64,
+        available_rewards: u64,
         threshold: u64,
         updated_rewards_events: EventHandle<UpdateRewardsEvent>,
     }
@@ -54,8 +54,8 @@ module propbase::propbase_staking {
     struct UserInfo has key {
         principal: u64,
         withdrawn: u64,
-        stake_events: vector<Stake>,
-        unstake_events: vector<Stake>,
+        staked_items: vector<Stake>,
+        unstaked_items: vector<Stake>,
         accumulated_rewards: u64,
         last_staked_time: u64,
     }
@@ -81,18 +81,18 @@ module propbase::propbase_staking {
     }
 
     struct SetStakePoolEvent has drop, store {
+        pool_name: String,
         pool_cap: u64,
         epoch_start_time: u64,
         epoch_end_time: u64,
-        penality_rate: u64,
         interest_rate: u64,
+        penalty_rate: u64,
     }
 
     const ENOT_AUTHORIZED: u64 = 1;
     const ENOT_NOT_A_TREASURER: u64 = 2;
     const ESTAKE_POOL_ALREADY_CREATED: u64 = 3;
     const ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME: u64 = 4;
-    const ESTAKE_NOT_INTIALIZED: u64 = 5;
     const ESTAKE_ALREADY_STARTED: u64 = 6;
     const ENOT_PROPS: u64 = 7;
     const EINVALID_AMOUNT: u64 = 8;
@@ -129,15 +129,15 @@ module propbase::propbase_staking {
             pool_cap: 0,
             epoch_start_time: 0,
             epoch_end_time: 0,
-            penality_rate: 0,
             interest_rate: 0,
+            penalty_rate: 0,
             staked_amount: 0,
             set_pool_config_events: account::new_event_handle<SetStakePoolEvent>(resource_account),
 
         });
 
         move_to(resource_account, RewardPool {
-            availabe_rewards: 0,
+            available_rewards: 0,
             threshold: 0,
             updated_rewards_events: account::new_event_handle<UpdateRewardsEvent>(resource_account),
 
@@ -204,8 +204,8 @@ module propbase::propbase_staking {
         let length = vector::length(&new_treasurers);
         
         while (index < length){
-            let element = *vector::borrow(&new_treasurers,index);
-            Table::upsert<address, bool>(&mut contract_config.reward_treasurers,element, true);
+            let element = *vector::borrow(&new_treasurers, index);
+            Table::upsert<address, bool>(&mut contract_config.reward_treasurers, element, true);
             index = index + 1;
         };
 
@@ -247,7 +247,7 @@ module propbase::propbase_staking {
         pool_cap: u64,
         epoch_start_time: u64,
         epoch_end_time: u64,
-        penality_rate: u64,
+        penalty_rate: u64,
         interest_rate: u64,
         value_config: vector<bool>
     ) acquires StakePool,StakeApp {
@@ -257,11 +257,12 @@ module propbase::propbase_staking {
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
         assert!(check_stake_pool_not_started(stake_pool_config.epoch_start_time) || stake_pool_config.epoch_start_time == 0, error::permission_denied(ESTAKE_ALREADY_STARTED));
 
-        let set_pool_cap = *vector::borrow(&value_config, 0);
-        let set_epoch_start_time = *vector::borrow(&value_config, 1);
-        let set_epoch_end_time = *vector::borrow(&value_config, 2);
-        let set_penality_rate = *vector::borrow(&value_config, 3);
-        let set_interest_rate = *vector::borrow(&value_config, 4);
+        let set_pool_name = *vector::borrow(&value_config, 0);
+        let set_pool_cap = *vector::borrow(&value_config, 1);
+        let set_epoch_start_time = *vector::borrow(&value_config, 2);
+        let set_epoch_end_time = *vector::borrow(&value_config, 3);
+        let set_penalty_rate = *vector::borrow(&value_config, 4);
+        let set_interest_rate = *vector::borrow(&value_config, 5);
 
         if(set_epoch_start_time && set_epoch_end_time){
             assert!(epoch_start_time < epoch_end_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME))
@@ -278,23 +279,24 @@ module propbase::propbase_staking {
             assert!(epoch_end_time > stake_pool_config.epoch_start_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
             stake_pool_config.epoch_end_time = epoch_end_time;
         };
-        if(set_penality_rate){
-            stake_pool_config.penality_rate = penality_rate;
+        if(set_penalty_rate){
+            stake_pool_config.penalty_rate = penalty_rate;
         };
         if(set_interest_rate){
             stake_pool_config.interest_rate = interest_rate;
         };
-        if (contract_config.app_name == string::utf8(b"")){
+        if (set_pool_name){
             contract_config.app_name = pool_name;
         };
         event::emit_event<SetStakePoolEvent>(
             &mut stake_pool_config.set_pool_config_events,
             SetStakePoolEvent {
+                pool_name : contract_config.app_name,
                 pool_cap: stake_pool_config.pool_cap,
                 epoch_start_time: stake_pool_config.epoch_start_time,
                 epoch_end_time: stake_pool_config.epoch_end_time,
-                penality_rate: stake_pool_config.penality_rate,
                 interest_rate: stake_pool_config.interest_rate,
+                penalty_rate: stake_pool_config.penalty_rate,
             }
         );
 
@@ -353,7 +355,7 @@ module propbase::propbase_staking {
     public fun get_stake_pool_config(
     ): (u64, u64, u64, u64, u64) acquires StakePool {
         let staking_pool_config = borrow_global<StakePool>(@propbase);
-        (staking_pool_config.pool_cap, staking_pool_config.epoch_start_time, staking_pool_config.epoch_end_time, staking_pool_config.penality_rate, staking_pool_config.interest_rate)
+        (staking_pool_config.pool_cap, staking_pool_config.epoch_start_time, staking_pool_config.epoch_end_time, staking_pool_config.penalty_rate, staking_pool_config.interest_rate)
     }
 
     #[view]
