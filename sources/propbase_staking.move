@@ -261,8 +261,8 @@ module propbase::propbase_staking {
         let set_pool_cap = *vector::borrow(&value_config, 1);
         let set_epoch_start_time = *vector::borrow(&value_config, 2);
         let set_epoch_end_time = *vector::borrow(&value_config, 3);
-        let set_penalty_rate = *vector::borrow(&value_config, 4);
-        let set_interest_rate = *vector::borrow(&value_config, 5);
+        let set_interest_rate = *vector::borrow(&value_config, 4);
+        let set_penalty_rate = *vector::borrow(&value_config, 5);
 
         if(set_epoch_start_time && set_epoch_end_time){
             assert!(epoch_start_time < epoch_end_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME))
@@ -324,11 +324,7 @@ module propbase::propbase_staking {
 
     inline fun check_stake_pool_not_started(epoch_start_time: u64): bool{
         let now = timestamp::now_seconds();
-        if(now < epoch_start_time){
-            true
-        }else{
-            false
-        }
+        now < epoch_start_time
     }
 
     inline fun calculate_time_in_days(from: u64, to: u64): u64{

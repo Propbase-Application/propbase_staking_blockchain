@@ -227,13 +227,13 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
 
         let (app_name, _, _) = propbase_staking::get_app_config();
-        let (pool_cap, epoch_start_time, epoch_end_time, penality_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(app_name == string::utf8(b"Hello"), 4);
         assert!(pool_cap == 5000000, 5);
         assert!(epoch_start_time == 80000, 6);
         assert!(epoch_end_time == 250000, 7);
-        assert!(penality_rate == 15, 8);
+        assert!(penalty_rate == 15, 8);
         assert!(interest_rate == 50, 9);
 
     }
@@ -311,7 +311,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 90000, 0, 0, 0, update_config2);
 
-        let (pool_cap, epoch_start_time, epoch_end_time, penality_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(epoch_start_time == 90000, 6);
 
@@ -541,7 +541,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 90000, 0, 0, update_config2);
 
-        let (pool_cap, epoch_start_time, epoch_end_time, penality_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(epoch_end_time == 90000, 6);
 
@@ -669,7 +669,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 500, 0, 0, 0, 0, update_config2);
 
-        let (pool_cap, epoch_start_time, epoch_end_time, penality_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(pool_cap == 500, 6);
 
@@ -750,8 +750,8 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
-        vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -765,7 +765,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 55, update_config2);
 
-        let (pool_cap, epoch_start_time, epoch_end_time, penality_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(interest_rate == 55, 6);
 
@@ -785,8 +785,8 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
-        vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -816,8 +816,8 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
-        vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -835,7 +835,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_successful_update_penality_rate(
+    fun test_successful_update_penalty_rate(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -847,8 +847,8 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
-        vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, true);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -862,15 +862,15 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 25, 0, update_config2);
 
-        let (pool_cap, epoch_start_time, epoch_end_time, penality_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
 
-        assert!(penality_rate == 25, 6);
+        assert!(penalty_rate == 25, 6);
 
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x50001, location = propbase_staking )]
-    fun test_failure_update_penality_rate_not_admin(
+    fun test_failure_update_penalty_rate_not_admin(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -882,8 +882,8 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
-        vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, true);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -901,7 +901,7 @@ module propbase::propbase_staking_tests {
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x50006, location = propbase_staking )]
-    fun test_failure_update_penality_rate_pool_already_started(
+    fun test_failure_update_penalty_rate_pool_already_started(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -913,8 +913,8 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
-        vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, true);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
