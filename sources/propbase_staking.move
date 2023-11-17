@@ -8,6 +8,7 @@ module propbase::propbase_staking {
     #[test_only]
     friend propbase::propbase_staking_tests;
 
+
     use aptos_framework::event::{Self, EventHandle};
     use aptos_framework::aptos_account;
     use aptos_std::table_with_length::{Self as Table, TableWithLength};
@@ -316,7 +317,7 @@ module propbase::propbase_staking {
 
     }
 
-    public entry fun stake_token<CoinType> (
+    public entry fun stake_prop<CoinType> (
         user: &signer,
         amount: u128
 
@@ -328,6 +329,9 @@ module propbase::propbase_staking {
         assert!(type_info::type_name<CoinType>() == string::utf8(b"0x1::propbase::PROP"), error::invalid_argument(ENOT_PROPS));
         assert!(amount >= 1000000000, error::invalid_argument(EINVALID_AMOUNT));
         assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(ENOT_IN_STAKING_RANGE));
+        assert!(stake_pool_config.stacked_amount + (amount as u64) <= stake_pool_config.pool_cap , error::resource_exhausted(ESTAKE_POOL_EXHAUSTED));
+
+        stake_pool_config.stacked_amount = stake_pool_config.stacked_amount + (amount as u64);
 
         if(!exists<UserInfo>(signer::address_of(user))){
  
