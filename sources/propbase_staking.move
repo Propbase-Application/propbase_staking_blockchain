@@ -34,13 +34,8 @@ module propbase::propbase_staking {
         epoch_end_time: u64,
         penality_rate: u64,
         interest_rate: u64,
-        stacked_amount: u64,
-        is_pool_started: bool,
-        set_start_time_events: EventHandle<SetStartTimeEvent>,
-        set_end_time_events: EventHandle<SetEndTimeEvent>,
-        set_pool_cap_events: EventHandle<SetPoolCapEvent>,
-        update_interest_rate_events: EventHandle<UpdateInterestRateEvent>,
-        update_penality_rate_events: EventHandle<UpdatePenalityRateEvent>,
+        staked_amount: u64,
+        set_pool_config_events: EventHandle<SetStakePoolEvent>,
     }
 
     struct RewardPool has key {
@@ -80,39 +75,17 @@ module propbase::propbase_staking {
         new_treasury: address,
     }
 
-    struct SetStartTimeEvent has drop, store {
-        old_start_time: u64,
-        new_start_time: u64,
-    }
-
-    struct SetEndTimeEvent has drop, store {
-        old_end_time: u64,
-        new_end_time: u64,
-    }
-
-    struct SetPoolCapEvent has drop, store {
-        old_pool_cap: u64,
-        new_pool_cap: u64,
-    }
-
-    struct UpdateInterestRateEvent has drop, store {
-        old_interest_rate: u64,
-        new_interest_rate: u64,
-    }
-
-    struct UpdatePenalityRateEvent has drop, store {
-        old_penality_rate: u64,
-        new_penality_rate: u64,
-    }
-
-    struct ClaimEvent has drop, store {
-        user: address,
-        amount: u64,
-    }
-
     struct UpdateRewardsEvent has drop, store {
         old_rewards: u64,
         new_rewards: u64,
+    }
+
+    struct SetStakePoolEvent has drop, store {
+        pool_cap: u64,
+        epoch_start_time: u64,
+        epoch_end_time: u64,
+        penality_rate: u64,
+        interest_rate: u64,
     }
 
     const ENOT_AUTHORIZED: u64 = 1;
@@ -158,13 +131,8 @@ module propbase::propbase_staking {
             epoch_end_time: 0,
             penality_rate: 0,
             interest_rate: 0,
-            stacked_amount: 0,
-            is_pool_started: false,
-            set_start_time_events: account::new_event_handle<SetStartTimeEvent>(resource_account),
-            set_end_time_events: account::new_event_handle<SetEndTimeEvent>(resource_account),
-            set_pool_cap_events: account::new_event_handle<SetPoolCapEvent>(resource_account),
-            update_interest_rate_events: account::new_event_handle<UpdateInterestRateEvent>(resource_account),
-            update_penality_rate_events: account::new_event_handle<UpdatePenalityRateEvent>(resource_account),
+            staked_amount: 0,
+            set_pool_config_events: account::new_event_handle<SetStakePoolEvent>(resource_account),
 
         });
 
@@ -287,6 +255,7 @@ module propbase::propbase_staking {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
 
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(check_stake_pool_not_started(stake_pool_config.epoch_start_time) || stake_pool_config.epoch_start_time == 0, error::permission_denied(ESTAKE_ALREADY_STARTED));
 
         let set_pool_cap = *vector::borrow(&value_config, 0);
         let set_epoch_start_time = *vector::borrow(&value_config, 1);
@@ -298,68 +267,60 @@ module propbase::propbase_staking {
             assert!(epoch_start_time < epoch_end_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME))
         };
 
-        if(contract_config.app_name != string::utf8(b"")){
-            assert!(check_stake_pool_not_started(stake_pool_config.epoch_start_time), error::permission_denied(ESTAKE_ALREADY_STARTED));
-            if(set_pool_cap){
-                stake_pool_config.pool_cap = pool_cap;          
-            };
-            if(set_epoch_start_time){
-                assert!(epoch_start_time < stake_pool_config.epoch_end_time , error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
-                stake_pool_config.epoch_start_time = epoch_start_time; 
-            };
-            if(set_epoch_end_time){
-                assert!(epoch_end_time > stake_pool_config.epoch_start_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
-                stake_pool_config.epoch_end_time = epoch_end_time;
-            };
-            if(set_penality_rate){
-                stake_pool_config.penality_rate = penality_rate;
-            };
-            if(set_interest_rate){
-                stake_pool_config.interest_rate = interest_rate;
-            };
-
-        }else{
+        if(set_pool_cap){
+            stake_pool_config.pool_cap = pool_cap;          
+        };
+        if(set_epoch_start_time){
+            assert!(epoch_start_time < stake_pool_config.epoch_end_time || stake_pool_config.epoch_end_time == 0, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
+            stake_pool_config.epoch_start_time = epoch_start_time; 
+        };
+        if(set_epoch_end_time){
+            assert!(epoch_end_time > stake_pool_config.epoch_start_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
+            stake_pool_config.epoch_end_time = epoch_end_time;
+        };
+        if(set_penality_rate){
+            stake_pool_config.penality_rate = penality_rate;
+        };
+        if(set_interest_rate){
+            stake_pool_config.interest_rate = interest_rate;
+        };
+        if (contract_config.app_name == string::utf8(b"")){
             contract_config.app_name = pool_name;
+        };
+        event::emit_event<SetStakePoolEvent>(
+            &mut stake_pool_config.set_pool_config_events,
+            SetStakePoolEvent {
+                pool_cap: stake_pool_config.pool_cap,
+                epoch_start_time: stake_pool_config.epoch_start_time,
+                epoch_end_time: stake_pool_config.epoch_end_time,
+                penality_rate: stake_pool_config.penality_rate,
+                interest_rate: stake_pool_config.interest_rate,
+            }
+        );
 
-            if(set_pool_cap){
-                stake_pool_config.pool_cap = pool_cap;          
-            };
-            if(set_epoch_start_time){
-                stake_pool_config.epoch_start_time = epoch_start_time; 
-            };
-            if(set_epoch_end_time){
-                stake_pool_config.epoch_end_time = epoch_end_time;
-            };
-            if(set_penality_rate){
-                stake_pool_config.penality_rate = penality_rate;
-            };
-            if(set_interest_rate){
-                stake_pool_config.interest_rate = interest_rate;
-            };
-        }
     }
 
     #[test_only]
     public entry fun get_rewards (
         principal: u64,
-        intrest_rate: u64,
+        interest_rate: u64,
         from: u64,
         to: u64,
     ) {
-        let rewards= calculate_rewards(from, to, intrest_rate, principal);
+        let rewards = calculate_rewards(from, to, interest_rate, principal);
         debug::print<String>(&string::utf8(b"this is rewards result===================== #1"));
         debug::print(&rewards);
 
     }
 
-    inline fun calculate_rewards(from:u64, to:u64, intrest_rate:u64, principal: u64):u64 {
-        let days= calculate_time_in_days(from,to);
+    inline fun calculate_rewards(from: u64, to: u64, interest_rate: u64, principal: u64): u64 {
+        let days = calculate_time_in_days(from, to);
         debug::print<String>(&string::utf8(b"this is days result===================== #1"));
         debug::print(&days);
-        ((principal * intrest_rate) / 366 )  * (days) / 100
+        ((principal * interest_rate) / 366 )  * (days) / 100
     }
 
-    inline fun check_stake_pool_not_started(epoch_start_time:u64):bool{
+    inline fun check_stake_pool_not_started(epoch_start_time: u64): bool{
         let now = timestamp::now_seconds();
         if(now < epoch_start_time){
             true
@@ -368,7 +329,7 @@ module propbase::propbase_staking {
         }
     }
 
-    inline fun calculate_time_in_days(from:u64, to:u64):u64{
+    inline fun calculate_time_in_days(from: u64, to: u64): u64{
         let difference = to - from;
         if(difference < 86400){
             0
@@ -397,7 +358,7 @@ module propbase::propbase_staking {
 
     #[view]
     public fun check_is_reward_treasurers(
-        user:address,
+        user: address,
     ): bool acquires StakeApp{
         let staking_config = borrow_global<StakeApp>(@propbase);
         *Table::borrow(&staking_config.reward_treasurers, user)
