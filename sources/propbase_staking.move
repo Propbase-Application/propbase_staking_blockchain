@@ -337,6 +337,12 @@ module propbase::propbase_staking {
         assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap , error::resource_exhausted(ESTAKE_POOL_EXHAUSTED));
 
         stake_pool_config.staked_amount = stake_pool_config.staked_amount + amount;
+        if(Table::contains(&stake_pool_config.principal_amounts, signer::address_of(user))){
+            let current_staked = Table::borrow_mut(&mut stake_pool_config.principal_amounts, signer::address_of(user));
+            *current_staked = *current_staked + amount;
+        }else{
+            Table::add(&mut stake_pool_config.principal_amounts, signer::address_of(user), amount);
+        };
 
         if(!exists<UserInfo>(signer::address_of(user))){
  
