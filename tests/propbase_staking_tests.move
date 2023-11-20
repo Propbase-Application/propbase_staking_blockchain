@@ -145,7 +145,7 @@ module propbase::propbase_staking_tests {
         address_2: &signer,
     ) {
         setup_test(resource, admin, address_1, address_2);
-        propbase_staking::set_treasury(address_1,signer::address_of(address_1));
+        propbase_staking::set_treasury(address_1, signer::address_of(address_1));
 
     }
 
@@ -176,7 +176,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut treasurers, signer::address_of(address_1));
         vector::push_back(&mut treasurers, signer::address_of(address_2));
 
-        propbase_staking::add_reward_treasurers(admin,treasurers);
+        propbase_staking::add_reward_treasurers(admin, treasurers);
         assert!(propbase_staking::check_is_reward_treasurers(signer::address_of(address_1)), 2);
         assert!(propbase_staking::check_is_reward_treasurers(signer::address_of(address_2)), 3);
 
@@ -196,7 +196,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut treasurers, signer::address_of(address_1));
         vector::push_back(&mut treasurers, signer::address_of(address_2));
 
-        propbase_staking::add_reward_treasurers(address_1,treasurers);
+        propbase_staking::add_reward_treasurers(address_1, treasurers);
 
     }
 
@@ -230,11 +230,11 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut treasurers, signer::address_of(address_1));
         vector::push_back(&mut treasurers, signer::address_of(address_2));
 
-        propbase_staking::add_reward_treasurers(admin,treasurers);
+        propbase_staking::add_reward_treasurers(admin, treasurers);
         assert!(propbase_staking::check_is_reward_treasurers(signer::address_of(address_1)), 2);
         assert!(propbase_staking::check_is_reward_treasurers(signer::address_of(address_2)), 3);
 
-        propbase_staking::remove_reward_treasurers(admin,treasurers);
+        propbase_staking::remove_reward_treasurers(admin, treasurers);
         assert!(!propbase_staking::check_is_reward_treasurers(signer::address_of(address_1)), 2);
         assert!(!propbase_staking::check_is_reward_treasurers(signer::address_of(address_2)), 3);
 
@@ -254,11 +254,11 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut treasurers, signer::address_of(address_1));
         vector::push_back(&mut treasurers, signer::address_of(address_2));
 
-        propbase_staking::add_reward_treasurers(admin,treasurers);
+        propbase_staking::add_reward_treasurers(admin, treasurers);
         assert!(propbase_staking::check_is_reward_treasurers(signer::address_of(address_1)), 2);
         assert!(propbase_staking::check_is_reward_treasurers(signer::address_of(address_2)), 3);
 
-        propbase_staking::remove_reward_treasurers(address_1,treasurers);
+        propbase_staking::remove_reward_treasurers(address_1, treasurers);
 
     }
 
@@ -283,7 +283,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
 
         let (app_name, _, _) = propbase_staking::get_app_config();
-        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(app_name == string::utf8(b"Hello"), 4);
         assert!(pool_cap == 5000000, 5);
@@ -368,7 +368,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 90000, 0, 0, 0, update_config2);
 
-        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(epoch_start_time == 90000, 6);
 
@@ -660,7 +660,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 90000, 0, 0, update_config2);
 
-        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(epoch_end_time == 90000, 6);
 
@@ -788,7 +788,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 500, 0, 0, 0, 0, update_config2);
 
-        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(pool_cap == 500, 6);
 
@@ -900,7 +900,6 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
-        vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
 
@@ -916,8 +915,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 55, 0, update_config2);
 
-        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
-
+        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
         assert!(interest_rate == 55, 6);
 
     }
@@ -932,7 +930,6 @@ module propbase::propbase_staking_tests {
         aptos_framework: &signer,
     ) {
         let update_config2 = vector::empty<bool>();
-        vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
@@ -964,7 +961,6 @@ module propbase::propbase_staking_tests {
         aptos_framework: &signer,
     ) {
         let update_config2 = vector::empty<bool>();
-        vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
@@ -1077,7 +1073,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 25, update_config2);
 
-        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(penalty_rate == 25, 6);
 
@@ -1234,12 +1230,12 @@ module propbase::propbase_staking_tests {
         let receivers = vector::empty<address>();
         vector::push_back(&mut receivers, signer::address_of(address_1));
         setup_prop(resource, receivers);
-        propbase_staking::stake_prop<PROP>(address_1, 10000000000);
+        propbase_staking::add_stake<PROP>(address_1, 10000000000);
 
         let principal = propbase_staking::get_principal_amount(signer::address_of(address_1));
         let amount_transactions = propbase_staking::get_stake_amounts(signer::address_of(address_1));
         let time_stamp_transactions = propbase_staking::get_stake_time_stamps(signer::address_of(address_1));
-        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
         
         assert!(principal == 10000000000, 1);
         assert!(staked_amount == 10000000000, 2);
@@ -1250,7 +1246,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_successful_stake_prop_multiple_times(
+    fun test_successful_add_stake_multiple_times(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -1275,9 +1271,9 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut receivers, signer::address_of(address_1));
 
         setup_prop(resource, receivers);
-        propbase_staking::stake_prop<PROP>(address_1, 5000000000);
+        propbase_staking::add_stake<PROP>(address_1, 5000000000);
         fast_forward_secs(10000);
-        propbase_staking::stake_prop<PROP>(address_1, 5000000000);
+        propbase_staking::add_stake<PROP>(address_1, 5000000000);
 
         let principal = propbase_staking::get_principal_amount(signer::address_of(address_1));
         let amount_transactions = propbase_staking::get_stake_amounts(signer::address_of(address_1));
@@ -1295,7 +1291,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_successful_stake_prop_multiple_users(
+    fun test_successful_add_stake_multiple_users(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -1322,7 +1318,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut receivers, signer::address_of(address_2));
 
         setup_prop(resource, receivers);
-        propbase_staking::stake_prop<PROP>(address_1, 10000000000);
+        propbase_staking::add_stake<PROP>(address_1, 10000000000);
 
         let principal = propbase_staking::get_principal_amount(signer::address_of(address_1));
         let amount_transactions = propbase_staking::get_stake_amounts(signer::address_of(address_1));
@@ -1336,7 +1332,7 @@ module propbase::propbase_staking_tests {
         assert!(*vector::borrow(&amount_transactions, 0) == 10000000000, 5);
         assert!(*vector::borrow(&time_stamp_transactions, 0) == 80000, 6);
 
-        propbase_staking::stake_prop<PROP>(address_2, 10000000000);
+        propbase_staking::add_stake<PROP>(address_2, 10000000000);
 
         let principal2 = propbase_staking::get_principal_amount(signer::address_of(address_2));
         let time_stamp_transactions2 = propbase_staking::get_stake_time_stamps(signer::address_of(address_2));

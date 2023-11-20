@@ -326,7 +326,7 @@ module propbase::propbase_staking {
     }
 
 
-    public entry fun stake_prop<CoinType> (
+    public entry fun add_stake<CoinType> (
         user: &signer,
         amount: u64
 
@@ -410,7 +410,6 @@ module propbase::propbase_staking {
     }
 
     //view functions
-    #[test_only]
     #[view]
     public fun get_app_config(
     ): (String, address, address) acquires StakeApp {
@@ -422,7 +421,7 @@ module propbase::propbase_staking {
     public fun get_stake_pool_config(
     ): (u64, u64, u64, u64, u64, u64) acquires StakePool {
         let staking_pool_config = borrow_global<StakePool>(@propbase);
-        (staking_pool_config.pool_cap, staking_pool_config.staked_amount, staking_pool_config.epoch_start_time, staking_pool_config.epoch_end_time, staking_pool_config.penalty_rate, staking_pool_config.interest_rate)
+        (staking_pool_config.pool_cap, staking_pool_config.staked_amount, staking_pool_config.epoch_start_time, staking_pool_config.epoch_end_time, staking_pool_config.interest_rate, staking_pool_config.penalty_rate)
     }
 
     #[view]
