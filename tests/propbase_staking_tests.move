@@ -224,7 +224,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
 
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
 
         let (app_name, _, _) = propbase_staking::get_app_config();
         let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
@@ -257,7 +257,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
 
-        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
 
     }
 
@@ -279,7 +279,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 80000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 80000, 50, 15, update_config);
 
     }
 
@@ -308,7 +308,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 90000, 0, 0, 0, update_config2);
 
         let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
@@ -373,7 +373,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
 
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
 
         fast_forward_secs(30000);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 90000, 0, 0, 0, update_config2);
@@ -406,7 +406,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 250000, 0, 0, 0, update_config2);
 
     }
@@ -436,7 +436,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello2"), 0, 0, 90000, 0, 0, update_config2);
 
         let (name, admin, treasury) = propbase_staking::get_app_config();
@@ -471,7 +471,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello2"), 0, 0, 90000, 0, 0, update_config2);
 
     }
@@ -502,7 +502,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         fast_forward_secs(30000);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello2"), 0, 0, 90000, 0, 0, update_config2);
 
@@ -538,7 +538,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 90000, 0, 0, update_config2);
 
         let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
@@ -573,7 +573,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 0, 90000, 0, 0, update_config2);
 
     }
@@ -604,7 +604,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         fast_forward_secs(30000);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 90000, 0, 0, update_config2);
 
@@ -636,7 +636,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
 
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 80000, 0, 0, update_config2);
 
     }
@@ -666,7 +666,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 500, 0, 0, 0, 0, update_config2);
 
         let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
@@ -701,7 +701,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 500, 0, 0, 0, 0, update_config2);
     }
 
@@ -731,7 +731,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         fast_forward_secs(30000);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 500, 0, 0, 0, 0, update_config2);
 
@@ -762,8 +762,8 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 55, update_config2);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 55, 0, update_config2);
 
         let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
 
@@ -797,8 +797,8 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
-        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 0, 0, 0, 55, update_config2);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
+        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 0, 0, 55, 0, update_config2);
 
     }
 
@@ -828,9 +828,9 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         fast_forward_secs(30000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 55, update_config2);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 55, 0, update_config2);
 
     }
 
@@ -859,8 +859,8 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 25, 0, update_config2);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 25, update_config2);
 
         let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
 
@@ -894,8 +894,8 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
-        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 0, 0, 25, 0, update_config2);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
+        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 0, 0, 0, 25, update_config2);
 
     }
 
@@ -925,9 +925,9 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 15, 50, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         fast_forward_secs(30000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 25, 0, update_config2);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 25, update_config2);
 
     }
 

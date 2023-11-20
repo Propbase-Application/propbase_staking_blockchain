@@ -247,8 +247,8 @@ module propbase::propbase_staking {
         pool_cap: u64,
         epoch_start_time: u64,
         epoch_end_time: u64,
-        penalty_rate: u64,
         interest_rate: u64,
+        penalty_rate: u64,
         value_config: vector<bool>
     ) acquires StakePool,StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
@@ -263,11 +263,6 @@ module propbase::propbase_staking {
         let set_epoch_end_time = *vector::borrow(&value_config, 3);
         let set_interest_rate = *vector::borrow(&value_config, 4);
         let set_penalty_rate = *vector::borrow(&value_config, 5);
-
-        if(set_epoch_start_time && set_epoch_end_time){
-            assert!(epoch_start_time < epoch_end_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME))
-        };
-
         if(set_pool_cap){
             stake_pool_config.pool_cap = pool_cap;          
         };
@@ -346,7 +341,6 @@ module propbase::propbase_staking {
         (staking_config.app_name, staking_config.admin, staking_config.treasury)
     }
 
-    #[test_only]
     #[view]
     public fun get_stake_pool_config(
     ): (u64, u64, u64, u64, u64) acquires StakePool {
