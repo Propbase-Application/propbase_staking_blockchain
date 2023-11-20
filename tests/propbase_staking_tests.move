@@ -227,7 +227,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
 
         let (app_name, _, _) = propbase_staking::get_app_config();
-        let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, epoch_start_time, epoch_end_time,interest_rate , penalty_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(app_name == string::utf8(b"Hello"), 4);
         assert!(pool_cap == 5000000, 5);
@@ -311,7 +311,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 90000, 0, 0, 0, update_config2);
 
-        let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, epoch_start_time, epoch_end_time,interest_rate , penalty_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(epoch_start_time == 90000, 6);
 
@@ -541,7 +541,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 90000, 0, 0, update_config2);
 
-        let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, epoch_start_time, epoch_end_time,interest_rate , penalty_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(epoch_end_time == 90000, 6);
 
@@ -669,7 +669,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 500, 0, 0, 0, 0, update_config2);
 
-        let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, epoch_start_time, epoch_end_time,interest_rate , penalty_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(pool_cap == 500, 6);
 
@@ -765,7 +765,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 55, 0, update_config2);
 
-        let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, epoch_start_time, epoch_end_time,interest_rate , penalty_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(interest_rate == 55, 6);
 
@@ -862,7 +862,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
         propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 25, update_config2);
 
-        let (pool_cap, epoch_start_time, epoch_end_time, penalty_rate, interest_rate) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, epoch_start_time, epoch_end_time,interest_rate , penalty_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(penalty_rate == 25, 6);
 

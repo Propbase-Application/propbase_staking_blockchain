@@ -353,7 +353,12 @@ module propbase::propbase_staking {
         user: address,
     ): bool acquires StakeApp{
         let staking_config = borrow_global<StakeApp>(@propbase);
-        *Table::borrow(&staking_config.reward_treasurers, user)
+        if(!Table::contains(&staking_config.reward_treasurers, user)){
+            false
+        }else{
+            *Table::borrow(&staking_config.reward_treasurers, user)
+        }
+        
 
     }
 
