@@ -43,6 +43,17 @@ aptos move test  --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff0640
 
 ## Publish via resource account
 
+replace it with actual PROP coin address
+
+```
+    use propbase::prop_coin::{Self, PROP};
+```
+
+```
+
+    "0x1::prop_coin::PROP"
+```
+
 ```
 aptos move create-resource-account-and-publish-package --seed [seed] --address-name propbase --profile default --named-addresses source_addr=[default account's address]
 ```

@@ -1,4 +1,4 @@
-#[test_only]
+
 module propbase::prop_coin {
     use aptos_framework::coin;
     struct PROP {}
