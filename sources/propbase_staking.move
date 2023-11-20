@@ -91,7 +91,7 @@ module propbase::propbase_staking {
 
     const ENOT_AUTHORIZED: u64 = 1;
     const ENOT_NOT_A_TREASURER: u64 = 2;
-    const ESTAKE_POOL_ALREADY_CREATED: u64 = 3;
+    const ESTAKE_POOL_INTEREST_OR_PENALTY_OUT_OF_RANGE: u64 = 3;
     const ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME: u64 = 4;
     const ESTAKE_ALREADY_STARTED: u64 = 6;
     const ENOT_PROPS: u64 = 7;
@@ -263,6 +263,17 @@ module propbase::propbase_staking {
         let set_epoch_end_time = *vector::borrow(&value_config, 3);
         let set_interest_rate = *vector::borrow(&value_config, 4);
         let set_penalty_rate = *vector::borrow(&value_config, 5);
+
+        
+        if(set_interest_rate){
+            assert!(interest_rate > 0 && interest_rate <= 100, error::invalid_argument(ESTAKE_POOL_INTEREST_OR_PENALTY_OUT_OF_RANGE));
+        
+        };
+
+        if(set_penalty_rate){
+            assert!(penalty_rate > 0 && penalty_rate <= 100, error::invalid_argument(ESTAKE_POOL_INTEREST_OR_PENALTY_OUT_OF_RANGE));
+        };
+
         if(set_pool_cap){
             stake_pool_config.pool_cap = pool_cap;          
         };
