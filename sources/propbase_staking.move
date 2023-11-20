@@ -345,7 +345,7 @@ module propbase::propbase_staking {
     public fun get_stake_pool_config(
     ): (u64, u64, u64, u64, u64) acquires StakePool {
         let staking_pool_config = borrow_global<StakePool>(@propbase);
-        (staking_pool_config.pool_cap, staking_pool_config.epoch_start_time, staking_pool_config.epoch_end_time, staking_pool_config.penalty_rate, staking_pool_config.interest_rate)
+        (staking_pool_config.pool_cap, staking_pool_config.epoch_start_time, staking_pool_config.epoch_end_time, staking_pool_config.interest_rate, staking_pool_config.penalty_rate)
     }
 
     #[view]
