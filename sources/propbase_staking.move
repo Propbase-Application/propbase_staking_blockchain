@@ -297,7 +297,7 @@ module propbase::propbase_staking {
             stake_pool_config.interest_rate = interest_rate;
         };
         if (set_pool_name){
-            assert!(pool_name != string::utf8(b""),error::invalid_argument(ESTAKE_POOL_NAME_CANT_BE_EMPTY));
+            assert!(pool_name != string::utf8(b""), error::invalid_argument(ESTAKE_POOL_NAME_CANT_BE_EMPTY));
             contract_config.app_name = pool_name;
         };
         event::emit_event<SetStakePoolEvent>(
