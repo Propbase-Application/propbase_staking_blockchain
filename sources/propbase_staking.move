@@ -292,7 +292,7 @@ module propbase::propbase_staking {
             stake_pool_config.penalty_rate = penalty_rate;
         };
         if(set_interest_rate){
-            assert!(interest_rate > 0 && interest_rate < 100, error::invalid_argument(ESTAKE_POOL_INTEREST_OUT_OF_RANGE));
+            assert!(interest_rate > 0 && interest_rate <= 100, error::invalid_argument(ESTAKE_POOL_INTEREST_OUT_OF_RANGE));
             stake_pool_config.interest_rate = interest_rate;
         };
         if (set_pool_name){
