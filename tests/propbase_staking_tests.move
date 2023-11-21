@@ -587,6 +587,37 @@ module propbase::propbase_staking_tests {
 
     }
 
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x10011, location = propbase_staking )]
+    fun test_failure_update_app_name_empty_name(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        let update_config2 = vector::empty<bool>();
+        vector::push_back(&mut update_config2, true);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b""), 0, 0, 90000, 0, 0, update_config2);
+
+    }
+
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     fun test_successful_update_epoch_end_time(

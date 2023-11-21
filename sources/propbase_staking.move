@@ -101,9 +101,10 @@ module propbase::propbase_staking {
     const EACCOUNT_DOES_NOT_EXIST: u64 = 11;
     const ESTAKE_POOL_INTEREST_OUT_OF_RANGE: u64 = 12;
     const ESTAKE_POOL_PENALTY_OUT_OF_RANGE: u64 = 13;
-    const ESTAKE_POOL_POOL_CAP_OUT_OF_RANGE : u64 = 14;
+    const ESTAKE_POOL_CAP_OUT_OF_RANGE : u64 = 14;
     const ESTAKE_START_TIME_OUT_OF_RANGE : u64 = 15;
     const ESTAKE_END_TIME_OUT_OF_RANGE : u64 = 16;
+    const ESTAKE_POOL_NAME_CANT_BE_EMPTY : u64 = 17;
 
     fun init_module(resource_account: &signer){
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -274,7 +275,7 @@ module propbase::propbase_staking {
         let set_penalty_rate = *vector::borrow(&value_config, 5);
 
         if(set_pool_cap){
-            assert!(pool_cap > 0, error::invalid_argument(ESTAKE_POOL_POOL_CAP_OUT_OF_RANGE));
+            assert!(pool_cap > 0, error::invalid_argument(ESTAKE_POOL_CAP_OUT_OF_RANGE));
             stake_pool_config.pool_cap = pool_cap;          
         };
         if(set_epoch_start_time){
@@ -296,6 +297,7 @@ module propbase::propbase_staking {
             stake_pool_config.interest_rate = interest_rate;
         };
         if (set_pool_name){
+            assert!(pool_name != string::utf8(b""),error::invalid_argument(ESTAKE_POOL_NAME_CANT_BE_EMPTY));
             contract_config.app_name = pool_name;
         };
         event::emit_event<SetStakePoolEvent>(
