@@ -96,6 +96,19 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB)]
+    #[expected_failure(abort_code = 0x1000B, location = propbase_staking )]
+    fun test_failure_admin_change_not_valid_address(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+    ) {
+        setup_test(resource, admin, address_1, address_2);
+        propbase_staking::set_admin(address_1, @0x0);
+    
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB)]
     fun test_successful_treasury_change(
         resource: &signer,
         admin: &signer,
@@ -121,6 +134,20 @@ module propbase::propbase_staking_tests {
     ) {
         setup_test(resource, admin, address_1, address_2);
         propbase_staking::set_treasury(address_1,signer::address_of(address_1));
+
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB)]
+    #[expected_failure(abort_code = 0x1000B, location = propbase_staking )]
+    fun test_failure_treasury_change_not_valid_address(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+    ) {
+        setup_test(resource, admin, address_1, address_2);
+
+        propbase_staking::set_treasury(admin, @0x0);
 
     }
 
@@ -159,6 +186,23 @@ module propbase::propbase_staking_tests {
 
         propbase_staking::add_reward_treasurers(address_1,treasurers);
 
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB)]
+    #[expected_failure(abort_code = 0x1000B, location = propbase_staking )]
+    fun test_failure_add_reward_treasurers_not_valid_address(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+    ) {
+        setup_test(resource, admin, address_1, address_2);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        vector::push_back(&mut treasurers, @0x0);
+
+        propbase_staking::add_reward_treasurers(admin,treasurers);
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB)]
