@@ -93,11 +93,18 @@ module propbase::propbase_staking {
     const ENOT_NOT_A_TREASURER: u64 = 2;
     const ESTAKE_POOL_ALREADY_CREATED: u64 = 3;
     const ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME: u64 = 4;
-    const ESTAKE_ALREADY_STARTED: u64 = 6;
+    const ESTAKE_ALREADY_STARTED : u64 = 6;
     const ENOT_PROPS: u64 = 7;
     const EINVALID_AMOUNT: u64 = 8;
     const ENOT_IN_STAKING_RANGE: u64 = 9;
     const ENOT_STAKED_USER: u64 = 10;
+    const EACCOUNT_DOES_NOT_EXIST: u64 = 11;
+    const ESTAKE_POOL_INTEREST_OUT_OF_RANGE: u64 = 12;
+    const ESTAKE_POOL_PENALTY_OUT_OF_RANGE: u64 = 13;
+    const ESTAKE_POOL_CAP_OUT_OF_RANGE : u64 = 14;
+    const ESTAKE_START_TIME_OUT_OF_RANGE : u64 = 15;
+    const ESTAKE_END_TIME_OUT_OF_RANGE : u64 = 16;
+    const ESTAKE_POOL_NAME_CANT_BE_EMPTY : u64 = 17;
 
     fun init_module(resource_account: &signer){
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -160,6 +167,7 @@ module propbase::propbase_staking {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let old_admin = contract_config.admin;
 
+        assert!(account::exists_at(new_admin_address), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
         contract_config.admin = new_admin_address;
 
@@ -179,6 +187,7 @@ module propbase::propbase_staking {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let old_treasury = contract_config.treasury;
 
+        assert!(account::exists_at(new_treasury_address), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
         
         contract_config.treasury = new_treasury_address;
@@ -205,6 +214,7 @@ module propbase::propbase_staking {
         
         while (index < length){
             let element = *vector::borrow(&new_treasurers, index);
+            assert!(account::exists_at(element), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
             Table::upsert<address, bool>(&mut contract_config.reward_treasurers, element, true);
             index = index + 1;
         };
@@ -263,24 +273,31 @@ module propbase::propbase_staking {
         let set_epoch_end_time = *vector::borrow(&value_config, 3);
         let set_interest_rate = *vector::borrow(&value_config, 4);
         let set_penalty_rate = *vector::borrow(&value_config, 5);
+
         if(set_pool_cap){
+            assert!(pool_cap > 0, error::invalid_argument(ESTAKE_POOL_CAP_OUT_OF_RANGE));
             stake_pool_config.pool_cap = pool_cap;          
         };
         if(set_epoch_start_time){
+            assert!(epoch_start_time > 0, error::invalid_argument(ESTAKE_START_TIME_OUT_OF_RANGE));
             assert!(epoch_start_time < stake_pool_config.epoch_end_time || stake_pool_config.epoch_end_time == 0, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
             stake_pool_config.epoch_start_time = epoch_start_time; 
         };
         if(set_epoch_end_time){
+            assert!(epoch_end_time > 0, error::invalid_argument(ESTAKE_END_TIME_OUT_OF_RANGE));
             assert!(epoch_end_time > stake_pool_config.epoch_start_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
             stake_pool_config.epoch_end_time = epoch_end_time;
         };
         if(set_penalty_rate){
+            assert!(penalty_rate <= 50 && penalty_rate > 0, error::invalid_argument(ESTAKE_POOL_PENALTY_OUT_OF_RANGE));
             stake_pool_config.penalty_rate = penalty_rate;
         };
         if(set_interest_rate){
+            assert!(interest_rate > 0 && interest_rate <= 100, error::invalid_argument(ESTAKE_POOL_INTEREST_OUT_OF_RANGE));
             stake_pool_config.interest_rate = interest_rate;
         };
         if (set_pool_name){
+            assert!(pool_name != string::utf8(b""), error::invalid_argument(ESTAKE_POOL_NAME_CANT_BE_EMPTY));
             contract_config.app_name = pool_name;
         };
         event::emit_event<SetStakePoolEvent>(
