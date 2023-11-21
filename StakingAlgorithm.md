@@ -127,5 +127,17 @@ IF rewards_accumulated
 ELSE
     rewards = P * ((current_time - last_staked_time) / epoch_in_days) * R / 100
 
+Changes:
+
+- claim rewards any time
+- claim reward and capital together at the end of period, without a vesting schedule
+- unstake -> only capital, penalty - treasurer
+- setting configs to check on the balance of rewards in contract
+- all rewards should be placed in contract before setting configs, this way we can restrict to check if the rewards are available in the contract or not.
+
+- no of seconds in year
+- min investment amount
+- status of the pool in contract
+
 
 ```

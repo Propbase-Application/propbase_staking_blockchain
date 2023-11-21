@@ -529,7 +529,36 @@ module propbase::propbase_staking {
             }
         );
 
-       
+    }
+
+    inline fun calculate_rewards(
+        principal: u64,
+        last_calculated_at: u32
+        
+    ): u64 acquires StakePool {
+        let now = timestamp::now_seconds();
+        let stake_pool_config = borrow_global<StakePool>(@propbase);
+        let seconds_in_year: u32 = 31622400; // to be in the config
+        // need convertion
+        let interest_per_second = stake_pool_config.interest_rate / (seconds_in_year * 100); // to be in the config
+        principal * (now - last_calculated_at) * interest_per_second;
+    }
+
+    inline fun accumulate_rewards(
+        accumulated_rewards: u64,
+        principal: u64,
+        last_staked_at: u32,
+        rewards_accumulated_at: u32
+    ) {
+        if (accumulated_rewards > 0) {
+            accumulated_rewards + calculate_rewards(principal, rewards_accumulated_at);
+        } else {
+            calculate_rewards(principal, last_staked_time);
+        }
+    }
+
+    public entry fun withdraw_rewards() {
+
     }
 
     #[test_only]
