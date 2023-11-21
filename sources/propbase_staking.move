@@ -288,7 +288,7 @@ module propbase::propbase_staking {
             stake_pool_config.epoch_end_time = epoch_end_time;
         };
         if(set_penalty_rate){
-            assert!(penalty_rate < 100, error::invalid_argument(ESTAKE_POOL_PENALTY_OUT_OF_RANGE));
+            assert!(penalty_rate <= 50 && penalty_rate > 0, error::invalid_argument(ESTAKE_POOL_PENALTY_OUT_OF_RANGE));
             stake_pool_config.penalty_rate = penalty_rate;
         };
         if(set_interest_rate){
