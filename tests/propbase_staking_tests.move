@@ -2115,7 +2115,8 @@ module propbase::propbase_staking_tests {
         propbase_staking::add_reward_treasurers(admin, treasurers);
         propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 50, 5, 1000000000, update_config);
-        
+        let bal = propbase_staking::get_contract_reward_balance<PROP>();
+        assert!(bal == required_funds, 1)
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
