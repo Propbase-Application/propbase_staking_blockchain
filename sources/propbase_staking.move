@@ -434,8 +434,6 @@ module propbase::propbase_staking {
         }else{
             *Table::borrow(&staking_config.reward_treasurers, user)
         }
-        
-
     }
 
     #[view]
