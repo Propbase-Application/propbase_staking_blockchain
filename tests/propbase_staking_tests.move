@@ -28,7 +28,7 @@ module propbase::propbase_staking_tests {
         let len = vector::length(&receivers);
         while (i < len){
             let element = *vector::borrow(&receivers, i);
-            prop_coin::mint(resource, element, 10000000000);
+            prop_coin::mint(resource, element, 100000000000);
             i = i + 1;
         };
     }
@@ -89,7 +89,7 @@ module propbase::propbase_staking_tests {
 
         propbase_staking::set_admin(admin,signer::address_of(address_1));
 
-        let (_, c_admin, _) = propbase_staking::get_app_config();
+        let (_, c_admin, _, _) = propbase_staking::get_app_config();
         assert!(c_admin == signer::address_of(address_1), 1)
 
     }
@@ -130,7 +130,7 @@ module propbase::propbase_staking_tests {
         setup_test(resource, admin, address_1, address_2);
 
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
-        let (_, _, c_treasury) = propbase_staking::get_app_config();
+        let (_, _, c_treasury,_) = propbase_staking::get_app_config();
 
         assert!(c_treasury == signer::address_of(address_1), 1)
 
@@ -279,10 +279,24 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
 
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
 
-        let (app_name, _, _) = propbase_staking::get_app_config();
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+
+        let (app_name, _, _,min_stake_amount) = propbase_staking::get_app_config();
         let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
 
         assert!(app_name == string::utf8(b"Hello"), 4);
@@ -291,7 +305,45 @@ module propbase::propbase_staking_tests {
         assert!(epoch_end_time == 250000, 7);
         assert!(penalty_rate == 15, 8);
         assert!(interest_rate == 50, 9);
-        assert!(staked_amount == 0, 10)
+        assert!(staked_amount == 0, 10);
+        assert!(min_stake_amount == 1000000000, 11);
+
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x90013, location = propbase_staking )]
+    fun test_failure_create_or_update_stake_pool_not_enough_reward_allocated(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = ((5000000 / 100) * 50) - 100;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
 
     }
 
@@ -313,8 +365,22 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
 
-        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
 
     }
 
@@ -334,9 +400,24 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 80000, 50, 15, update_config);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 80000, 50, 15, 1000000000, update_config);
 
     }
 
@@ -355,6 +436,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -363,10 +445,26 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 90000, 0, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 90000, 0, 0, 0, 0,update_config2);
 
         let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
 
@@ -390,6 +488,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -398,9 +497,24 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 90000, 0, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 90000, 0, 0, 0, 1000000000, update_config2);
 
     }
 
@@ -420,6 +534,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -428,12 +543,27 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
 
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
 
         fast_forward_secs(30000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 90000, 0, 0, 0, update_config2);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 90000, 0, 0, 0, 0, update_config2);
 
     }
 
@@ -453,6 +583,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -461,10 +592,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 250000, 0, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 250000, 0, 0, 0, 0, update_config2);
 
     }
 
@@ -484,6 +630,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -492,10 +639,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 0, 0, update_config2);
 
     }
 
@@ -514,6 +676,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -522,12 +685,27 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello2"), 0, 0, 90000, 0, 0, update_config2);
 
-        let (name, admin, treasury) = propbase_staking::get_app_config();
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello2"), 0, 0, 90000, 0, 0, 0, update_config2);
+
+        let (name, admin, treasury, min_stake_amount) = propbase_staking::get_app_config();
 
         assert!(name == string::utf8(b"Hello2"), 6);
 
@@ -549,6 +727,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -557,10 +736,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello2"), 0, 0, 90000, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello2"), 0, 0, 90000, 0, 0, 0, update_config2);
 
     }
 
@@ -580,6 +774,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -588,13 +783,28 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        fast_forward_secs(30000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello2"), 0, 0, 90000, 0, 0, update_config2);
 
-        let (name, admin, treasury) = propbase_staking::get_app_config();
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        fast_forward_secs(30000);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello2"), 0, 0, 90000, 0, 0, 0, update_config2);
+
+        let (name, admin, treasury, min_stake_amount) = propbase_staking::get_app_config();
 
         assert!(name == string::utf8(b"Hello2"), 6);
 
@@ -616,6 +826,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -624,10 +835,24 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b""), 0, 0, 90000, 0, 0, update_config2);
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b""), 0, 0, 90000, 0, 0, 0, update_config2);
 
     }
 
@@ -647,6 +872,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -655,10 +881,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 90000, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 90000, 0, 0, 0, update_config2);
 
         let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
 
@@ -682,6 +923,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -690,10 +932,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 0, 90000, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 0, 90000, 0, 0, 0, update_config2);
 
     }
 
@@ -713,6 +970,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -721,11 +979,26 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
         fast_forward_secs(30000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 90000, 0, 0, update_config2);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 90000, 0, 0, 0, update_config2);
 
     }
 
@@ -745,6 +1018,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -753,10 +1027,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
 
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 80000, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 80000, 0, 0, 0, update_config2);
 
     }
 
@@ -775,6 +1064,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -783,10 +1073,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 500, 0, 0, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 500, 0, 0, 0, 0, 0, update_config2);
 
         let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
 
@@ -810,6 +1115,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -818,10 +1124,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 500, 0, 0, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 500, 0, 0, 0, 0, 0, update_config2);
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
@@ -840,6 +1161,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -848,11 +1170,26 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
         fast_forward_secs(30000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 500, 0, 0, 0, 0, update_config2);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 500, 0, 0, 0, 0, 0, update_config2);
 
     }
 
@@ -872,6 +1209,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -880,10 +1218,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 0, 0, update_config2);
 
     }
 
@@ -902,6 +1255,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -910,10 +1264,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 55, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 55, 0, 0, update_config2);
 
         let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
         assert!(interest_rate == 55, 6);
@@ -936,6 +1305,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -944,10 +1314,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 0, 0, 55, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 0, 0, 55, 0, 0, update_config2);
 
     }
 
@@ -967,6 +1352,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -975,11 +1361,26 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
         fast_forward_secs(30000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 55, 0, update_config2);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 55, 0, 0, update_config2);
 
     }
 
@@ -999,6 +1400,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -1007,10 +1409,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 0, 0, update_config2);
 
     }
 
@@ -1030,6 +1447,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
         vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -1038,10 +1456,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 101, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 101, 0, 0, update_config2);
 
     }
 
@@ -1060,6 +1493,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -1068,10 +1502,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 25, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 25, 0, update_config2);
 
         let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate) = propbase_staking::get_stake_pool_config();
 
@@ -1095,6 +1544,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -1103,10 +1553,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 0, 0, 0, 25, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 0, 0, 0, 25, 0, update_config2);
 
     }
 
@@ -1126,6 +1591,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -1134,11 +1600,26 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
         fast_forward_secs(30000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 25, update_config2);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 25, 0, update_config2);
 
     }
 
@@ -1158,6 +1639,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -1166,10 +1648,25 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 0, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 0, 0, update_config2);
 
     }
 
@@ -1189,6 +1686,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, false);
         vector::push_back(&mut update_config2, true);
+        vector::push_back(&mut update_config2, false);
 
         let update_config = vector::empty<bool>();
         vector::push_back(&mut update_config, true);
@@ -1197,16 +1695,224 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 51, 0, update_config2);
+
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    fun test_successful_update_min_stake_amount(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        let update_config2 = vector::empty<bool>();
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, true);
+
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
         
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, update_config);
-        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 51, update_config2);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 0, 1000, update_config2);
+
+        let (name, admin, treasury, min_stake_amount) = propbase_staking::get_app_config();
+
+        assert!(min_stake_amount == 1000, 6);
+
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x50001, location = propbase_staking )]
+    fun test_failure_update_min_stake_amount_not_admin(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        let update_config2 = vector::empty<bool>();
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, true);
+
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(address_1, string::utf8(b"Hello"), 0, 0, 0, 0, 0, 1000, update_config2);
+
+
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x50006, location = propbase_staking )]
+    fun test_failure_update_min_stake_amount_pool_already_started(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        let update_config2 = vector::empty<bool>();
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, true);
+
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        fast_forward_secs(30000);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 0, 1000, update_config2);
+
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x10014, location = propbase_staking )]
+    fun test_failure_update_min_stake_amount_must_be_greater_than_zero(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        let update_config2 = vector::empty<bool>();
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, false);
+        vector::push_back(&mut update_config2, true);
+
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 5000000, 80000, 250000, 50, 15, 1000000000, update_config);
+        propbase_staking::create_or_update_stake_pool(admin, string::utf8(b"Hello"), 0, 0, 0, 0, 0, 0, update_config2);
 
     }
 
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_sucessfull_get_rewards(
+    fun test_successfull_get_rewards(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -1222,14 +1928,24 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
 
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 15, 50, update_config);
-        fast_forward_secs(10000);
         coin::register<PROP>(address_1);
-
+        coin::register<PROP>(address_2);
         let receivers = vector::empty<address>();
         vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
         setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 15, 50, 1000000000, update_config);
+        fast_forward_secs(10000);
+
         propbase_staking::add_stake<PROP>(address_1, 10000000000);
 
         let principal = propbase_staking::get_principal_amount(signer::address_of(address_1));
@@ -1262,15 +1978,24 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
 
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 15, 50, update_config);
-        fast_forward_secs(10000);
         coin::register<PROP>(address_1);
-        
+        coin::register<PROP>(address_2);
         let receivers = vector::empty<address>();
         vector::push_back(&mut receivers, signer::address_of(address_1));
-
+        vector::push_back(&mut receivers, signer::address_of(address_2));
         setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 15, 50, 1000000000, update_config);
+        fast_forward_secs(10000);
+
         propbase_staking::add_stake<PROP>(address_1, 5000000000);
         fast_forward_secs(10000);
         propbase_staking::add_stake<PROP>(address_1, 5000000000);
@@ -1307,17 +2032,27 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
         vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
 
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 15, 50, update_config);
-        fast_forward_secs(10000);
         coin::register<PROP>(address_1);
         coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 15, 50, 1000000000, update_config);
+        fast_forward_secs(10000);
         
         let receivers = vector::empty<address>();
         vector::push_back(&mut receivers, signer::address_of(address_1));
         vector::push_back(&mut receivers, signer::address_of(address_2));
-
-        setup_prop(resource, receivers);
         propbase_staking::add_stake<PROP>(address_1, 10000000000);
 
         let principal = propbase_staking::get_principal_amount(signer::address_of(address_1));
@@ -1347,8 +2082,104 @@ module propbase::propbase_staking_tests {
         assert!(staked_amount2 == 20000000000, 7);
     }
 
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    fun test_successfull_add_reward_funds(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 50, 5, 1000000000, update_config);
+        
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x50002, location = propbase_staking )]
+    fun test_failure_add_reward_funds_not_treasurer(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_funds<PROP>(address_1, required_funds);
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x10012, location = propbase_staking )]
+    fun test_failure_add_reward_funds_amount_must_be_greater_than_zero(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+
+        coin::register<PROP>(address_1);
+        coin::register<PROP>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        let treasurers = vector::empty<address>();
+        vector::push_back(&mut treasurers, signer::address_of(address_1));
+
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::add_reward_treasurers(admin, treasurers);
+        propbase_staking::add_reward_funds<PROP>(address_1, 0);
+    }
+
     // #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    // fun test_sucessfull_get_rewards(
+    // fun test_successful_get_rewards(
     //     resource: &signer,
     //     admin: &signer,
     //     address_1: &signer,

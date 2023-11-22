@@ -8,7 +8,7 @@ module propbase::prop_coin {
             sender,
             b"Test Coin",
             b"TEST",
-            6,
+            8,
             false,
         );
     }
@@ -19,7 +19,7 @@ module propbase::prop_coin {
             sender,
             b"Test Coin",
             b"TEST",
-            6,
+            8,
             false,
         );
     }

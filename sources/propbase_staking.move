@@ -8,10 +8,8 @@ module propbase::propbase_staking {
     #[test_only]
     friend propbase::propbase_staking_tests;
 
-    use propbase::prop_coin::{Self, PROP};
-
     use aptos_framework::event::{Self, EventHandle};
-    use aptos_framework::coin::{Self, Coin};
+    use aptos_framework::coin::{Self};
     use aptos_framework::aptos_account;
     use aptos_std::table_with_length::{Self as Table, TableWithLength};
     use aptos_std::type_info;
@@ -26,6 +24,7 @@ module propbase::propbase_staking {
         admin: address,
         treasury: address,
         reward_treasurers: TableWithLength<address, bool>,
+        min_stake_amount: u64,
         set_admin_events: EventHandle<SetAdminEvent>,
         set_treasury_events: EventHandle<SetTreasuryEvent>,
         set_reward_treasurers_events: EventHandle<vector<address>>,
@@ -44,7 +43,6 @@ module propbase::propbase_staking {
 
     struct RewardPool has key {
         available_rewards: u64,
-        threshold: u64,
         updated_rewards_events: EventHandle<UpdateRewardsEvent>,
     }
 
@@ -93,6 +91,10 @@ module propbase::propbase_staking {
         penalty_rate: u64,
     }
 
+    const PROP_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS ";
+
+    // const PROP_COIN_TEST:vector<u8> = b"0x1::prop_coin::PROP";
+
     const ENOT_AUTHORIZED: u64 = 1;
     const ENOT_NOT_A_TREASURER: u64 = 2;
     const ESTAKE_POOL_ALREADY_CREATED: u64 = 3;
@@ -110,6 +112,9 @@ module propbase::propbase_staking {
     const ESTAKE_START_TIME_OUT_OF_RANGE : u64 = 15;
     const ESTAKE_END_TIME_OUT_OF_RANGE : u64 = 16;
     const ESTAKE_POOL_NAME_CANT_BE_EMPTY : u64 = 17;
+    const EAMOUNT_MUST_BE_GREATER_THAN_ZERO : u64 = 18;
+    const EREWARD_NOT_AVAILABLE : u64 = 19;
+    const ESTAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO : u64 = 20;
 
     fun init_module(resource_account: &signer){
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -129,6 +134,7 @@ module propbase::propbase_staking {
             admin: @source_addr,
             treasury: @source_addr,
             reward_treasurers: Table::new(),
+            min_stake_amount: 0,
             set_admin_events: account::new_event_handle<SetAdminEvent>(resource_account),
             set_treasury_events: account::new_event_handle<SetTreasuryEvent>(resource_account),
             set_reward_treasurers_events: account::new_event_handle<vector<address>>(resource_account),
@@ -149,7 +155,6 @@ module propbase::propbase_staking {
 
         move_to(resource_account, RewardPool {
             available_rewards: 0,
-            threshold: 0,
             updated_rewards_events: account::new_event_handle<UpdateRewardsEvent>(resource_account),
 
         });
@@ -162,7 +167,6 @@ module propbase::propbase_staking {
                     
         });
 
-        coin::register<PROP>(resource_account);
 
     }
 
@@ -266,11 +270,14 @@ module propbase::propbase_staking {
         epoch_end_time: u64,
         interest_rate: u64,
         penalty_rate: u64,
+        min_stake_amount: u64,
         value_config: vector<bool>
-    ) acquires StakePool,StakeApp {
+    ) acquires StakePool, StakeApp, RewardPool {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
 
+        assert!(reward_state.available_rewards >= (pool_cap / 100) * interest_rate, error::resource_exhausted(EREWARD_NOT_AVAILABLE));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
         assert!(check_stake_pool_not_started(stake_pool_config.epoch_start_time) || stake_pool_config.epoch_start_time == 0, error::permission_denied(ESTAKE_ALREADY_STARTED));
 
@@ -280,6 +287,7 @@ module propbase::propbase_staking {
         let set_epoch_end_time = *vector::borrow(&value_config, 3);
         let set_interest_rate = *vector::borrow(&value_config, 4);
         let set_penalty_rate = *vector::borrow(&value_config, 5);
+        let set_min_stake_amount = *vector::borrow(&value_config, 6);
 
         if(set_epoch_start_time && set_epoch_end_time){
             assert!(epoch_start_time < epoch_end_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME))
@@ -311,6 +319,10 @@ module propbase::propbase_staking {
             assert!(pool_name != string::utf8(b""), error::invalid_argument(ESTAKE_POOL_NAME_CANT_BE_EMPTY));
             contract_config.app_name = pool_name;
         };
+        if(set_min_stake_amount){
+            assert!(min_stake_amount > 0, error::invalid_argument(ESTAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO));
+            contract_config.min_stake_amount = min_stake_amount;
+        };
         event::emit_event<SetStakePoolEvent>(
             &mut stake_pool_config.set_pool_config_events,
             SetStakePoolEvent {
@@ -330,13 +342,14 @@ module propbase::propbase_staking {
         user: &signer,
         amount: u64
 
-    )acquires  UserInfo, StakePool{
+    )acquires  UserInfo, StakePool, StakeApp{
 
         let now = timestamp::now_seconds();
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
 
-        assert!(type_info::type_name<CoinType>() == string::utf8(b"0x1::prop_coin::PROP"), error::invalid_argument(ENOT_PROPS));
-        assert!(amount >= 1000000000, error::invalid_argument(EINVALID_AMOUNT));
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROP_COIN), error::invalid_argument(ENOT_PROPS));
+        assert!(amount >= contract_config.min_stake_amount, error::invalid_argument(EINVALID_AMOUNT));
         assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(ENOT_IN_STAKING_RANGE));
         assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap , error::resource_exhausted(ESTAKE_POOL_EXHAUSTED));
 
@@ -377,6 +390,33 @@ module propbase::propbase_staking {
 
     }
 
+
+    public fun add_reward_funds<CoinType>(
+        treasurer: &signer,
+        amount: u64,
+    ) acquires StakeApp, RewardPool {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        assert!(amount > 0, error::invalid_argument(EAMOUNT_MUST_BE_GREATER_THAN_ZERO));
+        assert!(Table::contains(&contract_config.reward_treasurers, signer::address_of(treasurer)) && *Table::borrow(&contract_config.reward_treasurers, signer::address_of(treasurer)), error::permission_denied(ENOT_NOT_A_TREASURER));
+
+        let prev_reward = reward_state.available_rewards;
+        let updated_reward = prev_reward + amount;
+        reward_state.available_rewards = updated_reward;
+
+        aptos_account::transfer_coins<CoinType>(treasurer, @propbase, amount);
+
+        event::emit_event<UpdateRewardsEvent>(
+            &mut reward_state.updated_rewards_events,
+            UpdateRewardsEvent {
+                old_rewards: prev_reward,
+                new_rewards: updated_reward
+            }
+        );
+
+       
+    }
+
     #[test_only]
     public entry fun get_rewards (
         principal: u64,
@@ -412,9 +452,9 @@ module propbase::propbase_staking {
     //view functions
     #[view]
     public fun get_app_config(
-    ): (String, address, address) acquires StakeApp {
+    ): (String, address, address, u64) acquires StakeApp {
         let staking_config = borrow_global<StakeApp>(@propbase);
-        (staking_config.app_name, staking_config.admin, staking_config.treasury)
+        (staking_config.app_name, staking_config.admin, staking_config.treasury, staking_config.min_stake_amount)
     }
 
     #[view]
@@ -500,6 +540,12 @@ module propbase::propbase_staking {
             (rewards as u64)   
         }
 
+    }
+
+    #[view]
+    public fun get_contract_reward_balance<CoinType>(
+    ): u64 {
+        coin::balance<CoinType>(@propbase)
     }
 
 }
