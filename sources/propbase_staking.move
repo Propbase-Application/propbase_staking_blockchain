@@ -250,7 +250,7 @@ module propbase::propbase_staking {
        
         while (index < length){
             let element = *vector::borrow(&new_treasurers, index);
-            Table::upsert<address, bool>(&mut contract_config.reward_treasurers, element, false);
+            Table::remove<address, bool>(&mut contract_config.reward_treasurers, element);
             index = index + 1;
 
         };
@@ -378,7 +378,7 @@ module propbase::propbase_staking {
             let user_state = borrow_global_mut<UserInfo>(signer::address_of(user));
             let accumulated_rewards = calculate_rewards(user_state.last_staked_time, now, stake_pool_config.interest_rate, user_state.principal, true );
             aptos_account::transfer_coins<CoinType>(user, @propbase, (amount));
-            
+
             user_state.accumulated_rewards = (accumulated_rewards as u64);
             user_state.principal = user_state.principal + amount;
             user_state.last_staked_time = now;
@@ -399,7 +399,7 @@ module propbase::propbase_staking {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         assert!(amount > 0, error::invalid_argument(EAMOUNT_MUST_BE_GREATER_THAN_ZERO));
-        assert!(Table::contains(&contract_config.reward_treasurers, signer::address_of(treasurer)) && *Table::borrow(&contract_config.reward_treasurers, signer::address_of(treasurer)), error::permission_denied(ENOT_NOT_A_TREASURER));
+        assert!(Table::contains(&contract_config.reward_treasurers, signer::address_of(treasurer)), error::permission_denied(ENOT_NOT_A_TREASURER));
 
         let prev_reward = reward_state.available_rewards;
         let updated_reward = prev_reward + amount;
@@ -470,11 +470,7 @@ module propbase::propbase_staking {
         user: address,
     ): bool acquires StakeApp{
         let staking_config = borrow_global<StakeApp>(@propbase);
-        if(!Table::contains(&staking_config.reward_treasurers, user)){
-            false
-        }else{
-            *Table::borrow(&staking_config.reward_treasurers, user)
-        }
+        Table::contains(&staking_config.reward_treasurers, user)
     }
 
     #[view]
