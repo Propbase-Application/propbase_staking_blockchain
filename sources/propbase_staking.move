@@ -423,10 +423,15 @@ module propbase::propbase_staking {
         }else {
             aptos_account::transfer_coins<CoinType>(user, @propbase, (amount));
             let user_state = borrow_global_mut<UserInfo>(user_address);
-            let accumulated_rewards = get_total_rewards_so_far(user_address);
+            let accumulated_rewards = get_total_rewards_so_far(
+                user_state.principal,
+                user_state.accumulated_rewards,
+                user_state.rewards_accumulated_at,
+                user_state.last_staked_time
+            );
             // let accumulated_rewards = calculate_rewards(user_state.last_staked_time, now, stake_pool_config.interest_rate, user_state.principal, true );
             
-            user_state.accumulated_rewards = (accumulated_rewards as u64);
+            user_state.accumulated_rewards = accumulated_rewards;
             user_state.principal = user_state.principal + amount;
             user_state.last_staked_time = now;
             user_state.rewards_accumulated_at = now;
@@ -536,30 +541,56 @@ module propbase::propbase_staking {
 
     inline fun apply_reward_formula(
         principal: u64,
-        last_calculated_at: u64
+        period: u64
     ): u128 acquires StakePool {
-        let rewards: u64 = 0;
-        let now = timestamp::now_seconds();
+        // let rewards: u64 = 0;
+        
         let stake_pool_config = borrow_global<StakePool>(@propbase);
         let seconds_in_year: u64 = 31622400; // to be in the config
         // need convertion
         let interest_per_second = (stake_pool_config.interest_rate as u128) / ((seconds_in_year * 100) as u128); // to be in the config
-        let period = now - last_calculated_at;
-        (principal as u128) * (period as u128) * interest_per_second;
+        (principal as u128) * (period as u128) * interest_per_second
+    }
+
+    inline fun get_total_rewards_so_far(
+        principal: u64,
+        accumulated_rewards: u64,
+        rewards_accumulated_at: u64,
+        last_staked_time: u64,
+    ): u64 acquires StakePool {
+        let rewards;
+        let now = timestamp::now_seconds();
+        if (rewards_accumulated_at > 0) {
+            rewards = ((accumulated_rewards as u128) + apply_reward_formula(principal, now - rewards_accumulated_at));
+        } else {
+            rewards = apply_reward_formula(principal, now - last_staked_time);
+        };
+        let final_rewards = (rewards as u64);
+        final_rewards
     }
 
     #[view]
-    public fun get_total_rewards_so_far(
-        user_address: address
-    ): u128 acquires UserInfo {
-        let rewards: u128 = 0;
-        let user_state = borrow_global_mut<UserInfo>(user_address);
-        if (user_state.rewards_accumulated_at > 0) {
-            rewards = ((user_state.accumulated_rewards as u128) + apply_reward_formula(user_state.principal, user_state.rewards_accumulated_at));
+    public fun expected_rewards(
+        user_address: address,
+        principal: u64,
+        
+    ): u64 acquires UserInfo, StakePool {
+        let accumulated_rewards;
+        let now = timestamp::now_seconds();
+        if(exists<UserInfo>(user_address)) {
+            let user_state = borrow_global_mut<UserInfo>(user_address);
+            accumulated_rewards = get_total_rewards_so_far(
+                user_state.principal,
+                user_state.accumulated_rewards,
+                user_state.rewards_accumulated_at,
+                user_state.last_staked_time
+            );
         } else {
-            rewards = apply_reward_formula(user_state.principal, user_state.last_staked_time);
+            let stake_pool_config = borrow_global<StakePool>(@propbase);
+            let reward = apply_reward_formula(principal, stake_pool_config.epoch_end_time - now);
+            accumulated_rewards = (reward as u64);
         };
-        rewards;
+        accumulated_rewards
     }
 
     public entry fun claim_rewards() {

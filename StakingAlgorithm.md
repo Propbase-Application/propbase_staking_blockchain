@@ -136,4 +136,28 @@ Changes:
 
 
 
+Jan 1 2024
+Dec 31 2024
+366 days -> seconds_in_year
+
+Jan 1 2025
+Dec 31 2025
+365 days -> seconds_in_year
+
+Juy 1 2024
+July 31 2025
+365 days -> seconds_in_year
+
+
+Jan 1 2024
+March 31 2025
+366 days -> seconds_in_year
+
+BE - unix to date
+blockchain - unix - seconds_in_year
+
+start = leap year ?
+end = leap year ?
+feb 29
+
 ```
