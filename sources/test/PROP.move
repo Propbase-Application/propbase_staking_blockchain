@@ -1,13 +1,13 @@
 #[test_only]
-module propbase::prop_coin {
+module propbase::propbase_coin {
     use aptos_framework::coin;
-    struct PROP {}
+    struct PROPS {}
 
     fun init_module(sender: &signer) {
-        aptos_framework::managed_coin::initialize<PROP>(
+        aptos_framework::managed_coin::initialize<PROPS>(
             sender,
-            b"Test Coin",
-            b"TEST",
+            b"Propbase",
+            b"PROPS",
             8,
             false,
         );
@@ -15,27 +15,27 @@ module propbase::prop_coin {
 
     #[test_only]
     public entry fun init_test(sender: &signer){
-        aptos_framework::managed_coin::initialize<PROP>(
+        aptos_framework::managed_coin::initialize<PROPS>(
             sender,
-            b"Test Coin",
-            b"TEST",
+            b"Propbase",
+            b"PROPS",
             8,
             false,
         );
     }
     public entry fun register(account: &signer) {
-        aptos_framework::managed_coin::register<PROP>(account)
+        aptos_framework::managed_coin::register<PROPS>(account)
     }
 
     public entry fun mint(account: &signer, dst_addr: address, amount: u64) {
-        aptos_framework::managed_coin::mint<PROP>(account, dst_addr, amount);
+        aptos_framework::managed_coin::mint<PROPS>(account, dst_addr, amount);
     }
 
     public entry fun burn(account: &signer, amount: u64) {
-        aptos_framework::managed_coin::burn<PROP>(account, amount);
+        aptos_framework::managed_coin::burn<PROPS>(account, amount);
     }
 
     public entry fun transfer(from: &signer, to: address, amount: u64,) {
-        coin::transfer<PROP>(from, to, amount);
+        coin::transfer<PROPS>(from, to, amount);
     }
 }

@@ -60,6 +60,22 @@ module propbase::propbase_staking {
         unstaked_items: vector<Stake>,
         accumulated_rewards: u64,
         last_staked_time: u64,
+        stake_events: EventHandle<StakeEvent>,
+        unstake_events: EventHandle<UnStakeEvent>,
+    }
+
+    struct StakeEvent has drop, store{
+        principal: u64,
+        amount: u64,
+        accumulated_rewards: u64,
+        staked_time: u64,
+    }
+
+    struct UnStakeEvent has drop, store{
+        withdrawn: u64,
+        amount: u64,
+        accumulated_rewards: u64,
+        unstaked_time: u64,
     }
 
     struct Stake has drop, store {
@@ -93,7 +109,7 @@ module propbase::propbase_staking {
 
     const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
 
-    // const PROPS_COIN_TEST:vector<u8> = b"0x1::prop_coin::PROP";
+    // const PROPS_COIN_TEST:vector<u8> = b"0x1::propbase_coin::PROPS";
 
     const ENOT_AUTHORIZED: u64 = 1;
     const ENOT_NOT_A_TREASURER: u64 = 2;
@@ -275,9 +291,8 @@ module propbase::propbase_staking {
     ) acquires StakePool, StakeApp, RewardPool {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
-        let reward_state = borrow_global_mut<RewardPool>(@propbase);
 
-        assert!(reward_state.available_rewards >= ((pool_cap / 100) * interest_rate), error::resource_exhausted(EREWARD_NOT_ENOUGH));
+
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
         assert!(check_stake_pool_not_started(stake_pool_config.epoch_start_time) || stake_pool_config.epoch_start_time == 0, error::permission_denied(ESTAKE_ALREADY_STARTED));
 
@@ -294,7 +309,7 @@ module propbase::propbase_staking {
         };
 
         if(set_pool_cap){
-            assert!(pool_cap > 0, error::invalid_argument(ESTAKE_POOL_CAP_OUT_OF_RANGE));
+            assert!(pool_cap >= 20000000000, error::invalid_argument(ESTAKE_POOL_CAP_OUT_OF_RANGE));
             stake_pool_config.pool_cap = pool_cap;          
         };
         if(set_epoch_start_time){
@@ -323,6 +338,9 @@ module propbase::propbase_staking {
             assert!(min_stake_amount > 0, error::invalid_argument(ESTAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO));
             contract_config.min_stake_amount = min_stake_amount;
         };
+
+        check_is_reward_available(stake_pool_config.epoch_start_time, stake_pool_config.epoch_end_time, stake_pool_config.pool_cap, stake_pool_config.interest_rate);
+
         event::emit_event<SetStakePoolEvent>(
             &mut stake_pool_config.set_pool_config_events,
             SetStakePoolEvent {
@@ -335,6 +353,17 @@ module propbase::propbase_staking {
             }
         );
 
+    }
+
+    inline fun check_is_reward_available(
+        start_time: u64,
+        end_time: u64,
+        pool_cap: u64,
+        interest_rate: u64,
+    ) acquires RewardPool {
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        let difference = (end_time - start_time) / 100;
+        assert!(reward_state.available_rewards >= (difference * (pool_cap / 31622400) * interest_rate ), error::resource_exhausted(EREWARD_NOT_ENOUGH));
     }
 
 
@@ -369,8 +398,21 @@ module propbase::propbase_staking {
                 unstaked_items: unstake_buffer,
                 accumulated_rewards: 0,
                 last_staked_time: now,
+                stake_events: account::new_event_handle<StakeEvent>(user),
+                unstake_events: account::new_event_handle<UnStakeEvent>(user),
 
             });
+
+            let user_state = borrow_global_mut<UserInfo>(signer::address_of(user));
+            event::emit_event<StakeEvent>(
+                &mut user_state.stake_events,
+                StakeEvent {
+                    principal: amount,
+                    amount: amount,
+                    accumulated_rewards: 0,
+                    staked_time: now,
+                }
+            );
 
 
         }else {
@@ -385,6 +427,15 @@ module propbase::propbase_staking {
 
             vector::push_back(&mut user_state.staked_items, Stake{timestamp: now, amount });
 
+            event::emit_event<StakeEvent>(
+                &mut user_state.stake_events,
+                StakeEvent {
+                    principal: user_state.principal,
+                    amount: amount,
+                    accumulated_rewards: user_state.accumulated_rewards,
+                    staked_time: now,
+                }
+            );
             
 
         }
