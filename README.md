@@ -29,6 +29,12 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 
 ```
+    const PROP_COIN_TEST:vector<u8> = b"0x1::prop_coin::PROP";
+```
+
+    replace PROP_COIN code with PROP_COIN_TEST
+
+```
 aptos move compile  --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
 ```
 
@@ -42,6 +48,17 @@ aptos move test  --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff0640
 ```
 
 ## Publish via resource account
+
+replace it with actual PROP coin address
+
+```
+    use propbase::prop_coin::{Self, PROP};
+```
+
+```
+
+    "0x1::prop_coin::PROP"
+```
 
 ```
 aptos move create-resource-account-and-publish-package --seed [seed] --address-name propbase --profile default --named-addresses source_addr=[default account's address]
