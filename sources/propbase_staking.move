@@ -107,9 +107,9 @@ module propbase::propbase_staking {
         penalty_rate: u64,
     }
 
-    const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
+    // const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
 
-    // const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
+    const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
 
     const ENOT_AUTHORIZED: u64 = 1;
     const ENOT_NOT_A_TREASURER: u64 = 2;
@@ -367,15 +367,6 @@ module propbase::propbase_staking {
         assert!(reward_state.available_rewards >= (difference * (pool_cap / 31622400) * interest_rate ), error::resource_exhausted(EREWARD_NOT_ENOUGH));
     }
 
-    inline fun transfer_penalty(
-        withdraw_amount: u64,
-        penalty_rate: u64
-    ) {
-        let penalty = withdraw_amount / 100 * penalty_rate;
-        // transfer penalty to treasurer
-    }
-
-
     public entry fun add_stake<CoinType> (
         user: &signer,
         amount: u64
@@ -463,7 +454,7 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo{
+    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo, StakeApp{
         implement_unstake<CoinType>(user, resource_signer, amount);
     }
 
@@ -472,6 +463,7 @@ module propbase::propbase_staking {
         resource_signer: &signer,
         amount: u64,
     ) acquires UserInfo, StakePool, StakeApp{
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let user_address = signer::address_of(user);
         assert!(exists<UserInfo>(user_address), error::permission_denied(ENOT_STAKED_USER));
         let now = timestamp::now_seconds();
@@ -490,7 +482,14 @@ module propbase::propbase_staking {
 
         vector::push_back(&mut user_state.unstaked_items, Stake{timestamp: now, amount });
 
-        aptos_account::transfer_coins<CoinType>(resource_signer, user_address, amount);
+        if(now > stake_pool_config.epoch_end_time){
+            aptos_account::transfer_coins<CoinType>(resource_signer, user_address, amount);
+        }else{
+            let penalty = amount / 100 * stake_pool_config.penalty_rate ;
+            let bal_after_penalty = amount - penalty;
+            aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, penalty);
+            aptos_account::transfer_coins<CoinType>(resource_signer, user_address, bal_after_penalty);
+        };
 
         event::emit_event<UnStakeEvent>(
             &mut user_state.unstake_events,
