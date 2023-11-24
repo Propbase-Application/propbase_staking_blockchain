@@ -38,12 +38,12 @@ module propbase::propbase_staking {
         interest_rate: u64,
         penalty_rate: u64,
         staked_amount: u64,
+        total_penalty: u64,
         set_pool_config_events: EventHandle<SetStakePoolEvent>,
     }
 
     struct RewardPool has key {
         available_rewards: u64,
-        total_penalty: u64,
         updated_rewards_events: EventHandle<UpdateRewardsEvent>,
     }
 
@@ -108,9 +108,9 @@ module propbase::propbase_staking {
         penalty_rate: u64,
     }
 
-    // const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
+    const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
 
-    const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
+    // const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
 
     const ENOT_AUTHORIZED: u64 = 1;
     const ENOT_NOT_A_TREASURER: u64 = 2;
@@ -167,13 +167,13 @@ module propbase::propbase_staking {
             interest_rate: 0,
             penalty_rate: 0,
             staked_amount: 0,
+            total_penalty: 0,
             set_pool_config_events: account::new_event_handle<SetStakePoolEvent>(resource_account),
 
         });
 
         move_to(resource_account, RewardPool {
             available_rewards: 0,
-            total_penalty: 0,
             updated_rewards_events: account::new_event_handle<UpdateRewardsEvent>(resource_account),
 
         });
@@ -488,7 +488,7 @@ module propbase::propbase_staking {
 
         let penalty = amount / 100 * stake_pool_config.penalty_rate ;
         let bal_after_penalty = amount - penalty;
-        reward_state.total_penalty = reward_state.total_penalty + penalty;
+        stake_pool_config.total_penalty = stake_pool_config.total_penalty + penalty;
 
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, penalty);
         aptos_account::transfer_coins<CoinType>(resource_signer, user_address, bal_after_penalty);
