@@ -591,9 +591,12 @@ module propbase::propbase_staking {
     public fun get_principal_amount(
         user: address
     ): u64 acquires UserInfo {
-        assert!(exists<UserInfo>(user), error::invalid_argument(ENOT_STAKED_USER));
-        let user_config = borrow_global<UserInfo>(user);
-        user_config.principal
+        if(!exists<UserInfo>(user)){
+            0
+        }else{
+            let user_config = borrow_global<UserInfo>(user);
+            user_config.principal
+        }
     }
 
     #[view]
@@ -601,17 +604,20 @@ module propbase::propbase_staking {
         user:address,
 
     ): vector<u64> acquires UserInfo{
-        assert!(exists<UserInfo>(user), error::invalid_argument(ENOT_STAKED_USER));
-        let user_config = borrow_global<UserInfo>(user);
         let amounts= vector::empty<u64>();
-        let i = 0;
-        let len = vector::length(&user_config.staked_items);
-        while (i < len){
-            let element = vector::borrow(&user_config.staked_items, i);
-            vector::push_back(&mut amounts, element.amount);
-            i = i + 1; 
-        };
-        amounts
+        if(!exists<UserInfo>(user)){
+            amounts
+        }else{
+            let user_config = borrow_global<UserInfo>(user);
+            let i = 0;
+            let len = vector::length(&user_config.staked_items);
+            while (i < len){
+                let element = vector::borrow(&user_config.staked_items, i);
+                vector::push_back(&mut amounts, element.amount);
+                i = i + 1; 
+            };
+            amounts
+        }
 
     }
 
@@ -620,35 +626,44 @@ module propbase::propbase_staking {
         user:address,
 
     ): vector<u64> acquires UserInfo{
-        assert!(exists<UserInfo>(user), error::invalid_argument(ENOT_STAKED_USER));
-        let user_config = borrow_global<UserInfo>(user);
+        assert!(account::exists_at(new_admin_address), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
         let timestamps= vector::empty<u64>();
-        let i = 0;
-        let len = vector::length(&user_config.staked_items);
-        while (i < len){
-            let element = vector::borrow(&user_config.staked_items, i);
-            vector::push_back(&mut timestamps, element.timestamp);
-            i = i + 1;
-        };
-        timestamps
-
+        if(!exists<UserInfo>(user)){
+            timestamps
+        }else{
+            let user_config = borrow_global<UserInfo>(user);
+            let i = 0;
+            let len = vector::length(&user_config.staked_items);
+            while (i < len){
+                let element = vector::borrow(&user_config.staked_items, i);
+                vector::push_back(&mut timestamps, element.timestamp);
+                i = i + 1;
+            };
+            timestamps
+        }
+ 
     }
     #[view]
     public fun get_unstake_amounts(
         user:address,
 
     ): vector<u64> acquires UserInfo{
-        assert!(exists<UserInfo>(user), error::invalid_argument(ENOT_STAKED_USER));
-        let user_config = borrow_global<UserInfo>(user);
+        assert!(account::exists_at(user), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
         let amounts= vector::empty<u64>();
-        let i = 0;
-        let len = vector::length(&user_config.unstaked_items);
-        while (i < len){
-            let element = vector::borrow(&user_config.unstaked_items, i);
-            vector::push_back(&mut amounts, element.amount);
-            i = i + 1; 
-        };
-        amounts
+        assert!(exists<UserInfo>(user), error::invalid_argument(ENOT_STAKED_USER));
+        if(!exists<UserInfo>(user)){
+            amounts
+        }else{
+            let user_config = borrow_global<UserInfo>(user);
+            let i = 0;
+            let len = vector::length(&user_config.unstaked_items);
+            while (i < len){
+                let element = vector::borrow(&user_config.unstaked_items, i);
+                vector::push_back(&mut amounts, element.amount);
+                i = i + 1; 
+            };
+            amounts
+        }
 
     }
 
@@ -657,17 +672,21 @@ module propbase::propbase_staking {
         user:address,
 
     ): vector<u64> acquires UserInfo{
-        assert!(exists<UserInfo>(user), error::invalid_argument(ENOT_STAKED_USER));
-        let user_config = borrow_global<UserInfo>(user);
+        assert!(account::exists_at(new_admin_address), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
         let timestamps= vector::empty<u64>();
-        let i = 0;
-        let len = vector::length(&user_config.unstaked_items);
-        while (i < len){
-            let element = vector::borrow(&user_config.unstaked_items, i);
-            vector::push_back(&mut timestamps, element.timestamp);
-            i = i + 1;
-        };
-        timestamps
+        if(!exists<UserInfo>(user)){
+            timestamps
+        }else{
+            let user_config = borrow_global<UserInfo>(user);
+            let i = 0;
+            let len = vector::length(&user_config.unstaked_items);
+            while (i < len){
+                let element = vector::borrow(&user_config.unstaked_items, i);
+                vector::push_back(&mut timestamps, element.timestamp);
+                i = i + 1;
+            };
+            timestamps
+        }
 
     }
 
@@ -676,6 +695,7 @@ module propbase::propbase_staking {
         user: &signer,
 
     ): u64 acquires UserInfo, StakePool {
+        assert!(account::exists_at(new_admin_address), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
         assert!(exists<UserInfo>(signer::address_of(user)), error::invalid_argument(ENOT_STAKED_USER));
         let user_config = borrow_global<UserInfo>(signer::address_of(user));
         let stake_pool_config = borrow_global<StakePool>(@propbase);
