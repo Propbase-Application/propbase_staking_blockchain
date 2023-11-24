@@ -109,7 +109,7 @@ module propbase::propbase_staking {
 
     const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
 
-    // const PROPS_COIN_TEST:vector<u8> = b"0x1::propbase_coin::PROPS";
+    // const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
 
     const ENOT_AUTHORIZED: u64 = 1;
     const ENOT_NOT_A_TREASURER: u64 = 2;
@@ -447,17 +447,31 @@ module propbase::propbase_staking {
         user: &signer,
         amount: u64
 
-    )acquires  UserInfo, StakePool, StakeApp{
-        let user_state = borrow_global_mut<UserInfo>(signer::address_of(user));
-        let now = timestamp::now_seconds();
+    )acquires UserInfo, StakeApp, StakePool{
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
+        implement_unstake<CoinType>(user, &resource_signer, amount);
+ 
+    }
+
+    #[test_only]
+    public entry fun test_remove_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo{
+        implement_unstake<CoinType>(user, resource_signer, amount);
+    }
+
+    inline fun implement_unstake<CoinType>(
+        user: &signer,
+        resource_signer: &signer,
+        amount: u64,
+    ) acquires UserInfo, StakePool, StakeApp{
         assert!(exists<UserInfo>(signer::address_of(user)), error::permission_denied(ENOT_STAKED_USER));
+        let now = timestamp::now_seconds();
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let user_state = borrow_global_mut<UserInfo>(signer::address_of(user));
+        
         assert!(amount > 0, error::invalid_argument(EAMOUNT_MUST_BE_GREATER_THAN_ZERO));
         assert!(user_state.principal >= amount, error::resource_exhausted(ESTAKE_NOT_ENOUGH));
 
-        let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
-        
-        let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         let accumulated_rewards = calculate_rewards(user_state.last_staked_time, now, stake_pool_config.interest_rate, user_state.principal, true );
         
         stake_pool_config.staked_amount = stake_pool_config.staked_amount - amount;
@@ -468,7 +482,7 @@ module propbase::propbase_staking {
 
         vector::push_back(&mut user_state.unstaked_items, Stake{timestamp: now, amount });
 
-        aptos_account::transfer_coins<CoinType>(&resource_signer, signer::address_of(user), (amount));
+        aptos_account::transfer_coins<CoinType>(resource_signer, signer::address_of(user), (amount));
 
         event::emit_event<UnStakeEvent>(
             &mut user_state.unstake_events,
