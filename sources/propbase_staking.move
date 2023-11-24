@@ -38,6 +38,7 @@ module propbase::propbase_staking {
         interest_rate: u64,
         penalty_rate: u64,
         staked_amount: u64,
+        total_penalty: u64,
         set_pool_config_events: EventHandle<SetStakePoolEvent>,
     }
 
@@ -74,6 +75,7 @@ module propbase::propbase_staking {
     struct UnStakeEvent has drop, store{
         withdrawn: u64,
         amount: u64,
+        penalty: u64,
         accumulated_rewards: u64,
         unstaked_time: u64,
     }
@@ -166,6 +168,7 @@ module propbase::propbase_staking {
             interest_rate: 0,
             penalty_rate: 0,
             staked_amount: 0,
+            total_penalty: 0,
             set_pool_config_events: account::new_event_handle<SetStakePoolEvent>(resource_account),
 
         });
@@ -367,15 +370,6 @@ module propbase::propbase_staking {
         assert!(reward_state.available_rewards >= (difference * (pool_cap / 31622400) * interest_rate ), error::resource_exhausted(EREWARD_NOT_ENOUGH));
     }
 
-    inline fun transfer_penalty(
-        withdraw_amount: u64,
-        penalty_rate: u64
-    ) {
-        let penalty = withdraw_amount / 100 * penalty_rate;
-        // transfer penalty to treasurer
-    }
-
-
     public entry fun add_stake<CoinType> (
         user: &signer,
         amount: u64
@@ -463,7 +457,7 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo{
+    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo, StakeApp{
         implement_unstake<CoinType>(user, resource_signer, amount);
     }
 
@@ -472,6 +466,7 @@ module propbase::propbase_staking {
         resource_signer: &signer,
         amount: u64,
     ) acquires UserInfo, StakePool, StakeApp{
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let user_address = signer::address_of(user);
         assert!(exists<UserInfo>(user_address), error::permission_denied(ENOT_STAKED_USER));
         let now = timestamp::now_seconds();
@@ -490,13 +485,20 @@ module propbase::propbase_staking {
 
         vector::push_back(&mut user_state.unstaked_items, Stake{timestamp: now, amount });
 
-        aptos_account::transfer_coins<CoinType>(resource_signer, user_address, amount);
+
+        let penalty = amount / 100 * stake_pool_config.penalty_rate ;
+        let bal_after_penalty = amount - penalty;
+        stake_pool_config.total_penalty = stake_pool_config.total_penalty + penalty;
+
+        aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, penalty);
+        aptos_account::transfer_coins<CoinType>(resource_signer, user_address, bal_after_penalty);
 
         event::emit_event<UnStakeEvent>(
             &mut user_state.unstake_events,
             UnStakeEvent {
                 withdrawn: user_state.withdrawn,
                 amount: amount,
+                penalty: penalty,
                 accumulated_rewards: user_state.accumulated_rewards,
                 unstaked_time: now,
             }
@@ -691,8 +693,9 @@ module propbase::propbase_staking {
 
     #[view]
     public fun get_contract_reward_balance<CoinType>(
-    ): u64 {
-        coin::balance<CoinType>(@propbase)
+    ): u64 acquires RewardPool{
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        reward_state.available_rewards
     }
 
 }
