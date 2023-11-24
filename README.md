@@ -67,7 +67,7 @@ aptos move create-resource-account-and-publish-package --seed [seed] --address-n
 ## Example Function Invoking commands
 
 ```
-aptos move create-resource-account-and-publish-package --seed 1388 --address-name propbase --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
+aptos move create-resource-account-and-publish-package --seed 1403 --address-name propbase --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
 
 ```
 
@@ -83,6 +83,10 @@ aptos move run --function-id 18327b2f9ea8450beb12074deeb6a723a69dab2fc2b9d39110a
 
 ```
 aptos move run --function-id 18327b2f9ea8450beb12074deeb6a723a69dab2fc2b9d39110ad25341fda8468::propbase_staking::set_treasury --args new_treasury_address:0x746f4a1e6501f852bb31039ee1ec8d9e8be58a0193483d7168b4b21ad1ee5897
+```
+
+```
+0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS
 ```
 
 1 aptos = 10^8 octas

@@ -376,13 +376,13 @@ module propbase::propbase_staking {
         amount: u64
 
     )acquires  UserInfo, StakePool, StakeApp{
-
+        debug::print<String>(&string::utf8(b"add_stake  ===================== #1"));
         let now = timestamp::now_seconds();
         let user_address = signer::address_of(user);
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
 
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
+        // assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
         assert!(amount >= contract_config.min_stake_amount, error::invalid_argument(EINVALID_AMOUNT));
         assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(ENOT_IN_STAKING_RANGE));
         assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap , error::resource_exhausted(ESTAKE_POOL_EXHAUSTED));
@@ -390,7 +390,7 @@ module propbase::propbase_staking {
         stake_pool_config.staked_amount = stake_pool_config.staked_amount + amount;
 
         if(!exists<UserInfo>(user_address)){
- 
+            debug::print<String>(&string::utf8(b"user address does not exist  ===================== #1"));
             let stake_buffer = vector::empty<Stake>();
             let unstake_buffer = vector::empty<Stake>();
             aptos_account::transfer_coins<CoinType>(user, @propbase, amount);
@@ -421,6 +421,7 @@ module propbase::propbase_staking {
             );
 
         }else {
+            debug::print<String>(&string::utf8(b"user address found  ===================== #1"));
             aptos_account::transfer_coins<CoinType>(user, @propbase, (amount));
             let user_state = borrow_global_mut<UserInfo>(user_address);
             let accumulated_rewards = get_total_rewards_so_far(
@@ -431,7 +432,7 @@ module propbase::propbase_staking {
             );
             // let accumulated_rewards = calculate_rewards(user_state.last_staked_time, now, stake_pool_config.interest_rate, user_state.principal, true );
             
-            user_state.accumulated_rewards = accumulated_rewards;
+            user_state.accumulated_rewards = (accumulated_rewards as u64);
             user_state.principal = user_state.principal + amount;
             user_state.last_staked_time = now;
             user_state.rewards_accumulated_at = now;
@@ -544,12 +545,16 @@ module propbase::propbase_staking {
         period: u64
     ): u128 acquires StakePool {
         // let rewards: u64 = 0;
-        
+        debug::print<String>(&string::utf8(b"apply_reward_formula  ===================== #1"));
         let stake_pool_config = borrow_global<StakePool>(@propbase);
         let seconds_in_year: u64 = 31622400; // to be in the config
         // need convertion
-        let interest_per_second = (stake_pool_config.interest_rate as u128) / ((seconds_in_year * 100) as u128); // to be in the config
-        (principal as u128) * (period as u128) * interest_per_second
+        debug::print<String>(&string::utf8(b"stake_pool_config.interest_rate  ===================== #1"));
+        debug::print(&stake_pool_config.interest_rate);
+        let interest_per_second = stake_pool_config.interest_rate; // to be in the config
+        debug::print<String>(&string::utf8(b"interest_per_second  ===================== #1"));
+        debug::print(&interest_per_second);
+        (principal as u128) * (period as u128) * (interest_per_second as u128) / (seconds_in_year as u128) / 100
     }
 
     inline fun get_total_rewards_so_far(
@@ -558,13 +563,18 @@ module propbase::propbase_staking {
         rewards_accumulated_at: u64,
         last_staked_time: u64,
     ): u64 acquires StakePool {
+        debug::print<String>(&string::utf8(b"get_total_rewards_so_far  ===================== #1"));
         let rewards;
         let now = timestamp::now_seconds();
+        debug::print<String>(&string::utf8(b"rewards_accumulated_at  ===================== #1"));
+        debug::print(&rewards_accumulated_at);
         if (rewards_accumulated_at > 0) {
             rewards = ((accumulated_rewards as u128) + apply_reward_formula(principal, now - rewards_accumulated_at));
         } else {
             rewards = apply_reward_formula(principal, now - last_staked_time);
         };
+        debug::print<String>(&string::utf8(b"rewards  ===================== #1"));
+        debug::print(&rewards);
         let final_rewards = (rewards as u64);
         final_rewards
     }
@@ -658,6 +668,21 @@ module propbase::propbase_staking {
     ): bool acquires StakeApp{
         let staking_config = borrow_global<StakeApp>(@propbase);
         Table::contains(&staking_config.reward_treasurers, user)
+    }
+
+    #[view]
+    public fun get_user_info(
+        user: address
+    ): (u64, u64, u64, u64, u64) acquires UserInfo {
+        assert!(exists<UserInfo>(user), error::invalid_argument(ENOT_STAKED_USER));
+        let user_config = borrow_global<UserInfo>(user);
+        return (
+            user_config.principal,
+            user_config.withdrawn,
+            user_config.accumulated_rewards,
+            user_config.rewards_accumulated_at,
+            user_config.last_staked_time
+        )
     }
 
     #[view]

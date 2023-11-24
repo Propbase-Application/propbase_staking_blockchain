@@ -2045,15 +2045,32 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(10000);
 
         propbase_staking::add_stake<PROPS>(address_1, 5000000000);
+
+        let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, last_staked_time) = propbase_staking::get_user_info(signer::address_of(address_1));
+        
+        assert!(principal == 5000000000, 1);
+        assert!(withdrawn == 0, 11);
+        assert!(accumulated_rewards == 0, 12);
+        assert!(rewards_accumulated_at == 0, 13);
+        assert!(last_staked_time > 0, 14);
+
+
+
         fast_forward_secs(10000);
         propbase_staking::add_stake<PROPS>(address_1, 5000000000);
 
-        let principal = propbase_staking::get_principal_amount(signer::address_of(address_1));
+        // let principal = propbase_staking::get_principal_amount(signer::address_of(address_1));
+        let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, last_staked_time) = propbase_staking::get_user_info(signer::address_of(address_1));
         let amount_transactions = propbase_staking::get_stake_amounts(signer::address_of(address_1));
         let time_stamp_transactions = propbase_staking::get_stake_time_stamps(signer::address_of(address_1));
         let (_, staked_amount, _, _, _, _) = propbase_staking::get_stake_pool_config();
 
-        assert!(principal == 10000000000, 1);
+        assert!(principal == 10000000000, 111);
+        assert!(withdrawn == 0, 112);
+        assert!(accumulated_rewards > 0, 112);
+        assert!(rewards_accumulated_at > 0, 113);
+        assert!(last_staked_time > 0, 114);
+
         assert!(staked_amount == 10000000000, 2);
         assert!(vector::length<u64>(&amount_transactions) == 2, 3);
         assert!(vector::length<u64>(&time_stamp_transactions) == 2, 4);
