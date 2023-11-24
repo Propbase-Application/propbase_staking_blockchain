@@ -43,9 +43,7 @@ module propbase::propbase_staking {
 
     struct RewardPool has key {
         available_rewards: u64,
-        total_penality: u64,
-        transferred_penalty_amounts: vector<u64>,
-        transferred_penalty_timestamps: vector<u64>,
+        total_penalty: u64,
         updated_rewards_events: EventHandle<UpdateRewardsEvent>,
     }
 
@@ -110,9 +108,9 @@ module propbase::propbase_staking {
         penalty_rate: u64,
     }
 
-    const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
+    // const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
 
-    // const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
+    const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
 
     const ENOT_AUTHORIZED: u64 = 1;
     const ENOT_NOT_A_TREASURER: u64 = 2;
@@ -175,9 +173,7 @@ module propbase::propbase_staking {
 
         move_to(resource_account, RewardPool {
             available_rewards: 0,
-            total_penality: 0,
-            transferred_penalty_amounts: vector::empty<u64>(),
-            transferred_penalty_timestamps: vector::empty<u64>(),
+            total_penalty: 0,
             updated_rewards_events: account::new_event_handle<UpdateRewardsEvent>(resource_account),
 
         });
@@ -492,9 +488,7 @@ module propbase::propbase_staking {
 
         let penalty = amount / 100 * stake_pool_config.penalty_rate ;
         let bal_after_penalty = amount - penalty;
-        reward_state.total_penality = reward_state.total_penality + penalty;
-        vector::push_back(&mut reward_state.transferred_penalty_amounts, penalty);
-        vector::push_back(&mut reward_state.transferred_penalty_timestamps, now);
+        reward_state.total_penalty = reward_state.total_penalty + penalty;
 
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, penalty);
         aptos_account::transfer_coins<CoinType>(resource_signer, user_address, bal_after_penalty);
@@ -697,36 +691,10 @@ module propbase::propbase_staking {
     }
 
     #[view]
-    public fun get_transferred_penalty_amounts(
-       admin: &signer
-
-    ): vector<u64> acquires RewardPool, StakeApp{
-        let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        let reward_state = borrow_global_mut<RewardPool>(@propbase);
-        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
-        reward_state.transferred_penalty_amounts
-    }
-
-    #[view]
-    public fun get_transferred_penalty_timestamps(
-       admin: &signer
-
-    ): vector<u64> acquires RewardPool, StakeApp{
-        let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        let reward_state = borrow_global_mut<RewardPool>(@propbase);
-        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
-        reward_state.transferred_penalty_timestamps
-    }
-
-    #[view]
     public fun get_contract_reward_balance<CoinType>(
-    ): u64 {
-        if(coin::is_account_registered<CoinType>(@propbase)){
-            coin::balance<CoinType>(@propbase)
-        }else{
-            0
-        }
-
+    ): u64 acquires RewardPool{
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        reward_state.available_rewards
     }
 
 }
