@@ -37,6 +37,7 @@ module propbase::propbase_staking {
         epoch_end_time: u64,
         interest_rate: u64,
         penalty_rate: u64,
+        seconds_in_year: u64,
         staked_amount: u64,
         total_penalty: u64,
         set_pool_config_events: EventHandle<SetStakePoolEvent>,
@@ -109,6 +110,7 @@ module propbase::propbase_staking {
         epoch_end_time: u64,
         interest_rate: u64,
         penalty_rate: u64,
+        seconds_in_year: u64
     }
 
     const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
@@ -136,6 +138,7 @@ module propbase::propbase_staking {
     const EREWARD_NOT_ENOUGH : u64 = 19;
     const ESTAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO : u64 = 20;
     const ESTAKE_NOT_ENOUGH : u64 = 21;
+    const ESECONDS_IN_YEAR_INVALID: u64 = 22;
 
     fun init_module(resource_account: &signer){
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -169,6 +172,7 @@ module propbase::propbase_staking {
             epoch_end_time: 0,
             interest_rate: 0,
             penalty_rate: 0,
+            seconds_in_year: 0,
             staked_amount: 0,
             total_penalty: 0,
             set_pool_config_events: account::new_event_handle<SetStakePoolEvent>(resource_account),
@@ -293,6 +297,7 @@ module propbase::propbase_staking {
         interest_rate: u64,
         penalty_rate: u64,
         min_stake_amount: u64,
+        seconds_in_year: u64,
         value_config: vector<bool>
     ) acquires StakePool, StakeApp, RewardPool {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
@@ -309,6 +314,7 @@ module propbase::propbase_staking {
         let set_interest_rate = *vector::borrow(&value_config, 4);
         let set_penalty_rate = *vector::borrow(&value_config, 5);
         let set_min_stake_amount = *vector::borrow(&value_config, 6);
+        let set_seconds_in_year = *vector::borrow(&value_config, 7);
 
         if(set_epoch_start_time && set_epoch_end_time){
             assert!(epoch_start_time < epoch_end_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME))
@@ -344,6 +350,11 @@ module propbase::propbase_staking {
             assert!(min_stake_amount > 0, error::invalid_argument(ESTAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO));
             contract_config.min_stake_amount = min_stake_amount;
         };
+        // 31536000 seconds in 365 days, 31622400 seconds in 366 days for leap year
+        if(set_seconds_in_year){
+            assert!(seconds_in_year == 31536000 || seconds_in_year == 31622400, error::invalid_argument(ESECONDS_IN_YEAR_INVALID));
+            stake_pool_config.seconds_in_year = seconds_in_year;
+        };
 
         check_is_reward_available(stake_pool_config.epoch_start_time, stake_pool_config.epoch_end_time, stake_pool_config.pool_cap, stake_pool_config.interest_rate);
 
@@ -356,6 +367,7 @@ module propbase::propbase_staking {
                 epoch_end_time: stake_pool_config.epoch_end_time,
                 interest_rate: stake_pool_config.interest_rate,
                 penalty_rate: stake_pool_config.penalty_rate,
+                seconds_in_year: stake_pool_config.seconds_in_year
             }
         );
 
@@ -432,7 +444,8 @@ module propbase::propbase_staking {
                 user_state.accumulated_rewards,
                 user_state.rewards_accumulated_at,
                 user_state.last_staked_time,
-                stake_pool_config.interest_rate
+                stake_pool_config.interest_rate,
+                stake_pool_config.seconds_in_year
             );
             // let accumulated_rewards = calculate_rewards(user_state.last_staked_time, now, stake_pool_config.interest_rate, user_state.principal, true );
             
@@ -497,7 +510,8 @@ module propbase::propbase_staking {
             user_state.accumulated_rewards,
             user_state.rewards_accumulated_at,
             user_state.last_staked_time,
-            stake_pool_config.interest_rate
+            stake_pool_config.interest_rate,
+            stake_pool_config.seconds_in_year
         );
         // let accumulated_rewards = calculate_rewards(user_state.last_staked_time, now, stake_pool_config.interest_rate, user_state.principal, true );
         
@@ -557,11 +571,10 @@ module propbase::propbase_staking {
     inline fun apply_reward_formula(
         principal: u64,
         period: u64,
-        interest_rate: u64
+        interest_rate: u64,
+        seconds_in_year: u64
     ): u128 acquires StakePool {
-        // let rewards: u64 = 0;
         debug::print<String>(&string::utf8(b"apply_reward_formula  ===================== #1"));
-        let seconds_in_year: u64 = 31622400; // to be in the config
         // (principal as u128) * (period as u128) * (interest_per_second as u128) / (seconds_in_year as u128) / 100
         let principal_with_interest_rate = (principal as u128) * (interest_rate as u128);
         let principal_with_interest_rate_in_year = principal_with_interest_rate / (seconds_in_year as u128);
@@ -573,7 +586,8 @@ module propbase::propbase_staking {
         accumulated_rewards: u64,
         rewards_accumulated_at: u64,
         last_staked_time: u64,
-        interest_rate: u64
+        interest_rate: u64,
+        seconds_in_year: u64
     ): u64 acquires StakePool {
         debug::print<String>(&string::utf8(b"get_total_rewards_so_far  ===================== #1"));
         let rewards;
@@ -581,9 +595,19 @@ module propbase::propbase_staking {
         debug::print<String>(&string::utf8(b"rewards_accumulated_at  ===================== #1"));
         debug::print(&rewards_accumulated_at);
         if (rewards_accumulated_at > 0) {
-            rewards = ((accumulated_rewards as u128) + apply_reward_formula(principal, now - rewards_accumulated_at, interest_rate));
+            rewards = ((accumulated_rewards as u128) + apply_reward_formula(
+                principal,
+                now - rewards_accumulated_at,
+                interest_rate,
+                seconds_in_year
+            ));
         } else {
-            rewards = apply_reward_formula(principal, now - last_staked_time, interest_rate);
+            rewards = apply_reward_formula(
+                principal,
+                now - last_staked_time,
+                interest_rate,
+                seconds_in_year
+            );
         };
         debug::print<String>(&string::utf8(b"rewards  ===================== #1"));
         debug::print(&rewards);
@@ -607,10 +631,16 @@ module propbase::propbase_staking {
                 user_state.accumulated_rewards,
                 user_state.rewards_accumulated_at,
                 user_state.last_staked_time,
-                stake_pool_config.interest_rate
+                stake_pool_config.interest_rate,
+                stake_pool_config.seconds_in_year
             );
         } else {
-            let reward = apply_reward_formula(principal, stake_pool_config.epoch_end_time - now, stake_pool_config.interest_rate);
+            let reward = apply_reward_formula(
+                principal,
+                stake_pool_config.epoch_end_time - now,
+                stake_pool_config.interest_rate,
+                stake_pool_config.seconds_in_year
+            );
             accumulated_rewards = (reward as u64);
         };
         accumulated_rewards
