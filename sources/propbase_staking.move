@@ -367,6 +367,14 @@ module propbase::propbase_staking {
         assert!(reward_state.available_rewards >= (difference * (pool_cap / 31622400) * interest_rate ), error::resource_exhausted(EREWARD_NOT_ENOUGH));
     }
 
+    inline fun transfer_penalty(
+        withdraw_amount: u64,
+        penalty_rate: u64
+    ) {
+        let penalty = withdraw_amount / 100 * penalty_rate;
+        // transfer penalty to treasurer
+    }
+
 
     public entry fun add_stake<CoinType> (
         user: &signer,
