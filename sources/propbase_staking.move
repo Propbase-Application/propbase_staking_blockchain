@@ -371,7 +371,7 @@ module propbase::propbase_staking {
         withdraw_amount: u64,
         penalty_rate: u64
     ) {
-        let penalty = withdraw_amount / 100 * penalty_rate
+        let penalty = withdraw_amount / 100 * penalty_rate;
         // transfer penalty to treasurer
     }
 
