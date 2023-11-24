@@ -428,7 +428,8 @@ module propbase::propbase_staking {
                 user_state.principal,
                 user_state.accumulated_rewards,
                 user_state.rewards_accumulated_at,
-                user_state.last_staked_time
+                user_state.last_staked_time,
+                stake_pool_config.interest_rate
             );
             // let accumulated_rewards = calculate_rewards(user_state.last_staked_time, now, stake_pool_config.interest_rate, user_state.principal, true );
             
@@ -485,7 +486,14 @@ module propbase::propbase_staking {
         assert!(amount > 0, error::invalid_argument(EAMOUNT_MUST_BE_GREATER_THAN_ZERO));
         assert!(user_state.principal >= amount, error::resource_exhausted(ESTAKE_NOT_ENOUGH));
 
-        let accumulated_rewards = calculate_rewards(user_state.last_staked_time, now, stake_pool_config.interest_rate, user_state.principal, true );
+        let accumulated_rewards = get_total_rewards_so_far(
+            user_state.principal,
+            user_state.accumulated_rewards,
+            user_state.rewards_accumulated_at,
+            user_state.last_staked_time,
+            stake_pool_config.interest_rate
+        );
+        // let accumulated_rewards = calculate_rewards(user_state.last_staked_time, now, stake_pool_config.interest_rate, user_state.principal, true );
         
         stake_pool_config.staked_amount = stake_pool_config.staked_amount - amount;
         user_state.accumulated_rewards = (accumulated_rewards as u64);
@@ -542,20 +550,14 @@ module propbase::propbase_staking {
 
     inline fun apply_reward_formula(
         principal: u64,
-        period: u64
+        period: u64,
+        interest_rate: u64
     ): u128 acquires StakePool {
         // let rewards: u64 = 0;
         debug::print<String>(&string::utf8(b"apply_reward_formula  ===================== #1"));
-        let stake_pool_config = borrow_global<StakePool>(@propbase);
         let seconds_in_year: u64 = 31622400; // to be in the config
-        // need convertion
-        debug::print<String>(&string::utf8(b"stake_pool_config.interest_rate  ===================== #1"));
-        debug::print(&stake_pool_config.interest_rate);
-        let interest_per_second = stake_pool_config.interest_rate; // to be in the config
-        debug::print<String>(&string::utf8(b"interest_per_second  ===================== #1"));
-        debug::print(&interest_per_second);
         // (principal as u128) * (period as u128) * (interest_per_second as u128) / (seconds_in_year as u128) / 100
-        let principal_with_interest_rate = (principal as u128) * (stake_pool_config.interest_rate as u128);
+        let principal_with_interest_rate = (principal as u128) * (interest_rate as u128);
         let principal_with_interest_rate_in_year = principal_with_interest_rate / (seconds_in_year as u128);
         principal_with_interest_rate_in_year * (period as u128) / 100
     }
@@ -565,6 +567,7 @@ module propbase::propbase_staking {
         accumulated_rewards: u64,
         rewards_accumulated_at: u64,
         last_staked_time: u64,
+        interest_rate: u64
     ): u64 acquires StakePool {
         debug::print<String>(&string::utf8(b"get_total_rewards_so_far  ===================== #1"));
         let rewards;
@@ -572,9 +575,9 @@ module propbase::propbase_staking {
         debug::print<String>(&string::utf8(b"rewards_accumulated_at  ===================== #1"));
         debug::print(&rewards_accumulated_at);
         if (rewards_accumulated_at > 0) {
-            rewards = ((accumulated_rewards as u128) + apply_reward_formula(principal, now - rewards_accumulated_at));
+            rewards = ((accumulated_rewards as u128) + apply_reward_formula(principal, now - rewards_accumulated_at, interest_rate));
         } else {
-            rewards = apply_reward_formula(principal, now - last_staked_time);
+            rewards = apply_reward_formula(principal, now - last_staked_time, interest_rate);
         };
         debug::print<String>(&string::utf8(b"rewards  ===================== #1"));
         debug::print(&rewards);
@@ -590,17 +593,18 @@ module propbase::propbase_staking {
     ): u64 acquires UserInfo, StakePool {
         let accumulated_rewards;
         let now = timestamp::now_seconds();
+        let stake_pool_config = borrow_global<StakePool>(@propbase);
         if(exists<UserInfo>(user_address)) {
             let user_state = borrow_global_mut<UserInfo>(user_address);
             accumulated_rewards = get_total_rewards_so_far(
                 user_state.principal,
                 user_state.accumulated_rewards,
                 user_state.rewards_accumulated_at,
-                user_state.last_staked_time
+                user_state.last_staked_time,
+                stake_pool_config.interest_rate
             );
         } else {
-            let stake_pool_config = borrow_global<StakePool>(@propbase);
-            let reward = apply_reward_formula(principal, stake_pool_config.epoch_end_time - now);
+            let reward = apply_reward_formula(principal, stake_pool_config.epoch_end_time - now, stake_pool_config.interest_rate);
             accumulated_rewards = (reward as u64);
         };
         accumulated_rewards
