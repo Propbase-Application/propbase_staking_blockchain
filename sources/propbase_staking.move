@@ -519,6 +519,7 @@ module propbase::propbase_staking {
         
         stake_pool_config.staked_amount = stake_pool_config.staked_amount - amount;
         user_state.accumulated_rewards = (accumulated_rewards as u64);
+        user_state.rewards_accumulated_at = now;
         user_state.principal = user_state.principal - amount;
         user_state.withdrawn = user_state.withdrawn + amount;
 
