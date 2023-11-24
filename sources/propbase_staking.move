@@ -9,7 +9,6 @@ module propbase::propbase_staking {
     friend propbase::propbase_staking_tests;
 
     use aptos_framework::event::{Self, EventHandle};
-    use aptos_framework::coin::{Self};
     use aptos_framework::aptos_account;
     use aptos_std::table_with_length::{Self as Table, TableWithLength};
     use aptos_std::type_info;
@@ -620,9 +619,31 @@ module propbase::propbase_staking {
         user_address: address,
         principal: u64,
         
-    ): u64 acquires UserInfo, StakePool {
+    ): u64 acquires StakePool {
         let accumulated_rewards;
         let now = timestamp::now_seconds();
+        let stake_pool_config = borrow_global<StakePool>(@propbase);
+        if(exists<UserInfo>(user_address)) {
+            // let user_state = borrow_global_mut<UserInfo>(user_address);
+            // get_rewards_at_the_end_of_epoch
+            accumulated_rewards = 0;
+        } else {
+            let reward = apply_reward_formula(
+                principal,
+                stake_pool_config.epoch_end_time - now,
+                stake_pool_config.interest_rate,
+                stake_pool_config.seconds_in_year
+            );
+            accumulated_rewards = (reward as u64);
+        };
+        accumulated_rewards
+    }
+
+    #[view]
+    public fun rewards_earned(
+        user_address: address,
+    ): u64 acquires UserInfo, StakePool {
+        let accumulated_rewards: u64 = 0;
         let stake_pool_config = borrow_global<StakePool>(@propbase);
         if(exists<UserInfo>(user_address)) {
             let user_state = borrow_global_mut<UserInfo>(user_address);
@@ -634,14 +655,6 @@ module propbase::propbase_staking {
                 stake_pool_config.interest_rate,
                 stake_pool_config.seconds_in_year
             );
-        } else {
-            let reward = apply_reward_formula(
-                principal,
-                stake_pool_config.epoch_end_time - now,
-                stake_pool_config.interest_rate,
-                stake_pool_config.seconds_in_year
-            );
-            accumulated_rewards = (reward as u64);
         };
         accumulated_rewards
     }
