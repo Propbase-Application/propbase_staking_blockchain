@@ -109,7 +109,7 @@ module propbase::propbase_staking {
 
     const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
 
-    // const PROPS_COIN_TEST:vector<u8> = b"0x1::propbase_coin::PROPS";
+    // const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
 
     const ENOT_AUTHORIZED: u64 = 1;
     const ENOT_NOT_A_TREASURER: u64 = 2;
@@ -131,6 +131,7 @@ module propbase::propbase_staking {
     const EAMOUNT_MUST_BE_GREATER_THAN_ZERO : u64 = 18;
     const EREWARD_NOT_ENOUGH : u64 = 19;
     const ESTAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO : u64 = 20;
+    const ESTAKE_NOT_ENOUGH : u64 = 21;
 
     fun init_module(resource_account: &signer){
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -442,6 +443,58 @@ module propbase::propbase_staking {
 
     }
 
+    public entry fun withdraw_stake<CoinType> (
+        user: &signer,
+        amount: u64
+
+    )acquires UserInfo, StakeApp, StakePool{
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
+        implement_unstake<CoinType>(user, &resource_signer, amount);
+ 
+    }
+
+    #[test_only]
+    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo{
+        implement_unstake<CoinType>(user, resource_signer, amount);
+    }
+
+    inline fun implement_unstake<CoinType>(
+        user: &signer,
+        resource_signer: &signer,
+        amount: u64,
+    ) acquires UserInfo, StakePool, StakeApp{
+        let user_address = signer::address_of(user);
+        assert!(exists<UserInfo>(user_address), error::permission_denied(ENOT_STAKED_USER));
+        let now = timestamp::now_seconds();
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let user_state = borrow_global_mut<UserInfo>(user_address);
+        
+        assert!(amount > 0, error::invalid_argument(EAMOUNT_MUST_BE_GREATER_THAN_ZERO));
+        assert!(user_state.principal >= amount, error::resource_exhausted(ESTAKE_NOT_ENOUGH));
+
+        let accumulated_rewards = calculate_rewards(user_state.last_staked_time, now, stake_pool_config.interest_rate, user_state.principal, true );
+        
+        stake_pool_config.staked_amount = stake_pool_config.staked_amount - amount;
+        user_state.accumulated_rewards = (accumulated_rewards as u64);
+        user_state.principal = user_state.principal - amount;
+        user_state.withdrawn = user_state.withdrawn + amount;
+
+        vector::push_back(&mut user_state.unstaked_items, Stake{timestamp: now, amount });
+
+        aptos_account::transfer_coins<CoinType>(resource_signer, user_address, amount);
+
+        event::emit_event<UnStakeEvent>(
+            &mut user_state.unstake_events,
+            UnStakeEvent {
+                withdrawn: user_state.withdrawn,
+                amount: amount,
+                accumulated_rewards: user_state.accumulated_rewards,
+                unstaked_time: now,
+            }
+        );
+    }
+
 
     public entry fun add_reward_funds<CoinType>(
         treasurer: &signer,
@@ -570,6 +623,44 @@ module propbase::propbase_staking {
         timestamps
 
     }
+    #[view]
+    public fun get_unstake_amounts(
+        user:address,
+
+    ): vector<u64> acquires UserInfo{
+        assert!(exists<UserInfo>(user), error::invalid_argument(ENOT_STAKED_USER));
+        let user_config = borrow_global<UserInfo>(user);
+        let amounts= vector::empty<u64>();
+        let i = 0;
+        let len = vector::length(&user_config.unstaked_items);
+        while (i < len){
+            let element = vector::borrow(&user_config.unstaked_items, i);
+            vector::push_back(&mut amounts, element.amount);
+            i = i + 1; 
+        };
+        amounts
+
+    }
+
+    #[view]
+    public fun get_unstake_time_stamps(
+        user:address,
+
+    ): vector<u64> acquires UserInfo{
+        assert!(exists<UserInfo>(user), error::invalid_argument(ENOT_STAKED_USER));
+        let user_config = borrow_global<UserInfo>(user);
+        let timestamps= vector::empty<u64>();
+        let i = 0;
+        let len = vector::length(&user_config.unstaked_items);
+        while (i < len){
+            let element = vector::borrow(&user_config.unstaked_items, i);
+            vector::push_back(&mut timestamps, element.timestamp);
+            i = i + 1;
+        };
+        timestamps
+
+    }
+
     #[view]
     public fun get_current_rewards_earned(
         user: &signer,
