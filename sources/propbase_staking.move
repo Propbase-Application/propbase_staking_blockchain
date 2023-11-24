@@ -43,6 +43,9 @@ module propbase::propbase_staking {
 
     struct RewardPool has key {
         available_rewards: u64,
+        total_penality: u64,
+        transferred_penalty_amounts: vector<u64>,
+        transferred_penalty_timestamps: vector<u64>,
         updated_rewards_events: EventHandle<UpdateRewardsEvent>,
     }
 
@@ -172,6 +175,9 @@ module propbase::propbase_staking {
 
         move_to(resource_account, RewardPool {
             available_rewards: 0,
+            total_penality: 0,
+            transferred_penalty_amounts: vector::empty<u64>(),
+            transferred_penalty_timestamps: vector::empty<u64>(),
             updated_rewards_events: account::new_event_handle<UpdateRewardsEvent>(resource_account),
 
         });
@@ -446,7 +452,7 @@ module propbase::propbase_staking {
         user: &signer,
         amount: u64
 
-    )acquires UserInfo, StakeApp, StakePool{
+    )acquires UserInfo, StakeApp, StakePool, RewardPool{
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         implement_unstake<CoinType>(user, &resource_signer, amount);
@@ -454,7 +460,7 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo, StakeApp{
+    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo, StakeApp, RewardPool{
         implement_unstake<CoinType>(user, resource_signer, amount);
     }
 
@@ -462,13 +468,14 @@ module propbase::propbase_staking {
         user: &signer,
         resource_signer: &signer,
         amount: u64,
-    ) acquires UserInfo, StakePool, StakeApp{
+    ) acquires UserInfo, StakePool, StakeApp, RewardPool{
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let user_address = signer::address_of(user);
         assert!(exists<UserInfo>(user_address), error::permission_denied(ENOT_STAKED_USER));
         let now = timestamp::now_seconds();
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let user_state = borrow_global_mut<UserInfo>(user_address);
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
         
         assert!(amount > 0, error::invalid_argument(EAMOUNT_MUST_BE_GREATER_THAN_ZERO));
         assert!(user_state.principal >= amount, error::resource_exhausted(ESTAKE_NOT_ENOUGH));
@@ -482,14 +489,15 @@ module propbase::propbase_staking {
 
         vector::push_back(&mut user_state.unstaked_items, Stake{timestamp: now, amount });
 
-        if(now > stake_pool_config.epoch_end_time){
-            aptos_account::transfer_coins<CoinType>(resource_signer, user_address, amount);
-        }else{
-            let penalty = amount / 100 * stake_pool_config.penalty_rate ;
-            let bal_after_penalty = amount - penalty;
-            aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, penalty);
-            aptos_account::transfer_coins<CoinType>(resource_signer, user_address, bal_after_penalty);
-        };
+
+        let penalty = amount / 100 * stake_pool_config.penalty_rate ;
+        let bal_after_penalty = amount - penalty;
+        reward_state.total_penality = reward_state.total_penality + penalty;
+        vector::push_back(&mut reward_state.transferred_penalty_amounts, penalty);
+        vector::push_back(&mut reward_state.transferred_penalty_timestamps, now);
+
+        aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, penalty);
+        aptos_account::transfer_coins<CoinType>(resource_signer, user_address, bal_after_penalty);
 
         event::emit_event<UnStakeEvent>(
             &mut user_state.unstake_events,
@@ -689,9 +697,36 @@ module propbase::propbase_staking {
     }
 
     #[view]
+    public fun get_transferred_penalty_amounts(
+       admin: &signer
+
+    ): vector<u64> acquires RewardPool, StakeApp{
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        reward_state.transferred_penalty_amounts
+    }
+
+    #[view]
+    public fun get_transferred_penalty_timestamps(
+       admin: &signer
+
+    ): vector<u64> acquires RewardPool, StakeApp{
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        reward_state.transferred_penalty_timestamps
+    }
+
+    #[view]
     public fun get_contract_reward_balance<CoinType>(
     ): u64 {
-        coin::balance<CoinType>(@propbase)
+        if(coin::is_account_registered<CoinType>(@propbase)){
+            coin::balance<CoinType>(@propbase)
+        }else{
+            0
+        }
+
     }
 
 }
