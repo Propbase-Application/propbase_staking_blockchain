@@ -116,6 +116,9 @@ module propbase::propbase_staking {
 
     // const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
 
+    // const SECONDS_IN_DAY: u64 = 86400;
+    const SECONDS_IN_DAY: u64 = 1;
+
     const ENOT_AUTHORIZED: u64 = 1;
     const ENOT_NOT_A_TREASURER: u64 = 2;
     const ESTAKE_POOL_ALREADY_CREATED: u64 = 3;
@@ -397,7 +400,7 @@ module propbase::propbase_staking {
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
         assert!(amount >= contract_config.min_stake_amount, error::invalid_argument(EINVALID_AMOUNT));
         assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(ENOT_IN_STAKING_RANGE));
-        assert!(now < stake_pool_config.epoch_end_time - 86400, error::out_of_range(ENOT_IN_STAKING_RANGE));
+        assert!(now < stake_pool_config.epoch_end_time - SECONDS_IN_DAY, error::out_of_range(ENOT_IN_STAKING_RANGE));
         assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap , error::resource_exhausted(ESTAKE_POOL_EXHAUSTED));
         
         stake_pool_config.staked_amount = stake_pool_config.staked_amount + amount;
@@ -501,7 +504,7 @@ module propbase::propbase_staking {
         let user_state = borrow_global_mut<UserInfo>(user_address);
         
         assert!(amount > 0, error::invalid_argument(EAMOUNT_MUST_BE_GREATER_THAN_ZERO));
-        assert!(now >= user_state.first_staked_time + 86400, error::out_of_range(ENOT_IN_STAKING_RANGE));
+        assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(ENOT_IN_STAKING_RANGE));
         assert!(user_state.principal >= amount, error::resource_exhausted(ESTAKE_NOT_ENOUGH));
 
         let accumulated_rewards = get_total_rewards_so_far(
