@@ -75,6 +75,7 @@ module propbase::propbase_staking {
     struct UnStakeEvent has drop, store{
         withdrawn: u64,
         amount: u64,
+        penalty: u64,
         accumulated_rewards: u64,
         unstaked_time: u64,
     }
@@ -448,7 +449,7 @@ module propbase::propbase_staking {
         user: &signer,
         amount: u64
 
-    )acquires UserInfo, StakeApp, StakePool, RewardPool{
+    )acquires UserInfo, StakeApp, StakePool{
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         implement_unstake<CoinType>(user, &resource_signer, amount);
@@ -456,7 +457,7 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo, StakeApp, RewardPool{
+    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo, StakeApp{
         implement_unstake<CoinType>(user, resource_signer, amount);
     }
 
@@ -464,14 +465,13 @@ module propbase::propbase_staking {
         user: &signer,
         resource_signer: &signer,
         amount: u64,
-    ) acquires UserInfo, StakePool, StakeApp, RewardPool{
+    ) acquires UserInfo, StakePool, StakeApp{
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let user_address = signer::address_of(user);
         assert!(exists<UserInfo>(user_address), error::permission_denied(ENOT_STAKED_USER));
         let now = timestamp::now_seconds();
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let user_state = borrow_global_mut<UserInfo>(user_address);
-        let reward_state = borrow_global_mut<RewardPool>(@propbase);
         
         assert!(amount > 0, error::invalid_argument(EAMOUNT_MUST_BE_GREATER_THAN_ZERO));
         assert!(user_state.principal >= amount, error::resource_exhausted(ESTAKE_NOT_ENOUGH));
@@ -498,6 +498,7 @@ module propbase::propbase_staking {
             UnStakeEvent {
                 withdrawn: user_state.withdrawn,
                 amount: amount,
+                penalty: penalty,
                 accumulated_rewards: user_state.accumulated_rewards,
                 unstaked_time: now,
             }
