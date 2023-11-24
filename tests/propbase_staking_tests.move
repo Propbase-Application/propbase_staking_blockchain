@@ -2443,7 +2443,7 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(10000);
 
         propbase_staking::add_stake<PROPS>(address_1, 1000000000);
-        fast_forward_secs(10000);
+        fast_forward_secs(86400);
 
 
         let principal = propbase_staking::get_principal_amount(signer::address_of(address_1));
@@ -2468,7 +2468,7 @@ module propbase::propbase_staking_tests {
         assert!(*vector::borrow(&amount_transactions, 0) == 1000000000, 5);
         assert!(*vector::borrow(&time_stamp_transactions, 0) == 80000, 6);
         assert!(*vector::borrow(&amount_transactions_unstake, 0) == 1000000000, 7);
-        assert!(*vector::borrow(&time_stamp_transactions_unstake, 0) == 90000, 8);
+        assert!(*vector::borrow(&time_stamp_transactions_unstake, 0) == 166400, 8);
         assert!(treasury_bal > 0, 9);
     }
 
@@ -2601,7 +2601,7 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(10000);
 
         propbase_staking::add_stake<PROPS>(address_1, 1000000000);
-        fast_forward_secs(10000);
+        fast_forward_secs(86400);
 
         propbase_staking::test_withdraw_stake<PROPS>(address_1, resource, 1400000000);
 

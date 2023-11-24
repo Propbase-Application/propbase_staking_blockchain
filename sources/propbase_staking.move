@@ -62,6 +62,7 @@ module propbase::propbase_staking {
         accumulated_rewards: u64,
         rewards_accumulated_at: u64,
         last_staked_time: u64,
+        first_staked_time: u64,
         stake_events: EventHandle<StakeEvent>,
         unstake_events: EventHandle<UnStakeEvent>,
     }
@@ -385,6 +386,7 @@ module propbase::propbase_staking {
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
         assert!(amount >= contract_config.min_stake_amount, error::invalid_argument(EINVALID_AMOUNT));
         assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(ENOT_IN_STAKING_RANGE));
+        assert!(now < stake_pool_config.epoch_end_time - 86400, error::out_of_range(ENOT_IN_STAKING_RANGE));
         assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap , error::resource_exhausted(ESTAKE_POOL_EXHAUSTED));
         
         stake_pool_config.staked_amount = stake_pool_config.staked_amount + amount;
@@ -404,6 +406,7 @@ module propbase::propbase_staking {
                 accumulated_rewards: 0,
                 rewards_accumulated_at: 0,
                 last_staked_time: now,
+                first_staked_time: now,
                 stake_events: account::new_event_handle<StakeEvent>(user),
                 unstake_events: account::new_event_handle<UnStakeEvent>(user),
 
@@ -480,10 +483,13 @@ module propbase::propbase_staking {
         let user_address = signer::address_of(user);
         assert!(exists<UserInfo>(user_address), error::permission_denied(ENOT_STAKED_USER));
         let now = timestamp::now_seconds();
+
+        
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let user_state = borrow_global_mut<UserInfo>(user_address);
         
         assert!(amount > 0, error::invalid_argument(EAMOUNT_MUST_BE_GREATER_THAN_ZERO));
+        assert!(now >= user_state.first_staked_time + 86400, error::out_of_range(ENOT_IN_STAKING_RANGE));
         assert!(user_state.principal >= amount, error::resource_exhausted(ESTAKE_NOT_ENOUGH));
 
         let accumulated_rewards = get_total_rewards_so_far(
