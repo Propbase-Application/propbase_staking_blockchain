@@ -443,7 +443,7 @@ module propbase::propbase_staking {
 
     }
 
-    public entry fun remove_stake<CoinType> (
+    public entry fun withdraw_stake<CoinType> (
         user: &signer,
         amount: u64
 
@@ -455,7 +455,7 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_remove_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo{
+    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo{
         implement_unstake<CoinType>(user, resource_signer, amount);
     }
 
@@ -464,10 +464,11 @@ module propbase::propbase_staking {
         resource_signer: &signer,
         amount: u64,
     ) acquires UserInfo, StakePool, StakeApp{
-        assert!(exists<UserInfo>(signer::address_of(user)), error::permission_denied(ENOT_STAKED_USER));
+        let user_address = signer::address_of(user);
+        assert!(exists<UserInfo>(user_address), error::permission_denied(ENOT_STAKED_USER));
         let now = timestamp::now_seconds();
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
-        let user_state = borrow_global_mut<UserInfo>(signer::address_of(user));
+        let user_state = borrow_global_mut<UserInfo>(user_address);
         
         assert!(amount > 0, error::invalid_argument(EAMOUNT_MUST_BE_GREATER_THAN_ZERO));
         assert!(user_state.principal >= amount, error::resource_exhausted(ESTAKE_NOT_ENOUGH));
@@ -478,11 +479,10 @@ module propbase::propbase_staking {
         user_state.accumulated_rewards = (accumulated_rewards as u64);
         user_state.principal = user_state.principal - amount;
         user_state.withdrawn = user_state.withdrawn + amount;
-        user_state.last_staked_time = now;
 
         vector::push_back(&mut user_state.unstaked_items, Stake{timestamp: now, amount });
 
-        aptos_account::transfer_coins<CoinType>(resource_signer, signer::address_of(user), (amount));
+        aptos_account::transfer_coins<CoinType>(resource_signer, user_address, amount);
 
         event::emit_event<UnStakeEvent>(
             &mut user_state.unstake_events,

@@ -2306,7 +2306,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_successful_remove_stake(
+    fun test_successful_withdraw_stake(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -2349,7 +2349,7 @@ module propbase::propbase_staking_tests {
         let time_stamp_transactions = propbase_staking::get_stake_time_stamps(signer::address_of(address_1));
         let (_, staked_amount, _, _, _, _) = propbase_staking::get_stake_pool_config();
 
-        propbase_staking::test_remove_stake<PROPS>(address_1, resource, 1000000000);
+        propbase_staking::test_withdraw_stake<PROPS>(address_1, resource, 1000000000);
         let amount_transactions_unstake = propbase_staking::get_unstake_amounts(signer::address_of(address_1));
         let time_stamp_transactions_unstake = propbase_staking::get_unstake_time_stamps(signer::address_of(address_1));
         let (_, staked_amount_unstaked, _, _, _, _) = propbase_staking::get_stake_pool_config();
@@ -2369,7 +2369,7 @@ module propbase::propbase_staking_tests {
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x5000A, location = propbase_staking )]
-    fun test_failure_remove_stake_non_staked_user(
+    fun test_failure_withdraw_stake_non_staked_user(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -2412,13 +2412,13 @@ module propbase::propbase_staking_tests {
         let time_stamp_transactions = propbase_staking::get_stake_time_stamps(signer::address_of(address_1));
         let (_, staked_amount, _, _, _, _) = propbase_staking::get_stake_pool_config();
 
-        propbase_staking::test_remove_stake<PROPS>(address_2, resource, 1000000000);
+        propbase_staking::test_withdraw_stake<PROPS>(address_2, resource, 1000000000);
 
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x10012, location = propbase_staking )]
-    fun test_failure_remove_stake_amount_must_be_greater_than_zero(
+    fun test_failure_withdraw_stake_amount_must_be_greater_than_zero(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -2455,13 +2455,13 @@ module propbase::propbase_staking_tests {
         propbase_staking::add_stake<PROPS>(address_1, 1000000000);
         fast_forward_secs(10000);
 
-        propbase_staking::test_remove_stake<PROPS>(address_1, resource, 0);
+        propbase_staking::test_withdraw_stake<PROPS>(address_1, resource, 0);
 
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x90015, location = propbase_staking )]
-    fun test_failure_remove_stake_not_enough_stake(
+    fun test_failure_withdraw_stake_not_enough_stake(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -2498,7 +2498,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::add_stake<PROPS>(address_1, 1000000000);
         fast_forward_secs(10000);
 
-        propbase_staking::test_remove_stake<PROPS>(address_1, resource, 1400000000);
+        propbase_staking::test_withdraw_stake<PROPS>(address_1, resource, 1400000000);
 
     }
 
