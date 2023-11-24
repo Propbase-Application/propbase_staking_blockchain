@@ -107,9 +107,9 @@ module propbase::propbase_staking {
         penalty_rate: u64,
     }
 
-    // const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
+    const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
 
-    const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
+    // const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
 
     const ENOT_AUTHORIZED: u64 = 1;
     const ENOT_NOT_A_TREASURER: u64 = 2;
