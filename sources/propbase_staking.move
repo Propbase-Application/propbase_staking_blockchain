@@ -626,6 +626,7 @@ module propbase::propbase_staking {
         user:address,
 
     ): vector<u64> acquires UserInfo{
+        assert!(account::exists_at(new_admin_address), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
         let timestamps= vector::empty<u64>();
         if(!exists<UserInfo>(user)){
             timestamps
@@ -647,6 +648,7 @@ module propbase::propbase_staking {
         user:address,
 
     ): vector<u64> acquires UserInfo{
+        assert!(account::exists_at(user), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
         let amounts= vector::empty<u64>();
         assert!(exists<UserInfo>(user), error::invalid_argument(ENOT_STAKED_USER));
         if(!exists<UserInfo>(user)){
@@ -670,6 +672,7 @@ module propbase::propbase_staking {
         user:address,
 
     ): vector<u64> acquires UserInfo{
+        assert!(account::exists_at(new_admin_address), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
         let timestamps= vector::empty<u64>();
         if(!exists<UserInfo>(user)){
             timestamps
@@ -692,6 +695,7 @@ module propbase::propbase_staking {
         user: &signer,
 
     ): u64 acquires UserInfo, StakePool {
+        assert!(account::exists_at(new_admin_address), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
         assert!(exists<UserInfo>(signer::address_of(user)), error::invalid_argument(ENOT_STAKED_USER));
         let user_config = borrow_global<UserInfo>(signer::address_of(user));
         let stake_pool_config = borrow_global<StakePool>(@propbase);
