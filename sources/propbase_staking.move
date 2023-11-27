@@ -112,9 +112,9 @@ module propbase::propbase_staking {
         seconds_in_year: u64
     }
 
-    const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
+    // const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
 
-    // const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
+    const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
 
     // const SECONDS_IN_DAY: u64 = 86400;
     const SECONDS_IN_DAY: u64 = 1;
@@ -581,6 +581,11 @@ module propbase::propbase_staking {
         // (principal as u128) * (period as u128) * (interest_per_second as u128) / (seconds_in_year as u128) / 100
         let principal_with_interest_rate = (principal as u128) * (interest_rate as u128);
         let principal_with_interest_rate_in_year = principal_with_interest_rate / (seconds_in_year as u128);
+
+        // let principal_with_interest_rate_in_year_remainder = principal_with_interest_rate % (seconds_in_year as u128);
+        // (principal_with_interest_rate_in_year + principal_with_interest_rate_in_year_remainder) * (period as u128) / 100
+
+
         principal_with_interest_rate_in_year * (period as u128) / 100
     }
 
@@ -614,8 +619,7 @@ module propbase::propbase_staking {
         };
         debug::print<String>(&string::utf8(b"rewards  ===================== #1"));
         debug::print(&rewards);
-        let final_rewards = (rewards as u64);
-        final_rewards
+        (rewards as u64)
     }
 
     #[view]
@@ -666,9 +670,10 @@ module propbase::propbase_staking {
     public entry fun claim_rewards() {
         // it needs to pass 24 hours to claim the rewards
         // let user_state = borrow_global_mut<UserInfo>(user_address);
-        // rewards = get_total_rewards_so_far() - user_state.claimed_rewards
+        // rewards = rewards_earned() - user_state.claimed_rewards
         // user_state.accumulated_rewards = 0
         // user_state.rewards_accumulated_at = now
+        // user_state.claimed_rewards = rewards
     }
 
     public entry fun claim_principal_and_rewards() {
