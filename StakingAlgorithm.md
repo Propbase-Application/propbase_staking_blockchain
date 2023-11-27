@@ -48,21 +48,25 @@ Feb 02 - rewards accumulated =
     rewards = 3.606557377049181
 
 
-Feb 29 - rewards accumulated
+Feb 29 - claim rewards
     rewards = rewards_accumulated + (P * ((current_time - rewards_accumulation_calculated_time) / 366) * R / 100 )
     rewards = 3.387978142076503 + (200 * (28 / 366) * 40 / 100)
     rewards = 9.508196721311476
 
+    set claimed_rewards = 9.508196721311476
+    set rewards_accumulated = 0
+    set rewards_accumulation_calculated_time = current_time
+
 March 1 - user unstake 100
     rewards_accumulated = rewards_accumulated + (P * ((current_time - rewards_accumulation_calculated_time) / 366) * R / 100 )
-    rewards_accumulated = 3.387978142076503 + (200 * (29 / 366) * 40 / 100)
-    set rewards_accumulated = 9.726775956284154
+    rewards_accumulated = 0 + (200 * (1 / 366) * 40 / 100)
+    set rewards_accumulated = 0.21857923497267762
     set rewards_accumulation_calculated_time = current_time
     set P = 100
 
     total_returns = P + PNR/100
-    total_returns = 200 + 9.726775956284154
-    total_returns = 209.726775956284154
+    total_returns = 200 + 0.21857923497267762
+    total_returns = 200.21857923497267762
 
     penalty = 5% = 0.05
     total_penalty = withdraw * penalty
@@ -82,39 +86,23 @@ March 1 - user unstake 100
     actual withdraw amount = 100 - 5 = 95
 
 
-    total_returns = total_returns - withdraw
-    total_returns = 209.726775956284154 - 100
-    total_returns = 99.72677595628414
-
-
-    Rewards - 2 - first
-    Capital - 100 - second
-
-after withdraw:
-   Capital - 2 - second
-    Rewards - 0 - first
-
-    no fee for reward claim
-
-When user unstake, there are 3 options, which is best?
-    - should the reward (first) and capital be withdrawn
-    - only capital be withdrawn, rewards be claimed as per vesting schedule - no exit strategy
-    - separate exit strategy - unstake only, unstake & exit (if total capital is to be withdrawn)
-
+    set principal = principal - withdraw
+    set principal = 200 - 100
+    set principal = 100
 
 March 2 - rewards accumulated
     rewards_accumulated = rewards_accumulated + (P * ((current_time - rewards_accumulation_calculated_time) / 366) * R / 100 )
-    rewards_accumulated = 9.726775956284154 + (100 * (1 / 366) * 40 / 100)
-    rewards_accumulated = 9.836065573770492
+    rewards_accumulated = 0.21857923497267762 + (100 * (1 / 366) * 40 / 100)
+    rewards_accumulated = 0.3278688524590164
 
 
 March 3 - user stakes 150
     rewards_accumulated = rewards_accumulated +  (P * ((current_time - rewards_accumulation_calculated_time) / 366) * R / 100)
-    rewards_accumulated = 9.726775956284154 + (100 * (2 / 366) * 40 / 100)
-    rewards_accumulated = 9.945355191256832
+    rewards_accumulated = 0.21857923497267762 + (100 * (2 / 366) * 40 / 100)
+    rewards_accumulated = 0.43715846994535523
 
 
-When user stakes or unstake,
+When user stakes or unstake or claim rewards,
     set rewards_accumulated
     set rewards_accumulation_calculated_time = current_time
     set P =  effective available principal amount
@@ -127,5 +115,49 @@ IF rewards_accumulated
 ELSE
     rewards = P * ((current_time - last_staked_time) / epoch_in_days) * R / 100
 
+Changes:
+
+- claim rewards any time
+- claim reward and capital together at the end of period, without a vesting schedule
+- unstake -> only capital, penalty - treasurer
+- setting configs to check on the balance of rewards in contract
+- all rewards should be placed in contract before setting configs, this way we can restrict to check if the rewards are available in the contract or not.
+
+- no of seconds in year
+- min investment amount
+- status of the pool in contract
+
+1. Admin - publish contract - resource account
+2. set admin
+3. set treasury
+4. set reward treasury
+5. Admin -> with Reward treasurer address -> automatic reward calculation = total pool cap * apy % -> enter & save => resource
+6. Set configs => resource acccount =>  validation - is reward in contract
+
+
+
+Jan 1 2024
+Dec 31 2024
+366 days -> seconds_in_year
+
+Jan 1 2025
+Dec 31 2025
+365 days -> seconds_in_year
+
+Juy 1 2024
+July 31 2025
+365 days -> seconds_in_year
+
+
+Jan 1 2024
+March 31 2025
+366 days -> seconds_in_year
+
+BE - unix to date
+blockchain - unix - seconds_in_year
+
+start = leap year ?
+end = leap year ?
+feb 29
 
 ```
