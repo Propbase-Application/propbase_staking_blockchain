@@ -577,30 +577,11 @@ module propbase::propbase_staking {
         interest_rate: u64,
         seconds_in_year: u64
     ): u128 acquires StakePool {
-        debug::print<String>(&string::utf8(b"apply_reward_formula  11111111111111 ===================== #1"));
-        debug::print<String>(&string::utf8(b"principal  ===================== #1"));
-        debug::print(&principal);
-        debug::print<String>(&string::utf8(b"interest_rate  ===================== #1"));
-        debug::print(&interest_rate);
-        // (principal as u128) * (period as u128) * (interest_per_second as u128) / (seconds_in_year as u128) / 100
-        let principal_with_interest_rate = (principal as u128) * (interest_rate as u128);
-        debug::print<String>(&string::utf8(b"principal_with_interest_rate  ===================== #1"));
-        debug::print(&principal_with_interest_rate);
-
-        debug::print<String>(&string::utf8(b"seconds_in_year  ===================== #1"));
-        debug::print(&seconds_in_year);
-
-        let principal_with_interest_rate_in_year = principal_with_interest_rate / (seconds_in_year as u128);
-        debug::print<String>(&string::utf8(b"principal_with_interest_rate_in_year  ===================== #1"));
-        debug::print(&principal_with_interest_rate_in_year);
-
-        let principal_with_interest_rate_in_year_remainder = principal_with_interest_rate % (seconds_in_year as u128);
-        (principal_with_interest_rate_in_year + (principal_with_interest_rate_in_year_remainder / (seconds_in_year as u128))) * (period as u128) / 100
-        
-        // let rewards_calculated = principal_with_interest_rate_in_year * (period as u128) / 100;
-        // debug::print<String>(&string::utf8(b"rewards_calculated  ===================== #1"));
-        // debug::print(&rewards_calculated);
-        // principal_with_interest_rate_in_year * (period as u128) / 100
+        let interest = ((principal as u128) * (interest_rate as u128));
+        let interest_per_sec = interest / 31622400;
+        let remainder = interest % 31622400;
+        let total_interest = (interest_per_sec * (period as u128)) + ((remainder * (period as u128)) / 31622400);
+        total_interest / 100
     }
 
     inline fun get_total_rewards_so_far(

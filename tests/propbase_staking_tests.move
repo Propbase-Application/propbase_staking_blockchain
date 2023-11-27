@@ -2781,7 +2781,7 @@ module propbase::propbase_staking_tests {
         let rewards_observed = propbase_staking::rewards_earned(signer::address_of(address_1));
         debug::print<String>(&string::utf8(b"rewards_observed  -------------------------------------  END  ===================== #1"));
         debug::print(&rewards_observed);
-        assert!(rewards_observed == 237100, 9);
+        assert!(rewards_observed == 237173, 9);
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
@@ -2826,17 +2826,7 @@ module propbase::propbase_staking_tests {
         let expected_rewards = propbase_staking::expected_rewards(signer::address_of(address_1), 5000000000);
         debug::print<String>(&string::utf8(b"expected_rewards  -------------------------------------  END  ===================== #1"));
         debug::print(&expected_rewards);
-        assert!(expected_rewards == 4267800, 9);
-
-        // original calculation:
-        // 50 * (250000 - 70000) / 31622400 * 15 / 100
-        // 0.0426912568306011
-        // 4269125
-
-        // before formula corrected
-        // expected_rewards: 4267800
-        // after formula corrected
-        // expected_rewards: 41925547800
+        assert!(expected_rewards == 4269125, 9);
     }
 
 }
