@@ -577,16 +577,11 @@ module propbase::propbase_staking {
         interest_rate: u64,
         seconds_in_year: u64
     ): u128 acquires StakePool {
-        debug::print<String>(&string::utf8(b"apply_reward_formula  ===================== #1"));
-        // (principal as u128) * (period as u128) * (interest_per_second as u128) / (seconds_in_year as u128) / 100
-        let principal_with_interest_rate = (principal as u128) * (interest_rate as u128);
-        let principal_with_interest_rate_in_year = principal_with_interest_rate / (seconds_in_year as u128);
-
-        // let principal_with_interest_rate_in_year_remainder = principal_with_interest_rate % (seconds_in_year as u128);
-        // (principal_with_interest_rate_in_year + principal_with_interest_rate_in_year_remainder) * (period as u128) / 100
-
-
-        principal_with_interest_rate_in_year * (period as u128) / 100
+        let interest = ((principal as u128) * (interest_rate as u128));
+        let interest_per_sec = interest / 31622400;
+        let remainder = interest % 31622400;
+        let total_interest = (interest_per_sec * (period as u128)) + ((remainder * (period as u128)) / 31622400);
+        total_interest / 100
     }
 
     inline fun get_total_rewards_so_far(
