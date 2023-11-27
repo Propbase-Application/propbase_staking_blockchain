@@ -582,11 +582,11 @@ module propbase::propbase_staking {
         let principal_with_interest_rate = (principal as u128) * (interest_rate as u128);
         let principal_with_interest_rate_in_year = principal_with_interest_rate / (seconds_in_year as u128);
 
-        // let principal_with_interest_rate_in_year_remainder = principal_with_interest_rate % (seconds_in_year as u128);
-        // (principal_with_interest_rate_in_year + principal_with_interest_rate_in_year_remainder) * (period as u128) / 100
+        let principal_with_interest_rate_in_year_remainder = principal_with_interest_rate % (seconds_in_year as u128);
+        (principal_with_interest_rate_in_year + principal_with_interest_rate_in_year_remainder) * (period as u128) / 100
 
 
-        principal_with_interest_rate_in_year * (period as u128) / 100
+        // principal_with_interest_rate_in_year * (period as u128) / 100
     }
 
     inline fun get_total_rewards_so_far(
