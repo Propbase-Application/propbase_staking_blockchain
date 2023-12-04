@@ -633,24 +633,54 @@ module propbase::propbase_staking {
         user_address: address,
         principal: u64,
         
-    ): u64 acquires StakePool {
-        let accumulated_rewards;
+    ): u64 acquires StakePool, UserInfo {
+        let accumulated_rewards = 0;
         let now = timestamp::now_seconds();
         let stake_pool_config = borrow_global<StakePool>(@propbase);
         if(exists<UserInfo>(user_address)) {
-            // let user_state = borrow_global_mut<UserInfo>(user_address);
-            // get_rewards_at_the_end_of_epoch
-            accumulated_rewards = 0;
-        } else {
+            accumulated_rewards = get_rewards_till_the_end_of_epoch(
+                user_address,
+                stake_pool_config.interest_rate,
+                stake_pool_config.seconds_in_year,
+                stake_pool_config.epoch_end_time,
+            );
+        };
+        if(principal > 0) {
             let reward = apply_reward_formula(
                 principal,
                 stake_pool_config.epoch_end_time - now,
                 stake_pool_config.interest_rate,
                 stake_pool_config.seconds_in_year
             );
-            accumulated_rewards = (reward as u64);
+            accumulated_rewards = accumulated_rewards + (reward as u64);
         };
         accumulated_rewards
+    }
+
+    inline fun get_rewards_till_the_end_of_epoch(
+        user_address: address,
+        interest_rate: u64,
+        seconds_in_year: u64,
+        epoch_end_time: u64
+    ): u64  acquires UserInfo {
+        let rewards;
+        let user_config = borrow_global<UserInfo>(user_address);
+        if (user_config.rewards_accumulated_at > 0) {
+            rewards = ((user_config.accumulated_rewards as u128) + apply_reward_formula(
+                user_config.principal,
+                epoch_end_time - user_config.rewards_accumulated_at,
+                interest_rate,
+                seconds_in_year
+            ));
+        } else {
+            rewards = apply_reward_formula(
+                user_config.principal,
+                epoch_end_time - user_config.last_staked_time,
+                interest_rate,
+                seconds_in_year
+            );
+        };
+        (rewards as u64)
     }
 
     public entry fun claim_rewards<CoinType>(
