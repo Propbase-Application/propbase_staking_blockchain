@@ -49,7 +49,6 @@ module propbase::propbase_staking {
     struct ClaimPool has key {
         total_claimed: u64,
         claimed_rewards: TableWithLength<address, u64>,
-        claimable_rewards: TableWithLength<address, u64>,
         update_total_claimed_events: EventHandle<ClaimRewardEvent>,
     }
 
@@ -126,33 +125,32 @@ module propbase::propbase_staking {
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
     const SECONDS_IN_LEAP_YEAR: u64 = 31622400;
 
-    const ENOT_AUTHORIZED: u64 = 1;
-    const ENOT_NOT_A_TREASURER: u64 = 2;
-    const ESTAKE_POOL_ALREADY_CREATED: u64 = 3;
-    const ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME: u64 = 4;
-    const ESTAKE_POOL_EXHAUSTED : u64 = 5;
-    const ESTAKE_ALREADY_STARTED: u64 = 6;
-    const ENOT_PROPS: u64 = 7;
-    const EINVALID_AMOUNT: u64 = 8;
-    const ENOT_IN_STAKING_RANGE: u64 = 9;
-    const ENOT_STAKED_USER: u64 = 10;
-    const EACCOUNT_DOES_NOT_EXIST: u64 = 11;
-    const ESTAKE_POOL_INTEREST_OUT_OF_RANGE: u64 = 12;
-    const ESTAKE_POOL_PENALTY_OUT_OF_RANGE: u64 = 13;
-    const ESTAKE_POOL_CAP_OUT_OF_RANGE : u64 = 14;
-    const ESTAKE_START_TIME_OUT_OF_RANGE : u64 = 15;
-    const ESTAKE_END_TIME_OUT_OF_RANGE : u64 = 16;
-    const ESTAKE_POOL_NAME_CANT_BE_EMPTY : u64 = 17;
-    const EAMOUNT_MUST_BE_GREATER_THAN_ZERO : u64 = 18;
-    const EREWARD_NOT_ENOUGH : u64 = 19;
-    const ESTAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO : u64 = 20;
-    const ESTAKE_NOT_ENOUGH : u64 = 21;
-    const ESECONDS_IN_YEAR_INVALID: u64 = 22;
-    const ENOT_ENOUGH_REWARDS_TRY_AGAIN_LATER: u64 = 23;
-    const ESTAKE_IN_PROGRESS : u64 = 24;
-    const ENOT_IN_CLAIMING_RANGE : u64 = 25;
-    const EWITHDRAW_UNCLAIMED_NOT_AVAILABLE: u64 = 26;
-    const EEARNINGS_ALREADY_WITHDRAWN: u64 = 27;
+    const E_NOT_AUTHORIZED: u64 = 1;
+    const E_NOT_NOT_A_TREASURER: u64 = 2;
+    const E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME: u64 = 4;
+    const E_STAKE_POOL_EXHAUSTED : u64 = 5;
+    const E_STAKE_ALREADY_STARTED: u64 = 6;
+    const E_NOT_PROPS: u64 = 7;
+    const E_INVALID_AMOUNT: u64 = 8;
+    const E_NOT_IN_STAKING_RANGE: u64 = 9;
+    const E_NOT_STAKED_USER: u64 = 10;
+    const E_ACCOUNT_DOES_NOT_EXIST: u64 = 11;
+    const E_STAKE_POOL_INTEREST_OUT_OF_RANGE: u64 = 12;
+    const E_STAKE_POOL_PENALTY_OUT_OF_RANGE: u64 = 13;
+    const E_STAKE_POOL_CAP_OUT_OF_RANGE : u64 = 14;        
+    const E_STAKE_START_TIME_OUT_OF_RANGE : u64 = 15;
+    const E_STAKE_END_TIME_OUT_OF_RANGE : u64 = 16;
+    const E_STAKE_POOL_NAME_CANT_BE_EMPTY : u64 = 17;
+    const E_AMOUNT_MUST_BE_GREATER_THAN_ZERO : u64 = 18;
+    const E_REWARD_NOT_ENOUGH : u64 = 19;
+    const E_STAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO : u64 = 20;
+    const E_STAKE_NOT_ENOUGH : u64 = 21;
+    const E_SECONDS_IN_YEAR_INVALID: u64 = 22;
+    const E_NOT_ENOUGH_REWARDS_TRY_AGAIN_LATER: u64 = 23;
+    const E_STAKE_IN_PROGRESS : u64 = 24;
+    const E_NOT_IN_CLAIMING_RANGE : u64 = 25;
+    const E_WITHDRAW_UNCLAIMED_NOT_AVAILABLE: u64 = 26;
+    const E_EARNINGS_ALREADY_WITHDRAWN: u64 = 27;
 
     fun init_module(resource_account: &signer) {
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -196,7 +194,6 @@ module propbase::propbase_staking {
         move_to(resource_account, ClaimPool {
             total_claimed: 0,
             claimed_rewards: Table::new(),
-            claimable_rewards: Table::new(),
             update_total_claimed_events: account::new_event_handle<ClaimRewardEvent>(resource_account), 
         });
     }
@@ -208,8 +205,8 @@ module propbase::propbase_staking {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let old_admin = contract_config.admin;
 
-        assert!(account::exists_at(new_admin_address), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
-        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(account::exists_at(new_admin_address), error::invalid_argument(E_ACCOUNT_DOES_NOT_EXIST));
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
         contract_config.admin = new_admin_address;
 
         event::emit_event<SetAdminEvent>(
@@ -228,8 +225,9 @@ module propbase::propbase_staking {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let old_treasury = contract_config.treasury;
 
-        assert!(account::exists_at(new_treasury_address), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
-        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(account::exists_at(new_treasury_address), error::invalid_argument(E_ACCOUNT_DOES_NOT_EXIST));
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
+        
         contract_config.treasury = new_treasury_address;
 
         event::emit_event<SetTreasuryEvent>(
@@ -248,11 +246,12 @@ module propbase::propbase_staking {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let index = 0;
         let length = vector::length(&new_treasurers);
-        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
         
         while (index < length) {
             let element = *vector::borrow(&new_treasurers, index);
-            assert!(account::exists_at(element), error::invalid_argument(EACCOUNT_DOES_NOT_EXIST));
+            assert!(account::exists_at(element), error::invalid_argument(E_ACCOUNT_DOES_NOT_EXIST));
             Table::upsert<address, bool>(&mut contract_config.reward_treasurers, element, true);
             index = index + 1;
         };
@@ -270,7 +269,8 @@ module propbase::propbase_staking {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let index = 0;
         let length = vector::length(&new_treasurers);
-        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+        
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
        
         while (index < length){
             let element = *vector::borrow(&new_treasurers, index);
@@ -300,8 +300,8 @@ module propbase::propbase_staking {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
 
-        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
-        assert!((timestamp::now_seconds() < stake_pool_config.epoch_start_time) || stake_pool_config.epoch_start_time == 0, error::permission_denied(ESTAKE_ALREADY_STARTED));
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
+        assert!((timestamp::now_seconds() < stake_pool_config.epoch_start_time) || stake_pool_config.epoch_start_time == 0, error::permission_denied(E_STAKE_ALREADY_STARTED));
 
         let set_pool_name = *vector::borrow(&value_config, 0);
         let set_pool_cap = *vector::borrow(&value_config, 1);
@@ -313,47 +313,48 @@ module propbase::propbase_staking {
         let set_seconds_in_year = *vector::borrow(&value_config, 7);
 
         if(set_epoch_start_time && set_epoch_end_time) {
-            assert!(epoch_start_time < epoch_end_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME))
+            assert!(epoch_start_time < epoch_end_time, error::invalid_argument(E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME))
         };
         if(set_pool_cap) {
-            assert!(pool_cap >= 20000000000, error::invalid_argument(ESTAKE_POOL_CAP_OUT_OF_RANGE));
+            assert!(pool_cap >= 20000000000, error::invalid_argument(E_STAKE_POOL_CAP_OUT_OF_RANGE));
             stake_pool_config.pool_cap = pool_cap;          
         };
         if(set_epoch_start_time) {
-            assert!(epoch_start_time > 0, error::invalid_argument(ESTAKE_START_TIME_OUT_OF_RANGE));
-            assert!(epoch_start_time < stake_pool_config.epoch_end_time || stake_pool_config.epoch_end_time == 0, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
+            assert!(epoch_start_time > 0, error::invalid_argument(E_STAKE_START_TIME_OUT_OF_RANGE));
+            assert!(epoch_start_time < stake_pool_config.epoch_end_time || stake_pool_config.epoch_end_time == 0, error::invalid_argument(E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
             stake_pool_config.epoch_start_time = epoch_start_time; 
         };
         if(set_epoch_end_time) {
-            assert!(epoch_end_time > 0, error::invalid_argument(ESTAKE_END_TIME_OUT_OF_RANGE));
-            assert!(epoch_end_time > stake_pool_config.epoch_start_time, error::invalid_argument(ESTAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
+            assert!(epoch_end_time > 0, error::invalid_argument(E_STAKE_END_TIME_OUT_OF_RANGE));
+            assert!(epoch_end_time > stake_pool_config.epoch_start_time, error::invalid_argument(E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
             stake_pool_config.epoch_end_time = epoch_end_time;
             stake_pool_config.unclaimed_coin_withdraw_at = epoch_end_time + UNCLAIMED_COIN_WITHDRAW_PERIOD;
         };
         if(set_penalty_rate) {
-            assert!(penalty_rate <= 50 && penalty_rate > 0, error::invalid_argument(ESTAKE_POOL_PENALTY_OUT_OF_RANGE));
+            assert!(penalty_rate <= 50 && penalty_rate > 0, error::invalid_argument(E_STAKE_POOL_PENALTY_OUT_OF_RANGE));
             stake_pool_config.penalty_rate = penalty_rate;
         };
         if(set_interest_rate) {
-            assert!(interest_rate > 0 && interest_rate <= 100, error::invalid_argument(ESTAKE_POOL_INTEREST_OUT_OF_RANGE));
+            assert!(interest_rate > 0 && interest_rate <= 100, error::invalid_argument(E_STAKE_POOL_INTEREST_OUT_OF_RANGE));
             stake_pool_config.interest_rate = interest_rate;
         };
         if (set_pool_name) {
-            assert!(pool_name != string::utf8(b""), error::invalid_argument(ESTAKE_POOL_NAME_CANT_BE_EMPTY));
+            assert!(pool_name != string::utf8(b""), error::invalid_argument(E_STAKE_POOL_NAME_CANT_BE_EMPTY));
             contract_config.app_name = pool_name;
         };
         if(set_min_stake_amount) {
-            assert!(min_stake_amount > 0, error::invalid_argument(ESTAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO));
+            assert!(min_stake_amount > 0, error::invalid_argument(E_STAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO));
             contract_config.min_stake_amount = min_stake_amount;
         };
         if(set_seconds_in_year) {
-            assert!(seconds_in_year == SECONDS_IN_NON_LEAP_YEAR || seconds_in_year == SECONDS_IN_LEAP_YEAR, error::invalid_argument(ESECONDS_IN_YEAR_INVALID));
+            assert!(seconds_in_year == SECONDS_IN_NON_LEAP_YEAR || seconds_in_year == SECONDS_IN_LEAP_YEAR, error::invalid_argument(E_SECONDS_IN_YEAR_INVALID));
             stake_pool_config.seconds_in_year = seconds_in_year;
         };
 
         let period = stake_pool_config.epoch_end_time - stake_pool_config.epoch_start_time ;
-        let required_rewards = apply_reward_formula(stake_pool_config.pool_cap, period, stake_pool_config.interest_rate, stake_pool_config.seconds_in_year);
-        assert!(reward_state.available_rewards >= (required_rewards as u64), error::resource_exhausted(EREWARD_NOT_ENOUGH));
+        let required_rewards = apply_reward_formula(stake_pool_config.pool_cap,  period, stake_pool_config.interest_rate, stake_pool_config.seconds_in_year);
+
+        assert!(reward_state.available_rewards >= (required_rewards as u64), error::resource_exhausted(E_REWARD_NOT_ENOUGH));
 
         event::emit_event<SetStakePoolEvent>(
             &mut stake_pool_config.set_pool_config_events,
@@ -378,11 +379,11 @@ module propbase::propbase_staking {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
 
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
-        assert!(amount >= contract_config.min_stake_amount, error::invalid_argument(EINVALID_AMOUNT));
-        assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(ENOT_IN_STAKING_RANGE));
-        assert!(now < stake_pool_config.epoch_end_time - SECONDS_IN_DAY, error::out_of_range(ENOT_IN_STAKING_RANGE));
-        assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap , error::resource_exhausted(ESTAKE_POOL_EXHAUSTED));
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
+        assert!(amount >= contract_config.min_stake_amount, error::invalid_argument(E_INVALID_AMOUNT));
+        assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
+        assert!(now < stake_pool_config.epoch_end_time - SECONDS_IN_DAY, error::out_of_range(E_NOT_IN_STAKING_RANGE));
+        assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap , error::resource_exhausted(E_STAKE_POOL_EXHAUSTED));
         
         stake_pool_config.staked_amount = stake_pool_config.staked_amount + amount;
         aptos_account::transfer_coins<CoinType>(user, @propbase, amount);
@@ -455,7 +456,8 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount: u64) acquires StakePool, UserInfo, StakeApp {
+    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo, StakeApp {
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
         implement_unstake<CoinType>(user, resource_signer, amount);
     }
 
@@ -465,8 +467,8 @@ module propbase::propbase_staking {
         amount: u64,
     ) acquires UserInfo, StakePool, StakeApp {
         let user_address = signer::address_of(user);
-        assert!(exists<UserInfo>(user_address), error::permission_denied(ENOT_STAKED_USER));
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
+        assert!(exists<UserInfo>(user_address), error::permission_denied(E_NOT_STAKED_USER));
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
 
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let now = timestamp::now_seconds();
@@ -474,9 +476,9 @@ module propbase::propbase_staking {
         let user_state = borrow_global_mut<UserInfo>(user_address);
 
         assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(0));
-        assert!(amount > 0, error::invalid_argument(EAMOUNT_MUST_BE_GREATER_THAN_ZERO));
+        assert!(amount > 0, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_ZERO));
         assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(0));
-        assert!(user_state.principal >= amount, error::resource_exhausted(ESTAKE_NOT_ENOUGH));
+        assert!(user_state.principal >= amount, error::resource_exhausted(E_STAKE_NOT_ENOUGH));
 
         let accumulated_rewards = get_total_rewards_so_far(
             user_state.principal,
@@ -520,9 +522,9 @@ module propbase::propbase_staking {
     ) acquires StakeApp, RewardPool {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
-        assert!(amount > 0, error::invalid_argument(EAMOUNT_MUST_BE_GREATER_THAN_ZERO));
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
-        assert!(Table::contains(&contract_config.reward_treasurers, signer::address_of(treasurer)), error::permission_denied(ENOT_NOT_A_TREASURER));
+        assert!(amount > 0, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_ZERO));
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
+        assert!(Table::contains(&contract_config.reward_treasurers, signer::address_of(treasurer)), error::permission_denied(E_NOT_NOT_A_TREASURER));
 
         let prev_reward = reward_state.available_rewards;
         let updated_reward = prev_reward + amount;
@@ -640,7 +642,7 @@ module propbase::propbase_staking {
     public entry fun claim_rewards<CoinType>(
         user: &signer,
     ) acquires StakeApp, ClaimPool, StakePool, UserInfo, RewardPool {
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         withdraw_rewards<CoinType>(user, &resource_signer);
@@ -648,7 +650,7 @@ module propbase::propbase_staking {
 
     #[test_only]
     public entry fun test_claim_stake<CoinType>(user:&signer, resource_signer: &signer) acquires StakePool, UserInfo, ClaimPool, RewardPool {
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
         withdraw_rewards<CoinType>(user, resource_signer);
     }
 
@@ -670,16 +672,16 @@ module propbase::propbase_staking {
         resource_signer: &signer,
     ) acquires ClaimPool, UserInfo, StakePool, RewardPool {
         let user_address = signer::address_of(user);
-        assert!(exists<UserInfo>(user_address), error::permission_denied(ENOT_STAKED_USER));
+        assert!(exists<UserInfo>(user_address), error::permission_denied(E_NOT_STAKED_USER));
         let stake_pool_config = borrow_global<StakePool>(@propbase);
         let user_state = borrow_global_mut<UserInfo>(user_address);
         let claim_state = borrow_global_mut<ClaimPool>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         let now = timestamp::now_seconds();
 
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
-        assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(ENOT_IN_CLAIMING_RANGE));
-        assert!(reward_state.available_rewards > 0, error::resource_exhausted(EREWARD_NOT_ENOUGH));
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
+        assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(E_NOT_IN_CLAIMING_RANGE));
+        assert!(reward_state.available_rewards > 0, error::resource_exhausted(E_REWARD_NOT_ENOUGH));
 
         let accumulated_rewards = get_total_rewards_so_far(
             user_state.principal,
@@ -690,7 +692,7 @@ module propbase::propbase_staking {
             stake_pool_config.seconds_in_year,
             stake_pool_config.epoch_end_time,
         );
-        assert!(accumulated_rewards > 0 , error::unavailable(ENOT_ENOUGH_REWARDS_TRY_AGAIN_LATER));
+        assert!(accumulated_rewards > 0 , error::unavailable(E_NOT_ENOUGH_REWARDS_TRY_AGAIN_LATER));
 
         let claimed_rewards = Table::borrow_mut_with_default(&mut claim_state.claimed_rewards, user_address, 0);
         *claimed_rewards = *claimed_rewards + accumulated_rewards;
@@ -714,17 +716,17 @@ module propbase::propbase_staking {
         resource_signer: &signer,
     ) acquires ClaimPool, UserInfo, StakePool, RewardPool {
         let user_address = signer::address_of(user);
-        assert!(exists<UserInfo>(user_address), error::permission_denied(ENOT_STAKED_USER));
+        assert!(exists<UserInfo>(user_address), error::permission_denied(E_NOT_STAKED_USER));
         let now = timestamp::now_seconds();
         let user_state = borrow_global_mut<UserInfo>(user_address);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
         let claim_state = borrow_global_mut<ClaimPool>(@propbase);
 
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
-        assert!(reward_state.available_rewards > 0, error::resource_exhausted(EREWARD_NOT_ENOUGH));
-        assert!(!user_state.is_total_earnings_withdrawn, error::permission_denied(EEARNINGS_ALREADY_WITHDRAWN));
-        assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(ESTAKE_IN_PROGRESS));
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
+        assert!(reward_state.available_rewards > 0, error::resource_exhausted(E_REWARD_NOT_ENOUGH));
+        assert!(!user_state.is_total_earnings_withdrawn, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
+        assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(E_STAKE_IN_PROGRESS));
 
         let claimed_rewards = Table::borrow_mut_with_default(&mut claim_state.claimed_rewards, user_address, 0);
         let accumulated_rewards = get_total_rewards_so_far(
@@ -761,16 +763,20 @@ module propbase::propbase_staking {
     ) acquires RewardPool, StakePool, StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
-        assert!(signer::address_of(treasury) == contract_config.admin, error::permission_denied(ENOT_AUTHORIZED));
+
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
+        assert!(signer::address_of(treasury) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
+
         perform_withdraw_excess_rewards<CoinType>(&resource_signer, contract_config.treasury);
     }
 
     #[test_only]
     public entry fun test_withdraw_excess_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
-        assert!(signer::address_of(treasury) == contract_config.treasury, error::permission_denied(ENOT_AUTHORIZED));
+    
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
+        assert!(signer::address_of(treasury) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
+       
         perform_withdraw_excess_rewards<CoinType>(resource_signer, contract_config.treasury);
     }
 
@@ -779,16 +785,20 @@ module propbase::propbase_staking {
     ) acquires RewardPool, StakePool, StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
-        assert!(signer::address_of(treasury) == contract_config.treasury, error::permission_denied(ENOT_AUTHORIZED));
+
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
+        assert!(signer::address_of(treasury) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
+
         perform_withdraw_unclaimed_rewards<CoinType>(&resource_signer, contract_config.treasury);
     }
 
     #[test_only]
     public entry fun test_withdraw_unclaimed_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
-        assert!(signer::address_of(treasury) == contract_config.treasury, error::permission_denied(ENOT_AUTHORIZED));
+        
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
+        assert!(signer::address_of(treasury) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
+
         perform_withdraw_unclaimed_rewards<CoinType>(resource_signer, contract_config.treasury);
     }
 
@@ -856,7 +866,7 @@ module propbase::propbase_staking {
     public fun get_user_info(
         user: address
     ): (u64, u64, u64, u64, u64) acquires UserInfo {
-        assert!(exists<UserInfo>(user), error::invalid_argument(ENOT_STAKED_USER));
+        assert!(exists<UserInfo>(user), error::invalid_argument(E_NOT_STAKED_USER));
         let user_config = borrow_global<UserInfo>(user);
         return (
             user_config.principal,
@@ -988,6 +998,18 @@ module propbase::propbase_staking {
                 stake_pool_config.seconds_in_year,
                 stake_pool_config.epoch_end_time,
             )
+        }
+    }
+
+    #[view]
+    public fun get_rewards_claimed_by_user(
+        user: address,
+    ):u64 acquires ClaimPool {
+        if(!exists<UserInfo>(user) || !account::exists_at(user)) {
+            0
+        } else {
+            let claim_state = borrow_global<ClaimPool>(user);
+            *Table::borrow(&claim_state.claimed_rewards, user)
         }
     }
 
