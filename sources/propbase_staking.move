@@ -439,7 +439,7 @@ module propbase::propbase_staking {
                 StakeEvent {
                     principal: user_state.principal,
                     amount: amount,
-                    accumulated_rewards: user_state.        accumulated_rewards,
+                    accumulated_rewards: user_state.accumulated_rewards,
                     staked_time: now,
                 }
             );
