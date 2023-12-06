@@ -301,7 +301,7 @@ module propbase::propbase_staking {
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
 
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
-        assert!(check_stake_pool_not_started(stake_pool_config.epoch_start_time) || stake_pool_config.epoch_start_time == 0, error::permission_denied(E_STAKE_ALREADY_STARTED));
+        assert!((timestamp::now_seconds() < stake_pool_config.epoch_start_time) || stake_pool_config.epoch_start_time == 0, error::permission_denied(E_STAKE_ALREADY_STARTED));
 
         let set_pool_name = *vector::borrow(&value_config, 0);
         let set_pool_cap = *vector::borrow(&value_config, 1);
@@ -347,7 +347,7 @@ module propbase::propbase_staking {
             contract_config.min_stake_amount = min_stake_amount;
         };
         if(set_seconds_in_year) {
-            assert!(seconds_in_year == SECONDS_IN_NON_LEAP_YEAR || seconds_in_year == SECONDS_IN_LEAP_YEAR, error::invalid_argument(ESECONDS_IN_YEAR_INVALID));
+            assert!(seconds_in_year == SECONDS_IN_NON_LEAP_YEAR || seconds_in_year == SECONDS_IN_LEAP_YEAR, error::invalid_argument(E_SECONDS_IN_YEAR_INVALID));
             stake_pool_config.seconds_in_year = seconds_in_year;
         };
 
@@ -467,8 +467,8 @@ module propbase::propbase_staking {
         amount: u64,
     ) acquires UserInfo, StakePool, StakeApp {
         let user_address = signer::address_of(user);
-        assert!(exists<UserInfo>(user_address), error::permission_denied(ENOT_STAKED_USER));
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
+        assert!(exists<UserInfo>(user_address), error::permission_denied(E_NOT_STAKED_USER));
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
 
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let now = timestamp::now_seconds();
@@ -679,9 +679,9 @@ module propbase::propbase_staking {
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         let now = timestamp::now_seconds();
 
-        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(ENOT_PROPS));
-        assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(ENOT_IN_CLAIMING_RANGE));
-        assert!(reward_state.available_rewards > 0, error::resource_exhausted(EREWARD_NOT_ENOUGH));
+        assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
+        assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(E_NOT_IN_CLAIMING_RANGE));
+        assert!(reward_state.available_rewards > 0, error::resource_exhausted(E_REWARD_NOT_ENOUGH));
 
         let accumulated_rewards = get_total_rewards_so_far(
             user_state.principal,
@@ -692,7 +692,7 @@ module propbase::propbase_staking {
             stake_pool_config.seconds_in_year,
             stake_pool_config.epoch_end_time,
         );
-        assert!(accumulated_rewards > 0 , error::unavailable(ENOT_ENOUGH_REWARDS_TRY_AGAIN_LATER));
+        assert!(accumulated_rewards > 0 , error::unavailable(E_NOT_ENOUGH_REWARDS_TRY_AGAIN_LATER));
 
         let claimed_rewards = Table::borrow_mut_with_default(&mut claim_state.claimed_rewards, user_address, 0);
         *claimed_rewards = *claimed_rewards + accumulated_rewards;
