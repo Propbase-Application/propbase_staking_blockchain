@@ -381,7 +381,7 @@ module propbase::propbase_staking {
     public entry fun add_stake<CoinType> (
         user: &signer,
         amount: u64
-    )acquires  UserInfo, StakePool, StakeApp {
+    ) acquires  UserInfo, StakePool, StakeApp {
         let now = timestamp::now_seconds();
         let user_address = signer::address_of(user);
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
