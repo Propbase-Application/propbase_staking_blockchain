@@ -758,7 +758,7 @@ module propbase::propbase_staking {
             &mut claim_state.update_total_claimed_events,
             ClaimRewardEvent {
                 timestamp: now,
-                claimed_amount: accumulated_rewards
+                claimed_amount: total_returns
             }
         );
     }
