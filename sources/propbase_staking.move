@@ -1011,7 +1011,7 @@ module propbase::propbase_staking {
         if(!account::exists_at(user) || !exists<UserInfo>(user)) {
             0
         } else {
-            let claim_state = borrow_global<ClaimPool>(user);
+            let claim_state = borrow_global<ClaimPool>(@propbase);
             *Table::borrow(&claim_state.claimed_rewards, user)
         }
     }
