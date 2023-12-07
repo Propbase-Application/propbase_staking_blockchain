@@ -10,7 +10,7 @@ module propbase::propbase_staking {
     use aptos_std::table_with_length::{ Self as Table, TableWithLength };
     use aptos_std::type_info;
     use aptos_framework::event::{ Self, EventHandle };
-    use aptos_framework::coin::{ Self, Coin };
+    use aptos_framework::coin::{ Self };
     use aptos_framework::aptos_account;
     use aptos_framework::account::{ Self, SignerCapability };
     use aptos_framework::timestamp;
