@@ -3971,8 +3971,8 @@ module propbase::propbase_staking_tests {
         debug::print<u64>(&bal_after_claiming);
         assert!(bal_before_claiming + contract_bal_before== bal_after_claiming, 10);
 
-        let contract_after_before = coin::balance<PROPS>(@propbase);
-        assert!(contract_after_before == 0, 12);
+        let contract_bal_after = coin::balance<PROPS>(@propbase);
+        assert!(contract_bal_after == 0, 12);
     
         debug::print<String>(&string::utf8(b"****************contract bal3  ===================== #1"));
         debug::print<u64>(&propbase_staking::get_contract_reward_balance<PROPS>());

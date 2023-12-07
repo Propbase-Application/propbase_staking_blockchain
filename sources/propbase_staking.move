@@ -10,7 +10,7 @@ module propbase::propbase_staking {
     use aptos_std::table_with_length::{ Self as Table, TableWithLength };
     use aptos_std::type_info;
     use aptos_framework::event::{ Self, EventHandle };
-    use aptos_framework::coin::{Self, Coin};
+    use aptos_framework::coin::{ Self, Coin };
     use aptos_framework::aptos_account;
     use aptos_framework::account::{ Self, SignerCapability };
     use aptos_framework::timestamp;
@@ -790,7 +790,7 @@ module propbase::propbase_staking {
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
         assert!(signer::address_of(treasury) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
 
-        perform_withdraw_unclaimed_rewards<CoinType>(&resource_signer, contract_config.treasury);
+        perform_withdraw_unclaimed_coins<CoinType>(&resource_signer, contract_config.treasury);
     }
 
     #[test_only]
@@ -800,10 +800,10 @@ module propbase::propbase_staking {
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
         assert!(signer::address_of(treasury) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
 
-        perform_withdraw_unclaimed_rewards<CoinType>(resource_signer, contract_config.treasury);
+        perform_withdraw_unclaimed_coins<CoinType>(resource_signer, contract_config.treasury);
     }
 
-    inline fun perform_withdraw_unclaimed_rewards<CoinType>(
+    inline fun perform_withdraw_unclaimed_coins<CoinType>(
         resource_signer: &signer,
         treasury: address,
     ) acquires RewardPool, StakePool {
@@ -815,7 +815,7 @@ module propbase::propbase_staking {
         assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(0));
         assert!(now > stake_pool_config.unclaimed_coin_withdraw_at, error::out_of_range(0));
 
-        reward_state.available_rewards = reward_state.available_rewards - reward_bal;
+        reward_state.available_rewards = 0;
         aptos_account::transfer_coins<CoinType>(resource_signer, treasury, contract_bal);
     }
 
@@ -882,7 +882,7 @@ module propbase::propbase_staking {
     public fun get_principal_amount(
         user: address
     ): u64 acquires UserInfo {
-        if(!exists<UserInfo>(user) || !account::exists_at(user)) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
             0
         } else {
             let user_config = borrow_global<UserInfo>(user);
@@ -902,7 +902,7 @@ module propbase::propbase_staking {
         user:address,
     ): vector<u64> acquires UserInfo {
         let amounts= vector::empty<u64>();
-        if(!exists<UserInfo>(user) || !account::exists_at(user)) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
             amounts
         } else {
             let user_config = borrow_global<UserInfo>(user);
@@ -923,7 +923,7 @@ module propbase::propbase_staking {
         user:address,
     ): vector<u64> acquires UserInfo {
         let timestamps= vector::empty<u64>();
-        if(!exists<UserInfo>(user) || !account::exists_at(user)) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
             timestamps
         } else {
             let user_config = borrow_global<UserInfo>(user);
@@ -944,7 +944,7 @@ module propbase::propbase_staking {
         user:address,
     ): vector<u64> acquires UserInfo {
         let amounts= vector::empty<u64>();
-        if(!exists<UserInfo>(user) || !account::exists_at(user)) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
             amounts
         } else {
             let user_config = borrow_global<UserInfo>(user);
@@ -964,7 +964,7 @@ module propbase::propbase_staking {
         user:address,
     ): vector<u64> acquires UserInfo {
         let timestamps= vector::empty<u64>();
-        if(!exists<UserInfo>(user) || !account::exists_at(user)) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
             timestamps
         } else {
             let user_config = borrow_global<UserInfo>(user);
@@ -984,7 +984,7 @@ module propbase::propbase_staking {
     public fun get_current_rewards_earned(
         user: address,
     ): u64 acquires UserInfo, StakePool {
-        if(!exists<UserInfo>(user) || !account::exists_at(user)) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
             0
         } else {
             let user_config = borrow_global<UserInfo>(user);
@@ -1006,7 +1006,7 @@ module propbase::propbase_staking {
     public fun get_rewards_claimed_by_user(
         user: address,
     ):u64 acquires ClaimPool {
-        if(!exists<UserInfo>(user) || !account::exists_at(user)) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
             0
         } else {
             let claim_state = borrow_global<ClaimPool>(user);
