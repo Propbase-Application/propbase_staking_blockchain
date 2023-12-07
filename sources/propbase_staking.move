@@ -683,6 +683,7 @@ module propbase::propbase_staking {
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         let now = timestamp::now_seconds();
 
+        assert!(now < stake_pool_config.epoch_end_time, error::out_of_range(0));
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
         assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(E_NOT_IN_CLAIMING_RANGE));
         assert!(reward_state.available_rewards > 0, error::resource_exhausted(E_REWARD_NOT_ENOUGH));
@@ -757,7 +758,7 @@ module propbase::propbase_staking {
             &mut claim_state.update_total_claimed_events,
             ClaimRewardEvent {
                 timestamp: now,
-                claimed_amount: accumulated_rewards
+                claimed_amount: total_returns
             }
         );
     }
@@ -1012,7 +1013,12 @@ module propbase::propbase_staking {
             0
         } else {
             let claim_state = borrow_global<ClaimPool>(@propbase);
-            *Table::borrow(&claim_state.claimed_rewards, user)
+            if(Table::contains(&claim_state.claimed_rewards, user)){
+                *Table::borrow(&claim_state.claimed_rewards, user)
+            }else{
+                0
+            }
+
         }
     }
 
