@@ -881,7 +881,7 @@ module propbase::propbase_staking {
     public fun get_principal_amount(
         user: address
     ): u64 acquires UserInfo {
-        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)) {
             0
         } else {
             let user_config = borrow_global<UserInfo>(user);
