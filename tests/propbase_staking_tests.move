@@ -3323,7 +3323,7 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(20003);   
         propbase_staking::set_treasury(admin, signer::address_of(admin));
 
-        propbase_staking::test_withdraw_unclaimed_rewards<PROPS>(admin, resource);
+        propbase_staking::test_withdraw_unclaimed_coins<PROPS>(admin, resource);
 
         propbase_staking::test_claim_stake<PROPS>(address_2, resource);
 
@@ -3910,7 +3910,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_successful_withdraw_unclaimed_rewards(
+    fun test_successful_withdraw_unclaimed_coins(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -3957,15 +3957,22 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(20003);   
         
         let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
-        propbase_staking::set_treasury(admin, signer::address_of(admin));
+        let contract_bal_before = coin::balance<PROPS>(@propbase);
+        assert!(contract_bal_before == required_funds + 10000000000, 12);
+        propbase_staking::set_treasury(admin, signer::address_of(address_1));
 
-        propbase_staking::test_withdraw_unclaimed_rewards<PROPS>(admin, resource);
+        propbase_staking::test_withdraw_unclaimed_coins<PROPS>(address_1, resource);
 
         debug::print<String>(&string::utf8(b"****************contract bal2  ================test_claim_principal_and_rewards===== #1"));
         debug::print<u64>(&propbase_staking::get_contract_reward_balance<PROPS>());
 
         let bal_after_claiming = coin::balance<PROPS>(signer::address_of(address_1));
-        assert!(bal_before_claiming + required_funds + 10000000000 == 110000000000, 10);
+        debug::print<String>(&string::utf8(b"****************treasury bal new  ================test_claim_principal_and_rewards===== #1"));
+        debug::print<u64>(&bal_after_claiming);
+        assert!(bal_before_claiming + contract_bal_before== bal_after_claiming, 10);
+
+        let contract_bal_after = coin::balance<PROPS>(@propbase);
+        assert!(contract_bal_after == 0, 12);
     
         debug::print<String>(&string::utf8(b"****************contract bal3  ===================== #1"));
         debug::print<u64>(&propbase_staking::get_contract_reward_balance<PROPS>());
@@ -3974,7 +3981,7 @@ module propbase::propbase_staking_tests {
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x50001, location = propbase_staking )]
-    fun test_failure_withdraw_unclaimed_rewards_not_treasury(
+    fun test_failure_withdraw_unclaimed_coins_not_treasury(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -4020,13 +4027,13 @@ module propbase::propbase_staking_tests {
         propbase_staking::add_stake<PROPS>(address_2, 10000000000);
         fast_forward_secs(20003);   
 
-        propbase_staking::test_withdraw_unclaimed_rewards<PROPS>(admin, resource);
+        propbase_staking::test_withdraw_unclaimed_coins<PROPS>(admin, resource);
 
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x20000, location = propbase_staking )]
-    fun test_failure_withdraw_unclaimed_rewards_pool_not_ended(
+    fun test_failure_withdraw_unclaimed_coins_pool_not_ended(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -4071,13 +4078,13 @@ module propbase::propbase_staking_tests {
         propbase_staking::add_stake<PROPS>(address_2, 10000000000);
 
         propbase_staking::set_treasury(admin, signer::address_of(admin));
-        propbase_staking::test_withdraw_unclaimed_rewards<PROPS>(admin, resource);
+        propbase_staking::test_withdraw_unclaimed_coins<PROPS>(admin, resource);
 
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x20000, location = propbase_staking )]
-    fun test_failure_withdraw_unclaimed_rewards_a_year_not_passed(
+    fun test_failure_withdraw_unclaimed_coins_a_year_not_passed(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -4124,7 +4131,7 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(20002);   
         propbase_staking::set_treasury(admin, signer::address_of(admin));
 
-        propbase_staking::test_withdraw_unclaimed_rewards<PROPS>(admin, resource);
+        propbase_staking::test_withdraw_unclaimed_coins<PROPS>(admin, resource);
 
     }
 
