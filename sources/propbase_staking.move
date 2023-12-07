@@ -10,6 +10,7 @@ module propbase::propbase_staking {
     use aptos_std::table_with_length::{ Self as Table, TableWithLength };
     use aptos_std::type_info;
     use aptos_framework::event::{ Self, EventHandle };
+    use aptos_framework::coin::{Self, Coin};
     use aptos_framework::aptos_account;
     use aptos_framework::account::{ Self, SignerCapability };
     use aptos_framework::timestamp;
@@ -807,15 +808,15 @@ module propbase::propbase_staking {
         treasury: address,
     ) acquires RewardPool, StakePool {
         let now = timestamp::now_seconds();
-        let contract_bal = get_contract_reward_balance<CoinType>();
+        let contract_bal = coin::balance<CoinType>(@propbase);
+        let reward_bal = get_contract_reward_balance<CoinType>();
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
-        let reward_to_return = contract_bal;
         assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(0));
         assert!(now > stake_pool_config.unclaimed_coin_withdraw_at, error::out_of_range(0));
 
-        reward_state.available_rewards = reward_state.available_rewards - reward_to_return;
-        aptos_account::transfer_coins<CoinType>(resource_signer, treasury, reward_to_return);
+        reward_state.available_rewards = reward_state.available_rewards - reward_bal;
+        aptos_account::transfer_coins<CoinType>(resource_signer, treasury, contract_bal);
     }
 
     inline fun perform_withdraw_excess_rewards<CoinType>(

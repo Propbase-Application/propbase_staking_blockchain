@@ -3957,15 +3957,22 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(20003);   
         
         let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
-        propbase_staking::set_treasury(admin, signer::address_of(admin));
+        let contract_bal_before = coin::balance<PROPS>(@propbase);
+        assert!(contract_bal_before == required_funds + 10000000000, 12);
+        propbase_staking::set_treasury(admin, signer::address_of(address_1));
 
-        propbase_staking::test_withdraw_unclaimed_rewards<PROPS>(admin, resource);
+        propbase_staking::test_withdraw_unclaimed_rewards<PROPS>(address_1, resource);
 
         debug::print<String>(&string::utf8(b"****************contract bal2  ================test_claim_principal_and_rewards===== #1"));
         debug::print<u64>(&propbase_staking::get_contract_reward_balance<PROPS>());
 
         let bal_after_claiming = coin::balance<PROPS>(signer::address_of(address_1));
-        assert!(bal_before_claiming + required_funds + 10000000000 == 110000000000, 10);
+        debug::print<String>(&string::utf8(b"****************treasury bal new  ================test_claim_principal_and_rewards===== #1"));
+        debug::print<u64>(&bal_after_claiming);
+        assert!(bal_before_claiming + contract_bal_before== bal_after_claiming, 10);
+
+        let contract_after_before = coin::balance<PROPS>(@propbase);
+        assert!(contract_after_before == 0, 12);
     
         debug::print<String>(&string::utf8(b"****************contract bal3  ===================== #1"));
         debug::print<u64>(&propbase_staking::get_contract_reward_balance<PROPS>());
