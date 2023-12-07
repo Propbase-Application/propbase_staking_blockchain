@@ -745,7 +745,7 @@ module propbase::propbase_staking {
         let principal = user_state.principal;
         let total_returns = principal + accumulated_rewards;
         *claimed_rewards = *claimed_rewards + accumulated_rewards;
-        user_state.withdrawn = principal;
+        user_state.withdrawn = user_state.withdrawn + principal;
         user_state.accumulated_rewards = 0;
         user_state.is_total_earnings_withdrawn = true;
         user_state.rewards_accumulated_at = timestamp::now_seconds();
