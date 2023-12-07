@@ -117,10 +117,10 @@ module propbase::propbase_staking {
         seconds_in_year: u64
     }
 
-    const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
+    // const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
     // const SECONDS_IN_DAY: u64 = 86400;
     // const UNCLAIMED_COIN_WITHDRAW_PERIOD: u64 = 15780000;
-    // const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
+    const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
     const SECONDS_IN_DAY: u64 = 1;
     const UNCLAIMED_COIN_WITHDRAW_PERIOD: u64 = 2;
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
@@ -1011,8 +1011,8 @@ module propbase::propbase_staking {
         if(!account::exists_at(user) || !exists<UserInfo>(user)) {
             0
         } else {
-            let claim_state = borrow_global<ClaimPool>(@propbase);
-            *Table::borrow(&claim_state.claimed_rewards, user)
+            let claim_state = borrow_global_mut<ClaimPool>(@propbase);
+            *Table::borrow_mut_with_default(&mut claim_state.claimed_rewards, user, 0)
         }
     }
 
