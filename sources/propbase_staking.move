@@ -21,12 +21,11 @@ module propbase::propbase_staking {
         signer_cap: account::SignerCapability,
         admin: address,
         treasury: address,
-        reward_treasurers: TableWithLength<address, bool>,
+        reward_treasurer: address,
         min_stake_amount: u64,
         set_admin_events: EventHandle<SetAdminEvent>,
         set_treasury_events: EventHandle<SetTreasuryEvent>,
-        set_reward_treasurers_events: EventHandle<vector<address>>,
-        unset_reward_treasurers_events: EventHandle<vector<address>>,
+        set_reward_treasurer_events: EventHandle<address>,
     }
 
     struct StakePool has key {
@@ -169,12 +168,11 @@ module propbase::propbase_staking {
             signer_cap: resource_signer_cap,
             admin: @source_addr,
             treasury: @source_addr,
-            reward_treasurers: Table::new(),
+            reward_treasurer: @source_addr,
             min_stake_amount: 0,
             set_admin_events: account::new_event_handle<SetAdminEvent>(resource_account),
             set_treasury_events: account::new_event_handle<SetTreasuryEvent>(resource_account),
-            set_reward_treasurers_events: account::new_event_handle<vector<address>>(resource_account),
-            unset_reward_treasurers_events: account::new_event_handle<vector<address>>(resource_account)
+            set_reward_treasurer_events: account::new_event_handle<address>(resource_account),
         });
         move_to(resource_account, StakePool {
             pool_cap: 0,
@@ -240,48 +238,19 @@ module propbase::propbase_staking {
         );
     }
 
-    public entry fun add_reward_treasurers(
+    public entry fun set_reward_treasurer(
         admin: &signer,
-        new_treasurers: vector<address>,
+        new_treasurer: address,
     ) acquires StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        let index = 0;
-        let length = vector::length(&new_treasurers);
 
+        assert!(account::exists_at(new_treasurer), error::invalid_argument(E_ACCOUNT_DOES_NOT_EXIST));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
-        
-        while (index < length) {
-            let element = *vector::borrow(&new_treasurers, index);
-            assert!(account::exists_at(element), error::invalid_argument(E_ACCOUNT_DOES_NOT_EXIST));
-            Table::upsert<address, bool>(&mut contract_config.reward_treasurers, element, true);
-            index = index + 1;
-        };
 
-        event::emit_event<vector<address>>(
-            &mut contract_config.set_reward_treasurers_events,
-            new_treasurers
-        );
-    }
-
-    public entry fun remove_reward_treasurers(
-        admin: &signer,
-        new_treasurers: vector<address>,
-    ) acquires StakeApp {
-        let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        let index = 0;
-        let length = vector::length(&new_treasurers);
-        
-        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
-       
-        while (index < length){
-            let element = *vector::borrow(&new_treasurers, index);
-            Table::remove<address, bool>(&mut contract_config.reward_treasurers, element);
-            index = index + 1;
-        };
-
-        event::emit_event<vector<address>>(
-            &mut contract_config.unset_reward_treasurers_events,
-            new_treasurers
+        contract_config.reward_treasurer = new_treasurer;
+        event::emit_event<address>(
+            &mut contract_config.set_reward_treasurer_events,
+            new_treasurer
         );
     }
 
@@ -525,7 +494,7 @@ module propbase::propbase_staking {
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         assert!(amount > 0, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_ZERO));
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
-        assert!(Table::contains(&contract_config.reward_treasurers, signer::address_of(treasurer)), error::permission_denied(E_NOT_NOT_A_TREASURER));
+        assert!(contract_config.reward_treasurer == signer::address_of(treasurer), error::permission_denied(E_NOT_NOT_A_TREASURER));
 
         let prev_reward = reward_state.available_rewards;
         let updated_reward = prev_reward + amount;
@@ -859,11 +828,11 @@ module propbase::propbase_staking {
     }
 
     #[view]
-    public fun check_is_reward_treasurers(
+    public fun check_is_reward_treasurer(
         user: address,
     ): bool acquires StakeApp {
         let staking_config = borrow_global<StakeApp>(@propbase);
-        Table::contains(&staking_config.reward_treasurers, user)
+        staking_config.reward_treasurer == user
     }
 
     #[view]
@@ -1010,16 +979,14 @@ module propbase::propbase_staking {
         user: address,
     ):u64 acquires ClaimPool {
         if(!account::exists_at(user) || !exists<UserInfo>(user)) {
-            0
-        } else {
-            let claim_state = borrow_global<ClaimPool>(@propbase);
-            if(Table::contains(&claim_state.claimed_rewards, user)){
-                *Table::borrow(&claim_state.claimed_rewards, user)
-            }else{
-                0
-            }
-
-        }
+            return 0
+        }; 
+        let claim_state = borrow_global<ClaimPool>(@propbase);
+        if(!Table::contains(&claim_state.claimed_rewards, user)){
+            return 0
+        };
+        return *Table::borrow(&claim_state.claimed_rewards, user)
+        
     }
 
     #[view]
