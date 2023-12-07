@@ -594,6 +594,9 @@ module propbase::propbase_staking {
         let accumulated_rewards = 0;
         let now = timestamp::now_seconds();
         let stake_pool_config = borrow_global<StakePool>(@propbase);
+        if(now > stake_pool_config.epoch_end_time) {
+            return 0
+        };
         if(exists<UserInfo>(user_address)) {
             accumulated_rewards = get_rewards_till_the_end_of_epoch(
                 user_address,
