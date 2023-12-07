@@ -901,7 +901,7 @@ module propbase::propbase_staking {
         user:address,
     ): vector<u64> acquires UserInfo {
         let amounts= vector::empty<u64>();
-        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)) {
             amounts
         } else {
             let user_config = borrow_global<UserInfo>(user);
@@ -922,7 +922,7 @@ module propbase::propbase_staking {
         user:address,
     ): vector<u64> acquires UserInfo {
         let timestamps= vector::empty<u64>();
-        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)) {
             timestamps
         } else {
             let user_config = borrow_global<UserInfo>(user);
@@ -943,7 +943,7 @@ module propbase::propbase_staking {
         user:address,
     ): vector<u64> acquires UserInfo {
         let amounts= vector::empty<u64>();
-        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)) {
             amounts
         } else {
             let user_config = borrow_global<UserInfo>(user);
@@ -963,7 +963,7 @@ module propbase::propbase_staking {
         user:address,
     ): vector<u64> acquires UserInfo {
         let timestamps= vector::empty<u64>();
-        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)) {
             timestamps
         } else {
             let user_config = borrow_global<UserInfo>(user);
@@ -983,7 +983,7 @@ module propbase::propbase_staking {
     public fun get_current_rewards_earned(
         user: address,
     ): u64 acquires UserInfo, StakePool {
-        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)) {
             0
         } else {
             let user_config = borrow_global<UserInfo>(user);
@@ -1005,7 +1005,7 @@ module propbase::propbase_staking {
     public fun get_rewards_claimed_by_user(
         user: address,
     ):u64 acquires ClaimPool {
-        if(!account::exists_at(user) || !exists<UserInfo>(user)  ) {
+        if(!account::exists_at(user) || !exists<UserInfo>(user)) {
             0
         } else {
             let claim_state = borrow_global<ClaimPool>(user);
