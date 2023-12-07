@@ -781,7 +781,7 @@ module propbase::propbase_staking {
         perform_withdraw_excess_rewards<CoinType>(resource_signer, contract_config.treasury);
     }
 
-    public entry fun withdraw_unclaimed_rewards<CoinType>(
+    public entry fun withdraw_unclaimed_coins<CoinType>(
         treasury: &signer
     ) acquires RewardPool, StakePool, StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
@@ -794,7 +794,7 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_withdraw_unclaimed_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
+    public entry fun test_withdraw_unclaimed_coins<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
@@ -809,7 +809,6 @@ module propbase::propbase_staking {
     ) acquires RewardPool, StakePool {
         let now = timestamp::now_seconds();
         let contract_bal = coin::balance<CoinType>(@propbase);
-        let reward_bal = get_contract_reward_balance<CoinType>();
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(0));
