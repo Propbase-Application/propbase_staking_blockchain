@@ -83,7 +83,7 @@ module propbase::propbase_staking {
     }
 
     struct Stake has drop, store {
-        timestamp:u64,
+        timestamp: u64,
         amount: u64,
     }
 
@@ -211,11 +211,10 @@ module propbase::propbase_staking {
     ) acquires StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let old_admin = contract_config.admin;
-
         assert!(account::exists_at(new_admin_address), error::invalid_argument(E_ACCOUNT_DOES_NOT_EXIST));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
-        contract_config.admin = new_admin_address;
 
+        contract_config.admin = new_admin_address;
         event::emit_event<SetAdminEvent>(
             &mut contract_config.set_admin_events,
             SetAdminEvent {
@@ -225,18 +224,17 @@ module propbase::propbase_staking {
         );
     }
 
+    // treasury will be a multisign wallet address that receives the penalty and excess rewards.
     public entry fun set_treasury(
         admin: &signer,
         new_treasury_address: address,
     ) acquires StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let old_treasury = contract_config.treasury;
-
         assert!(account::exists_at(new_treasury_address), error::invalid_argument(E_ACCOUNT_DOES_NOT_EXIST));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
         
         contract_config.treasury = new_treasury_address;
-
         event::emit_event<SetTreasuryEvent>(
             &mut contract_config.set_treasury_events,
             SetTreasuryEvent {
@@ -252,7 +250,6 @@ module propbase::propbase_staking {
         new_treasurer: address,
     ) acquires StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
-
         assert!(account::exists_at(new_treasurer), error::invalid_argument(E_ACCOUNT_DOES_NOT_EXIST));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
 
@@ -331,7 +328,6 @@ module propbase::propbase_staking {
 
         let period = stake_pool_config.epoch_end_time - stake_pool_config.epoch_start_time ;
         let required_rewards = apply_reward_formula(stake_pool_config.pool_cap,  period, stake_pool_config.interest_rate, stake_pool_config.seconds_in_year);
-
         assert!(reward_state.available_rewards >= (required_rewards as u64), error::resource_exhausted(E_REWARD_NOT_ENOUGH));
 
         event::emit_event<SetStakePoolEvent>(
@@ -348,7 +344,7 @@ module propbase::propbase_staking {
         );
     }
 
-    //this function is used to add more time for reward expiry
+    // this function is used to add more time for reward expiry
     public entry fun set_reward_expiry_time(
         admin: &signer,
         additional_time: u64,
@@ -373,7 +369,7 @@ module propbase::propbase_staking {
         assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
         assert!(now < stake_pool_config.epoch_end_time - SECONDS_IN_DAY, error::out_of_range(E_NOT_IN_STAKING_RANGE));
         assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap , error::resource_exhausted(E_STAKE_POOL_EXHAUSTED));
-        
+
         stake_pool_config.staked_amount = stake_pool_config.staked_amount + amount;
         if (!vector::contains(&mut stake_pool_config.staked_addressess, &user_address)) {
             vector::push_back(&mut stake_pool_config.staked_addressess, user_address);
@@ -574,37 +570,6 @@ module propbase::propbase_staking {
             );
         };
         (rewards as u64)
-    }
-
-    #[view]
-    public fun expected_rewards(
-        user_address: address,
-        principal: u64,
-    ): u64 acquires StakePool, UserInfo {
-        let accumulated_rewards = 0;
-        let now = timestamp::now_seconds();
-        let stake_pool_config = borrow_global<StakePool>(@propbase);
-        if(now > stake_pool_config.epoch_end_time) {
-            return 0
-        };
-        if(exists<UserInfo>(user_address)) {
-            accumulated_rewards = get_rewards_till_the_end_of_epoch(
-                user_address,
-                stake_pool_config.interest_rate,
-                stake_pool_config.seconds_in_year,
-                stake_pool_config.epoch_end_time,
-            );
-        };
-        if(principal > 0) {
-            let reward = apply_reward_formula(
-                principal,
-                stake_pool_config.epoch_end_time - now,
-                stake_pool_config.interest_rate,
-                stake_pool_config.seconds_in_year
-            );
-            accumulated_rewards = accumulated_rewards + (reward as u64);
-        };
-        accumulated_rewards
     }
 
     inline fun get_rewards_till_the_end_of_epoch(
@@ -854,6 +819,13 @@ module propbase::propbase_staking {
     }
 
     #[view]
+    public fun get_unclaimed_reward_withdraw_at(
+    ): u64 acquires StakePool {
+        let stake_pool_config = borrow_global<StakePool>(@propbase);
+        stake_pool_config.unclaimed_reward_withdraw_at
+    }
+
+    #[view]
     public fun get_staked_addressess(): vector<address> acquires StakePool {
         let staking_pool_config = borrow_global<StakePool>(@propbase);
         staking_pool_config.staked_addressess
@@ -874,13 +846,6 @@ module propbase::propbase_staking {
             user_config.last_staked_time,
             user_config.is_total_earnings_withdrawn,
         )
-    }
-
-    #[view]
-    public fun get_unclaimed_reward_withdraw_at(
-    ): u64 acquires StakePool {
-        let stake_pool_config = borrow_global<StakePool>(@propbase);
-        stake_pool_config.unclaimed_reward_withdraw_at
     }
 
     #[view]
@@ -964,24 +929,54 @@ module propbase::propbase_staking {
     }
 
     #[view]
+    public fun expected_rewards(
+        user_address: address,
+        principal: u64,
+    ): u64 acquires StakePool, UserInfo {
+        let accumulated_rewards = 0;
+        let now = timestamp::now_seconds();
+        let stake_pool_config = borrow_global<StakePool>(@propbase);
+        if(now > stake_pool_config.epoch_end_time) {
+            return 0
+        };
+        if(exists<UserInfo>(user_address)) {
+            accumulated_rewards = get_rewards_till_the_end_of_epoch(
+                user_address,
+                stake_pool_config.interest_rate,
+                stake_pool_config.seconds_in_year,
+                stake_pool_config.epoch_end_time,
+            );
+        };
+        if(principal > 0) {
+            let reward = apply_reward_formula(
+                principal,
+                stake_pool_config.epoch_end_time - now,
+                stake_pool_config.interest_rate,
+                stake_pool_config.seconds_in_year
+            );
+            accumulated_rewards = accumulated_rewards + (reward as u64);
+        };
+        accumulated_rewards
+    }
+
+    #[view]
     public fun get_current_rewards_earned(
         user: address,
     ): u64 acquires UserInfo, StakePool {
         if(!account::exists_at(user) || !exists<UserInfo>(user)) {
-            0
-        } else {
-            let user_config = borrow_global<UserInfo>(user);
-            let stake_pool_config = borrow_global<StakePool>(@propbase);
-            get_total_rewards_so_far(
-                user_config.principal,
-                user_config.accumulated_rewards,
-                user_config.rewards_accumulated_at,
-                user_config.last_staked_time,
-                stake_pool_config.interest_rate,
-                stake_pool_config.seconds_in_year,
-                stake_pool_config.epoch_end_time,
-            )
-        }
+            return 0
+        };
+        let user_config = borrow_global<UserInfo>(user);
+        let stake_pool_config = borrow_global<StakePool>(@propbase);
+        get_total_rewards_so_far(
+            user_config.principal,
+            user_config.accumulated_rewards,
+            user_config.rewards_accumulated_at,
+            user_config.last_staked_time,
+            stake_pool_config.interest_rate,
+            stake_pool_config.seconds_in_year,
+            stake_pool_config.epoch_end_time,
+        )
     }
 
     #[view]
@@ -996,7 +991,6 @@ module propbase::propbase_staking {
             return 0
         };
         return *Table::borrow(&claim_state.claimed_rewards, user)
-        
     }
 
     #[view]
