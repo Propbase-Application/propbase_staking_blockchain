@@ -37,6 +37,7 @@ module propbase::propbase_staking {
         staked_amount: u64,
         total_penalty: u64,
         unclaimed_reward_withdraw_at: u64,
+        staked_addressess: vector<address>,
         set_pool_config_events: EventHandle<SetStakePoolEvent>,
     }
 
@@ -188,6 +189,7 @@ module propbase::propbase_staking {
             staked_amount: 0,
             total_penalty: 0,
             unclaimed_reward_withdraw_at: SECONDS_IN_FIVE_YEARS,
+            staked_addressess: vector::empty<address>(),
             set_pool_config_events: account::new_event_handle<SetStakePoolEvent>(resource_account),
         });
         move_to(resource_account, RewardPool {
@@ -372,6 +374,9 @@ module propbase::propbase_staking {
         assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap , error::resource_exhausted(E_STAKE_POOL_EXHAUSTED));
         
         stake_pool_config.staked_amount = stake_pool_config.staked_amount + amount;
+        if (!vector::contains(&mut stake_pool_config.staked_addressess, &user_address)) {
+            vector::push_back(&mut stake_pool_config.staked_addressess, user_address);
+        };
         aptos_account::transfer_coins<CoinType>(user, @propbase, amount);
 
         if(!exists<UserInfo>(user_address)) {
@@ -550,7 +555,7 @@ module propbase::propbase_staking {
     ): u64 acquires StakePool, StakeApp {
         let rewards;
         let now = timestamp::now_seconds();
-        if(now > epoch_end_time){
+        if(now > epoch_end_time) {
             now = epoch_end_time;
         };
         if (rewards_accumulated_at > 0) {
@@ -752,14 +757,14 @@ module propbase::propbase_staking {
 
     public entry fun withdraw_excess_rewards<CoinType>(
         treasury: &signer
-    ) acquires RewardPool, StakePool, StakeApp {
+    ) acquires RewardPool, StakePool, StakeApp, UserInfo {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         perform_withdraw_excess_rewards<CoinType>(treasury, &resource_signer, contract_config.treasury);
     }
 
     #[test_only]
-    public entry fun test_withdraw_excess_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
+    public entry fun test_withdraw_excess_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp, UserInfo {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         perform_withdraw_excess_rewards<CoinType>(treasury, resource_signer, contract_config.treasury);
     }
@@ -784,8 +789,8 @@ module propbase::propbase_staking {
         treasury: address,
     ) acquires RewardPool, StakePool {
         let now = timestamp::now_seconds();
-        let contract_bal = get_contract_reward_balance<CoinType>();
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let reward_balance = get_contract_reward_balance<CoinType>();
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
@@ -793,7 +798,7 @@ module propbase::propbase_staking {
         assert!(now > stake_pool_config.unclaimed_reward_withdraw_at, error::out_of_range(0));
 
         reward_state.available_rewards = 0;
-        aptos_account::transfer_coins<CoinType>(resource_signer, treasury, contract_bal);
+        aptos_account::transfer_coins<CoinType>(resource_signer, treasury, reward_balance);
     }
 
     inline fun perform_withdraw_excess_rewards<CoinType>(
@@ -802,24 +807,36 @@ module propbase::propbase_staking {
         treasury: address,
     ) {
         let now = timestamp::now_seconds();
-        let contract_bal = get_contract_reward_balance<CoinType>();
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
-        let reward_state = borrow_global_mut<RewardPool>(@propbase);
-        let current_staked_amount = stake_pool_config.staked_amount;
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
         assert!(signer::address_of(user) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
         assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(0));
-        
-        let calculated_required_funds = apply_reward_formula(
-            current_staked_amount,
-            stake_pool_config.epoch_end_time - stake_pool_config.epoch_start_time,
-            stake_pool_config.interest_rate,
-            stake_pool_config.seconds_in_year
-        );
-        let reward_to_return = contract_bal - (calculated_required_funds as u64);
-        reward_state.available_rewards = reward_state.available_rewards - reward_to_return;
-        aptos_account::transfer_coins<CoinType>(resource_signer, treasury, reward_to_return);
+
+        let reward_balance = get_contract_reward_balance<CoinType>();
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        let length = vector::length(&stake_pool_config.staked_addressess);
+        let index = 0;
+        let total_rewards: u64 = 0;
+
+        while (index < length) {
+            let user = *vector::borrow(&stake_pool_config.staked_addressess, index);
+            let user_state = borrow_global<UserInfo>(user);
+            let rewards = get_total_rewards_so_far(
+                user_state.principal,
+                user_state.accumulated_rewards,
+                user_state.rewards_accumulated_at,
+                user_state.last_staked_time,
+                stake_pool_config.interest_rate,
+                stake_pool_config.seconds_in_year,
+                stake_pool_config.epoch_end_time,
+            );
+            total_rewards = total_rewards + rewards;
+            index = index + 1;
+        };
+        let excess = reward_balance - total_rewards;
+        reward_state.available_rewards = reward_state.available_rewards - excess;
+        aptos_account::transfer_coins<CoinType>(resource_signer, treasury, excess);
     }
 
     #[view]
@@ -837,6 +854,12 @@ module propbase::propbase_staking {
     }
 
     #[view]
+    public fun get_staked_addressess(): vector<address> acquires StakePool {
+        let staking_pool_config = borrow_global<StakePool>(@propbase);
+        staking_pool_config.staked_addressess
+    }
+
+    #[view]
     public fun get_user_info(
         user: address
     ): (u64, u64, u64, u64, u64, u64, bool) acquires UserInfo {
@@ -850,7 +873,6 @@ module propbase::propbase_staking {
             user_config.first_staked_time,
             user_config.last_staked_time,
             user_config.is_total_earnings_withdrawn,
-
         )
     }
 
@@ -872,7 +894,6 @@ module propbase::propbase_staking {
             let user_config = borrow_global<UserInfo>(user);
             let i = 0;
             let len = vector::length(&user_config.staked_items);
-
             while (i < len) {
                 let element = vector::borrow(&user_config.staked_items, i);
                 vector::push_back(&mut amounts, element.amount);
@@ -893,7 +914,6 @@ module propbase::propbase_staking {
             let user_config = borrow_global<UserInfo>(user);
             let i = 0;
             let len = vector::length(&user_config.staked_items);
-
             while (i < len){
                 let element = vector::borrow(&user_config.staked_items, i);
                 vector::push_back(&mut timestamps, element.timestamp);
@@ -934,7 +954,6 @@ module propbase::propbase_staking {
             let user_config = borrow_global<UserInfo>(user);
             let i = 0;
             let len = vector::length(&user_config.unstaked_items);
-
             while (i < len){
                 let element = vector::borrow(&user_config.unstaked_items, i);
                 vector::push_back(&mut timestamps, element.timestamp);
@@ -953,7 +972,6 @@ module propbase::propbase_staking {
         } else {
             let user_config = borrow_global<UserInfo>(user);
             let stake_pool_config = borrow_global<StakePool>(@propbase);
-
             get_total_rewards_so_far(
                 user_config.principal,
                 user_config.accumulated_rewards,
@@ -982,8 +1000,7 @@ module propbase::propbase_staking {
     }
 
     #[view]
-    public fun get_contract_reward_balance<CoinType>(
-    ): u64 acquires RewardPool {
+    public fun get_contract_reward_balance<CoinType>(): u64 acquires RewardPool {
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         reward_state.available_rewards
     }

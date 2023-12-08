@@ -3509,8 +3509,7 @@ module propbase::propbase_staking_tests {
         let req_funds = difference * 20000000000 * 15;
         let divisor = 31622400 * 100;
         let required_funds = req_funds / divisor;
-        debug::print<String>(&string::utf8(b"****************contract bal1  ===================== #1"));
-        debug::print<u64>(&required_funds);
+
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
@@ -3522,18 +3521,16 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(20003);   
         
         let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
-        let bal_before_claiming_user = coin::balance<PROPS>(signer::address_of(address_1));
+        let reward_balance_before_invoke = propbase_staking::get_contract_reward_balance<PROPS>();
 
         propbase_staking::test_withdraw_excess_rewards<PROPS>(address_1, resource);
 
-        debug::print<String>(&string::utf8(b"****************contract bal2  ===================== #1"));
-        debug::print<u64>(&propbase_staking::get_contract_reward_balance<PROPS>());
-
+        let reward_balance_after_invoke = propbase_staking::get_contract_reward_balance<PROPS>();
         let bal_after_claiming = coin::balance<PROPS>(signer::address_of(address_1));
-        assert!(bal_before_claiming + 948695 == bal_after_claiming, 10);
+
+        assert!(reward_balance_before_invoke - 948695 == reward_balance_after_invoke, 1);
+        assert!(bal_before_claiming + 948695 == bal_after_claiming, 2);
         propbase_staking::test_claim_principal_and_rewards<PROPS>(address_2, resource);
-        debug::print<String>(&string::utf8(b"****************contract bal3  ===================== #1"));
-        debug::print<u64>(&propbase_staking::get_contract_reward_balance<PROPS>());
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
