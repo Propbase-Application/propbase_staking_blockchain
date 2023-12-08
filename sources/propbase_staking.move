@@ -94,6 +94,7 @@ module propbase::propbase_staking {
     struct ClaimPrincipalAndRewardEvent has drop, store {
         timestamp: u64,
         claimed_amount: u64,
+        reward_amount: u64,
     }
 
     struct SetAdminEvent has drop, store {
@@ -745,7 +746,8 @@ module propbase::propbase_staking {
             &mut claim_state.updated_claim_principal_and_reward_events,
             ClaimPrincipalAndRewardEvent {
                 timestamp: now,
-                claimed_amount: total_returns
+                claimed_amount: total_returns,
+                reward_amount: accumulated_rewards
             }
         );
     }
