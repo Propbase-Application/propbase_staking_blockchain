@@ -47,7 +47,8 @@ module propbase::propbase_staking {
     }
 
     struct ClaimPool has key {
-        total_claimed: u64,
+        total_rewards_claimed: u64,
+        total_claimed_principal: u64,
         claimed_rewards: TableWithLength<address, u64>,
         claim_reward_events: EventHandle<ClaimRewardEvent>,
         updated_claim_principal_and_reward_events: EventHandle<ClaimPrincipalAndRewardEvent>
@@ -198,7 +199,8 @@ module propbase::propbase_staking {
             updated_rewards_events: account::new_event_handle<UpdateRewardsEvent>(resource_account),
         });
         move_to(resource_account, ClaimPool {
-            total_claimed: 0,
+            total_rewards_claimed: 0,
+            total_claimed_principal: 0,
             claimed_rewards: Table::new(),
             claim_reward_events: account::new_event_handle<ClaimRewardEvent>(resource_account), 
             updated_claim_principal_and_reward_events: account::new_event_handle<ClaimPrincipalAndRewardEvent>(resource_account),
@@ -656,7 +658,7 @@ module propbase::propbase_staking {
         *claimed_rewards = *claimed_rewards + accumulated_rewards;
         user_state.accumulated_rewards = 0;
         user_state.rewards_accumulated_at = timestamp::now_seconds();
-        claim_state.total_claimed = claim_state.total_claimed + accumulated_rewards;
+        claim_state.total_rewards_claimed = claim_state.total_rewards_claimed + accumulated_rewards;
         reward_state.available_rewards = reward_state.available_rewards - accumulated_rewards;
         aptos_account::transfer_coins<CoinType>(resource_signer, user_address, accumulated_rewards);
 
@@ -706,7 +708,8 @@ module propbase::propbase_staking {
         user_state.is_total_earnings_withdrawn = true;
         user_state.rewards_accumulated_at = timestamp::now_seconds();
         reward_state.available_rewards = reward_state.available_rewards - accumulated_rewards;
-        claim_state.total_claimed = claim_state.total_claimed + accumulated_rewards;
+        claim_state.total_rewards_claimed = claim_state.total_rewards_claimed + accumulated_rewards;
+        claim_state.total_claimed_principal = claim_state.total_claimed_principal + principal;
         aptos_account::transfer_coins<CoinType>(resource_signer, user_address, total_returns);
 
         event::emit_event<ClaimPrincipalAndRewardEvent>(
