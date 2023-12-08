@@ -48,8 +48,8 @@ module propbase::propbase_staking {
     struct ClaimPool has key {
         total_claimed: u64,
         claimed_rewards: TableWithLength<address, u64>,
-        update_total_claimed_events: EventHandle<ClaimRewardEvent>,
-        updated_claim_principal_and_reward_event: EventHandle<ClaimPrincipalAndRewardEvent>
+        claim_reward_events: EventHandle<ClaimRewardEvent>,
+        updated_claim_principal_and_reward_events: EventHandle<ClaimPrincipalAndRewardEvent>
     }
 
     struct UserInfo has key {
@@ -86,13 +86,13 @@ module propbase::propbase_staking {
         amount: u64,
     }
 
-    struct ClaimRewardEvent has drop, store{
-        timestamp:u64,
+    struct ClaimRewardEvent has drop, store {
+        timestamp: u64,
         claimed_amount: u64,
     }
 
-    struct ClaimPrincipalAndRewardEvent has drop, store{
-        timestamp:u64,
+    struct ClaimPrincipalAndRewardEvent has drop, store {
+        timestamp: u64,
         claimed_amount: u64,
     }
 
@@ -197,8 +197,8 @@ module propbase::propbase_staking {
         move_to(resource_account, ClaimPool {
             total_claimed: 0,
             claimed_rewards: Table::new(),
-            update_total_claimed_events: account::new_event_handle<ClaimRewardEvent>(resource_account), 
-            updated_claim_principal_and_reward_event: account::new_event_handle<ClaimPrincipalAndRewardEvent>(resource_account),
+            claim_reward_events: account::new_event_handle<ClaimRewardEvent>(resource_account), 
+            updated_claim_principal_and_reward_events: account::new_event_handle<ClaimPrincipalAndRewardEvent>(resource_account),
         });
     }
 
@@ -693,7 +693,7 @@ module propbase::propbase_staking {
         aptos_account::transfer_coins<CoinType>(resource_signer, user_address, accumulated_rewards);
 
         event::emit_event<ClaimRewardEvent>(
-            &mut claim_state.update_total_claimed_events,
+            &mut claim_state.claim_reward_events,
             ClaimRewardEvent {
                 timestamp: now,
                 claimed_amount: accumulated_rewards
@@ -740,7 +740,7 @@ module propbase::propbase_staking {
         aptos_account::transfer_coins<CoinType>(resource_signer, user_address, total_returns);
 
         event::emit_event<ClaimPrincipalAndRewardEvent>(
-            &mut claim_state.updated_claim_principal_and_reward_event,
+            &mut claim_state.updated_claim_principal_and_reward_events,
             ClaimPrincipalAndRewardEvent {
                 timestamp: now,
                 claimed_amount: total_returns
