@@ -10,7 +10,6 @@ module propbase::propbase_staking {
     use aptos_std::table_with_length::{ Self as Table, TableWithLength };
     use aptos_std::type_info;
     use aptos_framework::event::{ Self, EventHandle };
-    use aptos_framework::coin::{ Self };
     use aptos_framework::aptos_account;
     use aptos_framework::account::{ Self, SignerCapability };
     use aptos_framework::timestamp;
@@ -23,7 +22,6 @@ module propbase::propbase_staking {
         treasury: address,
         reward_treasurer: address,
         min_stake_amount: u64,
-        unclaimed_coin_withdraw_period: u64,
         set_admin_events: EventHandle<SetAdminEvent>,
         set_treasury_events: EventHandle<SetTreasuryEvent>,
         set_reward_treasurer_events: EventHandle<address>,
@@ -38,7 +36,7 @@ module propbase::propbase_staking {
         seconds_in_year: u64,
         staked_amount: u64,
         total_penalty: u64,
-        unclaimed_coin_withdraw_at: u64,
+        unclaimed_reward_withdraw_at: u64,
         set_pool_config_events: EventHandle<SetStakePoolEvent>,
     }
 
@@ -117,11 +115,12 @@ module propbase::propbase_staking {
         seconds_in_year: u64
     }
 
-    // const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
+    const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
     // const SECONDS_IN_DAY: u64 = 86400;
     // const UNCLAIMED_COIN_WITHDRAW_PERIOD: u64 = 15780000;
-    const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
+    // const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
     const SECONDS_IN_DAY: u64 = 1;
+    const SECONDS_IN_FIVE_YEARS: u64 = 2;
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
     const SECONDS_IN_LEAP_YEAR: u64 = 31622400;
 
@@ -170,7 +169,6 @@ module propbase::propbase_staking {
             treasury: @source_addr,
             reward_treasurer: @source_addr,
             min_stake_amount: 0,
-            unclaimed_coin_withdraw_period: 0,
             set_admin_events: account::new_event_handle<SetAdminEvent>(resource_account),
             set_treasury_events: account::new_event_handle<SetTreasuryEvent>(resource_account),
             set_reward_treasurer_events: account::new_event_handle<address>(resource_account),
@@ -184,7 +182,7 @@ module propbase::propbase_staking {
             seconds_in_year: 0,
             staked_amount: 0,
             total_penalty: 0,
-            unclaimed_coin_withdraw_at: 0,
+            unclaimed_reward_withdraw_at: SECONDS_IN_FIVE_YEARS,
             set_pool_config_events: account::new_event_handle<SetStakePoolEvent>(resource_account),
         });
         move_to(resource_account, RewardPool {
@@ -266,7 +264,6 @@ module propbase::propbase_staking {
         penalty_rate: u64,
         min_stake_amount: u64,
         seconds_in_year: u64,
-        unclaimed_coin_withdraw_period: u64,
         value_config: vector<bool>
     ) acquires StakePool, StakeApp, RewardPool {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
@@ -284,7 +281,6 @@ module propbase::propbase_staking {
         let set_penalty_rate = *vector::borrow(&value_config, 5);
         let set_min_stake_amount = *vector::borrow(&value_config, 6);
         let set_seconds_in_year = *vector::borrow(&value_config, 7);
-        let set_unclaimed_coin_withdraw_period = *vector::borrow(&value_config, 8);
 
         if(set_epoch_start_time && set_epoch_end_time) {
             assert!(epoch_start_time < epoch_end_time, error::invalid_argument(E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME))
@@ -324,11 +320,6 @@ module propbase::propbase_staking {
             stake_pool_config.seconds_in_year = seconds_in_year;
         };
 
-        if(set_unclaimed_coin_withdraw_period ){
-            contract_config.unclaimed_coin_withdraw_period = unclaimed_coin_withdraw_period;
-        };
-
-        stake_pool_config.unclaimed_coin_withdraw_at = stake_pool_config.epoch_end_time + contract_config.unclaimed_coin_withdraw_period;
         let period = stake_pool_config.epoch_end_time - stake_pool_config.epoch_start_time ;
         let required_rewards = apply_reward_formula(stake_pool_config.pool_cap,  period, stake_pool_config.interest_rate, stake_pool_config.seconds_in_year);
 
@@ -346,6 +337,18 @@ module propbase::propbase_staking {
                 seconds_in_year: stake_pool_config.seconds_in_year
             }
         );
+    }
+
+    //this function is used to add more time for reward expiry
+    public entry fun add_reward_claim_deadline(
+        admin: &signer,
+        additional_time: u64,
+    ) acquires StakeApp, StakePool{
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
+        assert!((timestamp::now_seconds() < stake_pool_config.epoch_start_time) || stake_pool_config.epoch_start_time == 0, error::permission_denied(E_STAKE_ALREADY_STARTED));
+        stake_pool_config.unclaimed_reward_withdraw_at = stake_pool_config.unclaimed_reward_withdraw_at + additional_time;
     }
 
     public entry fun add_stake<CoinType> (
@@ -762,7 +765,7 @@ module propbase::propbase_staking {
         perform_withdraw_excess_rewards<CoinType>(resource_signer, contract_config.treasury);
     }
 
-    public entry fun withdraw_unclaimed_coins<CoinType>(
+    public entry fun withdraw_unclaimed_rewards<CoinType>(
         treasury: &signer
     ) acquires RewardPool, StakePool, StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
@@ -771,29 +774,28 @@ module propbase::propbase_staking {
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
         assert!(signer::address_of(treasury) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
 
-        perform_withdraw_unclaimed_coins<CoinType>(&resource_signer, contract_config.treasury);
+        perform_withdraw_unclaimed_rewards<CoinType>(&resource_signer, contract_config.treasury);
     }
 
     #[test_only]
-    public entry fun test_withdraw_unclaimed_coins<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
+    public entry fun test_withdraw_unclaimed_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
         assert!(signer::address_of(treasury) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
 
-        perform_withdraw_unclaimed_coins<CoinType>(resource_signer, contract_config.treasury);
+        perform_withdraw_unclaimed_rewards<CoinType>(resource_signer, contract_config.treasury);
     }
 
-    inline fun perform_withdraw_unclaimed_coins<CoinType>(
+    inline fun perform_withdraw_unclaimed_rewards<CoinType>(
         resource_signer: &signer,
         treasury: address,
     ) acquires RewardPool, StakePool {
         let now = timestamp::now_seconds();
-        let contract_bal = coin::balance<CoinType>(@propbase);
+        let contract_bal = get_contract_reward_balance<CoinType>();
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
-        assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(0));
-        assert!(now > stake_pool_config.unclaimed_coin_withdraw_at, error::out_of_range(0));
+        assert!(now > stake_pool_config.unclaimed_reward_withdraw_at, error::out_of_range(0));
 
         reward_state.available_rewards = 0;
         aptos_account::transfer_coins<CoinType>(resource_signer, treasury, contract_bal);
@@ -823,9 +825,9 @@ module propbase::propbase_staking {
 
     #[view]
     public fun get_app_config(
-    ): (String, address, address, u64) acquires StakeApp {
+    ): (String, address, address, address, u64) acquires StakeApp {
         let staking_config = borrow_global<StakeApp>(@propbase);
-        (staking_config.app_name, staking_config.admin, staking_config.treasury, staking_config.min_stake_amount)
+        (staking_config.app_name, staking_config.admin, staking_config.treasury, staking_config.reward_treasurer, staking_config.min_stake_amount)
     }
 
     #[view]
@@ -847,7 +849,7 @@ module propbase::propbase_staking {
     #[view]
     public fun get_user_info(
         user: address
-    ): (u64, u64, u64, u64, u64) acquires UserInfo {
+    ): (u64, u64, u64, u64, u64, u64, bool) acquires UserInfo {
         assert!(exists<UserInfo>(user), error::invalid_argument(E_NOT_STAKED_USER));
         let user_config = borrow_global<UserInfo>(user);
         return (
@@ -855,27 +857,18 @@ module propbase::propbase_staking {
             user_config.withdrawn,
             user_config.accumulated_rewards,
             user_config.rewards_accumulated_at,
-            user_config.last_staked_time
+            user_config.first_staked_time,
+            user_config.last_staked_time,
+            user_config.is_total_earnings_withdrawn,
+
         )
     }
 
     #[view]
-    public fun get_principal_amount(
-        user: address
-    ): u64 acquires UserInfo {
-        if(!account::exists_at(user) || !exists<UserInfo>(user)) {
-            0
-        } else {
-            let user_config = borrow_global<UserInfo>(user);
-            user_config.principal
-        }
-    }
-
-    #[view]
-    public fun get_unclaimed_coins_withdraw_at(
+    public fun get_unclaimed_reward_withdraw_at(
     ): u64 acquires StakePool {
         let stake_pool_config = borrow_global<StakePool>(@propbase);
-        stake_pool_config.unclaimed_coin_withdraw_at
+        stake_pool_config.unclaimed_reward_withdraw_at
     }
 
     #[view]
