@@ -23,6 +23,7 @@ module propbase::propbase_staking {
         treasury: address,
         reward_treasurer: address,
         min_stake_amount: u64,
+        unclaimed_coin_withdraw_period: u64,
         set_admin_events: EventHandle<SetAdminEvent>,
         set_treasury_events: EventHandle<SetTreasuryEvent>,
         set_reward_treasurer_events: EventHandle<address>,
@@ -116,12 +117,11 @@ module propbase::propbase_staking {
         seconds_in_year: u64
     }
 
-    const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
+    // const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
     // const SECONDS_IN_DAY: u64 = 86400;
     // const UNCLAIMED_COIN_WITHDRAW_PERIOD: u64 = 15780000;
-    // const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
+    const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
     const SECONDS_IN_DAY: u64 = 1;
-    const UNCLAIMED_COIN_WITHDRAW_PERIOD: u64 = 2;
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
     const SECONDS_IN_LEAP_YEAR: u64 = 31622400;
 
@@ -170,6 +170,7 @@ module propbase::propbase_staking {
             treasury: @source_addr,
             reward_treasurer: @source_addr,
             min_stake_amount: 0,
+            unclaimed_coin_withdraw_period: 0,
             set_admin_events: account::new_event_handle<SetAdminEvent>(resource_account),
             set_treasury_events: account::new_event_handle<SetTreasuryEvent>(resource_account),
             set_reward_treasurer_events: account::new_event_handle<address>(resource_account),
@@ -238,6 +239,7 @@ module propbase::propbase_staking {
         );
     }
 
+    // reward treasurer will be a multisign wallet address that holds the reward allocations.
     public entry fun set_reward_treasurer(
         admin: &signer,
         new_treasurer: address,
@@ -264,6 +266,7 @@ module propbase::propbase_staking {
         penalty_rate: u64,
         min_stake_amount: u64,
         seconds_in_year: u64,
+        unclaimed_coin_withdraw_period: u64,
         value_config: vector<bool>
     ) acquires StakePool, StakeApp, RewardPool {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
@@ -281,6 +284,7 @@ module propbase::propbase_staking {
         let set_penalty_rate = *vector::borrow(&value_config, 5);
         let set_min_stake_amount = *vector::borrow(&value_config, 6);
         let set_seconds_in_year = *vector::borrow(&value_config, 7);
+        let set_unclaimed_coin_withdraw_period = *vector::borrow(&value_config, 8);
 
         if(set_epoch_start_time && set_epoch_end_time) {
             assert!(epoch_start_time < epoch_end_time, error::invalid_argument(E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME))
@@ -298,7 +302,6 @@ module propbase::propbase_staking {
             assert!(epoch_end_time > 0, error::invalid_argument(E_STAKE_END_TIME_OUT_OF_RANGE));
             assert!(epoch_end_time > stake_pool_config.epoch_start_time, error::invalid_argument(E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
             stake_pool_config.epoch_end_time = epoch_end_time;
-            stake_pool_config.unclaimed_coin_withdraw_at = epoch_end_time + UNCLAIMED_COIN_WITHDRAW_PERIOD;
         };
         if(set_penalty_rate) {
             assert!(penalty_rate <= 50 && penalty_rate > 0, error::invalid_argument(E_STAKE_POOL_PENALTY_OUT_OF_RANGE));
@@ -321,6 +324,11 @@ module propbase::propbase_staking {
             stake_pool_config.seconds_in_year = seconds_in_year;
         };
 
+        if(set_unclaimed_coin_withdraw_period ){
+            contract_config.unclaimed_coin_withdraw_period = unclaimed_coin_withdraw_period;
+        };
+
+        stake_pool_config.unclaimed_coin_withdraw_at = stake_pool_config.epoch_end_time + contract_config.unclaimed_coin_withdraw_period;
         let period = stake_pool_config.epoch_end_time - stake_pool_config.epoch_start_time ;
         let required_rewards = apply_reward_formula(stake_pool_config.pool_cap,  period, stake_pool_config.interest_rate, stake_pool_config.seconds_in_year);
 
@@ -828,6 +836,7 @@ module propbase::propbase_staking {
     }
 
     #[view]
+    #[test_only]
     public fun check_is_reward_treasurer(
         user: address,
     ): bool acquires StakeApp {
