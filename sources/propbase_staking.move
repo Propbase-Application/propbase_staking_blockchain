@@ -763,13 +763,13 @@ module propbase::propbase_staking {
     ) acquires RewardPool, StakePool, StakeApp, UserInfo {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
-        perform_withdraw_excess_rewards<CoinType>(treasury, &resource_signer, contract_config.treasury);
+        perform_withdraw_excess_rewards<CoinType>(treasury, &resource_signer);
     }
 
     #[test_only]
     public entry fun test_withdraw_excess_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp, UserInfo {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        perform_withdraw_excess_rewards<CoinType>(treasury, resource_signer, contract_config.treasury);
+        perform_withdraw_excess_rewards<CoinType>(treasury, resource_signer);
     }
 
     public entry fun withdraw_unclaimed_rewards<CoinType>(
@@ -777,19 +777,17 @@ module propbase::propbase_staking {
     ) acquires RewardPool, StakePool, StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
-        perform_withdraw_unclaimed_rewards<CoinType>(treasury, &resource_signer, contract_config.treasury);
+        perform_withdraw_unclaimed_rewards<CoinType>(treasury, &resource_signer);
     }
 
     #[test_only]
     public entry fun test_withdraw_unclaimed_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
-        let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        perform_withdraw_unclaimed_rewards<CoinType>(treasury, resource_signer, contract_config.treasury);
+        perform_withdraw_unclaimed_rewards<CoinType>(treasury, resource_signer);
     }
 
     inline fun perform_withdraw_unclaimed_rewards<CoinType>(
         user: &signer,
         resource_signer: &signer,
-        treasury: address,
     ) acquires RewardPool, StakePool {
         let now = timestamp::now_seconds();
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
@@ -801,13 +799,12 @@ module propbase::propbase_staking {
         assert!(now > stake_pool_config.unclaimed_reward_withdraw_at, error::out_of_range(0));
 
         reward_state.available_rewards = 0;
-        aptos_account::transfer_coins<CoinType>(resource_signer, treasury, reward_balance);
+        aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, reward_balance);
     }
 
     inline fun perform_withdraw_excess_rewards<CoinType>(
         user: &signer,
         resource_signer: &signer,
-        treasury: address,
     ) {
         let now = timestamp::now_seconds();
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
@@ -839,7 +836,7 @@ module propbase::propbase_staking {
         };
         let excess = reward_balance - total_rewards;
         reward_state.available_rewards = reward_state.available_rewards - excess;
-        aptos_account::transfer_coins<CoinType>(resource_signer, treasury, excess);
+        aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, excess);
     }
 
     #[view]
