@@ -529,6 +529,7 @@ module propbase::propbase_staking {
         );
     }
 
+    // Rewards = Principal * Number of Years (Period) * Rate / 100
     inline fun apply_reward_formula(
         principal: u64,
         period: u64,
