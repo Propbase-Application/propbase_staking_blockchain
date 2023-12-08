@@ -340,14 +340,13 @@ module propbase::propbase_staking {
     }
 
     //this function is used to add more time for reward expiry
-    public entry fun add_reward_claim_deadline(
+    public entry fun set_reward_expiry_time(
         admin: &signer,
         additional_time: u64,
     ) acquires StakeApp, StakePool{
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
-        assert!((timestamp::now_seconds() < stake_pool_config.epoch_start_time) || stake_pool_config.epoch_start_time == 0, error::permission_denied(E_STAKE_ALREADY_STARTED));
         stake_pool_config.unclaimed_reward_withdraw_at = stake_pool_config.unclaimed_reward_withdraw_at + additional_time;
     }
 
@@ -835,15 +834,6 @@ module propbase::propbase_staking {
     ): (u64, u64, u64, u64, u64, u64) acquires StakePool {
         let staking_pool_config = borrow_global<StakePool>(@propbase);
         (staking_pool_config.pool_cap, staking_pool_config.staked_amount, staking_pool_config.epoch_start_time, staking_pool_config.epoch_end_time, staking_pool_config.interest_rate, staking_pool_config.penalty_rate)
-    }
-
-    #[view]
-    #[test_only]
-    public fun check_is_reward_treasurer(
-        user: address,
-    ): bool acquires StakeApp {
-        let staking_config = borrow_global<StakeApp>(@propbase);
-        staking_config.reward_treasurer == user
     }
 
     #[view]

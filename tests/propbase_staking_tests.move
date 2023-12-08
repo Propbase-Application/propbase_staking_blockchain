@@ -175,7 +175,8 @@ module propbase::propbase_staking_tests {
 
 
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
-        assert!(propbase_staking::check_is_reward_treasurer(signer::address_of(address_1)), 2);
+        let (_, _, _, treasurer, _) = propbase_staking::get_app_config();
+        assert!(treasurer == signer::address_of(address_1), 2);
 
     }
 
@@ -218,8 +219,9 @@ module propbase::propbase_staking_tests {
 
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_2));
-        assert!(!propbase_staking::check_is_reward_treasurer(signer::address_of(address_1)), 2);
-        assert!(propbase_staking::check_is_reward_treasurer(signer::address_of(address_2)), 3);
+
+        let (_, _, _, treasurer, _) = propbase_staking::get_app_config();
+        assert!(treasurer == signer::address_of(address_2), 2);
 
     }
 
@@ -233,9 +235,6 @@ module propbase::propbase_staking_tests {
     ) {
         setup_test(resource, admin, address_1, address_2);
 
-        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
-        assert!(propbase_staking::check_is_reward_treasurer(signer::address_of(address_1)), 2);
-        assert!(!propbase_staking::check_is_reward_treasurer(signer::address_of(address_2)), 3);
         propbase_staking::set_reward_treasurer(address_1, signer::address_of(address_1));
 
     }
@@ -3852,7 +3851,7 @@ module propbase::propbase_staking_tests {
 
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 100000, 15, 50, 1000000000, 31622400, update_config);
 
-        propbase_staking::add_reward_claim_deadline(admin, 100055);
+        propbase_staking::set_reward_expiry_time(admin, 100055);
 
 
         fast_forward_secs(10000);
@@ -3871,7 +3870,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_successful_add_reward_claim_deadline(
+    fun test_successful_set_reward_expiry_time(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -3910,7 +3909,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 100000, 15, 50, 1000000000, 31622400, update_config);
 
         let previos_deadline = propbase_staking::get_unclaimed_reward_withdraw_at();
-        propbase_staking::add_reward_claim_deadline(admin, 20000);
+        propbase_staking::set_reward_expiry_time(admin, 20000);
         let updated_deadline = propbase_staking::get_unclaimed_reward_withdraw_at();
 
         assert!(previos_deadline + 20000 == updated_deadline, 10);
@@ -3919,7 +3918,7 @@ module propbase::propbase_staking_tests {
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x50001, location = propbase_staking )]
-    fun test_failure_add_reward_claim_deadline_not_admin(
+    fun test_failure_set_reward_expiry_time_not_admin(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -3956,13 +3955,13 @@ module propbase::propbase_staking_tests {
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
 
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 100000, 15, 50, 1000000000, 31622400, update_config);
-        propbase_staking::add_reward_claim_deadline(address_1, 20000);
+        propbase_staking::set_reward_expiry_time(address_1, 20000);
 
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x50006, location = propbase_staking )]
-    fun test_failure_add_reward_claim_deadline_pool_already_started(
+    fun test_failure_set_reward_expiry_time_pool_already_started(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -4001,7 +4000,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 100000, 15, 50, 1000000000, 31622400, update_config);
         
         fast_forward_secs(10001);
-        propbase_staking::add_reward_claim_deadline(admin, 20000);
+        propbase_staking::set_reward_expiry_time(admin, 20000);
 
     }
 
