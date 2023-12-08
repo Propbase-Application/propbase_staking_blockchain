@@ -740,36 +740,6 @@ module propbase::propbase_staking {
         perform_withdraw_excess_rewards<CoinType>(treasury, resource_signer);
     }
 
-    public entry fun withdraw_unclaimed_rewards<CoinType>(
-        treasury: &signer
-    ) acquires RewardPool, StakePool, StakeApp {
-        let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
-        perform_withdraw_unclaimed_rewards<CoinType>(treasury, &resource_signer);
-    }
-
-    #[test_only]
-    public entry fun test_withdraw_unclaimed_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
-        perform_withdraw_unclaimed_rewards<CoinType>(treasury, resource_signer);
-    }
-
-    inline fun perform_withdraw_unclaimed_rewards<CoinType>(
-        user: &signer,
-        resource_signer: &signer,
-    ) acquires RewardPool, StakePool {
-        let now = timestamp::now_seconds();
-        let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        let reward_balance = get_contract_reward_balance<CoinType>();
-        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
-        let reward_state = borrow_global_mut<RewardPool>(@propbase);
-        assert_props<CoinType>();
-        assert!(signer::address_of(user) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
-        assert!(now > stake_pool_config.unclaimed_reward_withdraw_at, error::out_of_range(0));
-
-        reward_state.available_rewards = 0;
-        aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, reward_balance);
-    }
-
     inline fun perform_withdraw_excess_rewards<CoinType>(
         user: &signer,
         resource_signer: &signer,
@@ -805,6 +775,36 @@ module propbase::propbase_staking {
         let excess = reward_balance - total_rewards;
         reward_state.available_rewards = reward_state.available_rewards - excess;
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, excess);
+    }
+
+    public entry fun withdraw_unclaimed_rewards<CoinType>(
+        treasury: &signer
+    ) acquires RewardPool, StakePool, StakeApp {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
+        perform_withdraw_unclaimed_rewards<CoinType>(treasury, &resource_signer);
+    }
+
+    #[test_only]
+    public entry fun test_withdraw_unclaimed_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
+        perform_withdraw_unclaimed_rewards<CoinType>(treasury, resource_signer);
+    }
+
+    inline fun perform_withdraw_unclaimed_rewards<CoinType>(
+        user: &signer,
+        resource_signer: &signer,
+    ) acquires RewardPool, StakePool {
+        let now = timestamp::now_seconds();
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let reward_balance = get_contract_reward_balance<CoinType>();
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        assert_props<CoinType>();
+        assert!(signer::address_of(user) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
+        assert!(now > stake_pool_config.unclaimed_reward_withdraw_at, error::out_of_range(0));
+
+        reward_state.available_rewards = 0;
+        aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, reward_balance);
     }
 
     #[view]
