@@ -36,6 +36,7 @@ module propbase::propbase_staking {
         seconds_in_year: u64,
         staked_amount: u64,
         total_penalty: u64,
+        unclaimed_reward_withdraw_time: u64,
         unclaimed_reward_withdraw_at: u64,
         staked_addressess: vector<address>,
         set_pool_config_events: EventHandle<SetStakePoolEvent>,
@@ -190,7 +191,8 @@ module propbase::propbase_staking {
             seconds_in_year: 0,
             staked_amount: 0,
             total_penalty: 0,
-            unclaimed_reward_withdraw_at: SECONDS_IN_FIVE_YEARS,
+            unclaimed_reward_withdraw_time: SECONDS_IN_FIVE_YEARS,
+            unclaimed_reward_withdraw_at: 0,
             staked_addressess: vector::empty<address>(),
             set_pool_config_events: account::new_event_handle<SetStakePoolEvent>(resource_account),
         });
@@ -306,6 +308,7 @@ module propbase::propbase_staking {
             assert!(epoch_end_time > 0, error::invalid_argument(E_STAKE_END_TIME_OUT_OF_RANGE));
             assert!(epoch_end_time > stake_pool_config.epoch_start_time, error::invalid_argument(E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
             stake_pool_config.epoch_end_time = epoch_end_time;
+            stake_pool_config.unclaimed_reward_withdraw_at = epoch_end_time + stake_pool_config.unclaimed_reward_withdraw_time;
         };
         if(set_penalty_rate) {
             assert!(penalty_rate <= 50 && penalty_rate > 0, error::invalid_argument(E_STAKE_POOL_PENALTY_OUT_OF_RANGE));
@@ -354,7 +357,8 @@ module propbase::propbase_staking {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
-        stake_pool_config.unclaimed_reward_withdraw_at = stake_pool_config.unclaimed_reward_withdraw_at + additional_time;
+        stake_pool_config.unclaimed_reward_withdraw_time = SECONDS_IN_FIVE_YEARS + additional_time;
+        stake_pool_config.unclaimed_reward_withdraw_at = stake_pool_config.epoch_end_time + stake_pool_config.unclaimed_reward_withdraw_time;
     }
 
     public entry fun add_stake<CoinType> (
@@ -752,13 +756,13 @@ module propbase::propbase_staking {
         assert!(signer::address_of(user) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
         assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(0));
 
-        let reward_balance = get_contract_reward_balance<CoinType>();
+        let reward_balance = get_contract_reward_balance();
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         let length = vector::length(&stake_pool_config.staked_addressess);
         let index = 0;
         let total_rewards: u64 = 0;
 
-        while (index < length) {
+        while (length > 0 && index < length) {
             let user = *vector::borrow(&stake_pool_config.staked_addressess, index);
             let user_state = borrow_global<UserInfo>(user);
             let rewards = get_total_rewards_so_far(
@@ -797,7 +801,7 @@ module propbase::propbase_staking {
     ) acquires RewardPool, StakePool {
         let now = timestamp::now_seconds();
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        let reward_balance = get_contract_reward_balance<CoinType>();
+        let reward_balance = get_contract_reward_balance();
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         assert_props<CoinType>();
@@ -998,7 +1002,7 @@ module propbase::propbase_staking {
     }
 
     #[view]
-    public fun get_contract_reward_balance<CoinType>(): u64 acquires RewardPool {
+    public fun get_contract_reward_balance(): u64 acquires RewardPool {
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         reward_state.available_rewards
     }

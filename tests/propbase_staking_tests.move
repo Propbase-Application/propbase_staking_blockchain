@@ -2321,7 +2321,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 50, 5, 1000000000, 31622400, update_config);
-        let bal = propbase_staking::get_contract_reward_balance<PROPS>();
+        let bal = propbase_staking::get_contract_reward_balance();
         assert!(bal == required_funds, 1)
     }
 
@@ -3521,11 +3521,11 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(20003);   
         
         let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
-        let reward_balance_before_invoke = propbase_staking::get_contract_reward_balance<PROPS>();
+        let reward_balance_before_invoke = propbase_staking::get_contract_reward_balance();
 
         propbase_staking::test_withdraw_excess_rewards<PROPS>(address_1, resource);
 
-        let reward_balance_after_invoke = propbase_staking::get_contract_reward_balance<PROPS>();
+        let reward_balance_after_invoke = propbase_staking::get_contract_reward_balance();
         let bal_after_claiming = coin::balance<PROPS>(signer::address_of(address_1));
 
         assert!(reward_balance_before_invoke - 948695 == reward_balance_after_invoke, 1);
@@ -3736,7 +3736,7 @@ module propbase::propbase_staking_tests {
         let contract_bal_before = coin::balance<PROPS>(@propbase);
         assert!(contract_bal_before == required_funds + 10000000000, 12);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
-        let contract_reward_bal = propbase_staking::get_contract_reward_balance<PROPS>();
+        let contract_reward_bal = propbase_staking::get_contract_reward_balance();
 
         propbase_staking::test_withdraw_unclaimed_rewards<PROPS>(address_1, resource);
 
@@ -3803,7 +3803,7 @@ module propbase::propbase_staking_tests {
         let contract_bal_before = coin::balance<PROPS>(@propbase);
         assert!(contract_bal_before == required_funds + 10000000000, 12);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
-        let contract_reward_bal = propbase_staking::get_contract_reward_balance<PROPS>();
+        let contract_reward_bal = propbase_staking::get_contract_reward_balance();
 
         propbase_staking::test_withdraw_unclaimed_rewards<PROPS>(address_1, resource);
         propbase_staking::test_claim_principal_and_rewards<PROPS>(address_2, resource);
@@ -3861,7 +3861,7 @@ module propbase::propbase_staking_tests {
         let contract_bal_before = coin::balance<PROPS>(@propbase);
         assert!(contract_bal_before == required_funds + 10000000000, 12);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
-        let contract_reward_bal = propbase_staking::get_contract_reward_balance<PROPS>();
+        let contract_reward_bal = propbase_staking::get_contract_reward_balance();
 
         propbase_staking::test_withdraw_unclaimed_rewards<PROPS>(address_2, resource);
 
