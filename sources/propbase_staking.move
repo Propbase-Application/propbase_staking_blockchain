@@ -711,7 +711,6 @@ module propbase::propbase_staking {
         user_state.withdrawn = user_state.withdrawn + principal;
         user_state.accumulated_rewards = 0;
         user_state.is_total_earnings_withdrawn = true;
-        user_state.rewards_accumulated_at = timestamp::now_seconds();
         reward_state.available_rewards = reward_state.available_rewards - accumulated_rewards;
         claim_state.total_rewards_claimed = claim_state.total_rewards_claimed + accumulated_rewards;
         claim_state.total_claimed_principal = claim_state.total_claimed_principal + principal;
@@ -765,15 +764,18 @@ module propbase::propbase_staking {
         while (length > 0 && index < length) {
             let user = *vector::borrow(&stake_pool_config.staked_addressess, index);
             let user_state = borrow_global<UserInfo>(user);
-            let rewards = get_total_rewards_so_far(
-                user_state.principal,
-                user_state.accumulated_rewards,
-                user_state.rewards_accumulated_at,
-                user_state.last_staked_time,
-                stake_pool_config.interest_rate,
-                stake_pool_config.seconds_in_year,
-                stake_pool_config.epoch_end_time,
-            );
+            let rewards = 0;
+            if(!user_state.is_total_earnings_withdrawn){
+                rewards = get_total_rewards_so_far(
+                    user_state.principal,
+                    user_state.accumulated_rewards,
+                    user_state.rewards_accumulated_at,
+                    user_state.last_staked_time,
+                    stake_pool_config.interest_rate,
+                    stake_pool_config.seconds_in_year,
+                    stake_pool_config.epoch_end_time,
+                );
+            };
             total_rewards = total_rewards + rewards;
             index = index + 1;
         };
@@ -971,20 +973,24 @@ module propbase::propbase_staking {
     public fun get_current_rewards_earned(
         user: address,
     ): u64 acquires UserInfo, StakePool {
+        let rewards = 0;
         if(!account::exists_at(user) || !exists<UserInfo>(user)) {
-            return 0
+            return rewards
         };
         let user_config = borrow_global<UserInfo>(user);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
-        get_total_rewards_so_far(
-            user_config.principal,
-            user_config.accumulated_rewards,
-            user_config.rewards_accumulated_at,
-            user_config.last_staked_time,
-            stake_pool_config.interest_rate,
-            stake_pool_config.seconds_in_year,
-            stake_pool_config.epoch_end_time,
-        )
+        if(!user_config.is_total_earnings_withdrawn){
+            rewards = get_total_rewards_so_far(
+                user_config.principal,
+                user_config.accumulated_rewards,
+                user_config.rewards_accumulated_at,
+                user_config.last_staked_time,
+                stake_pool_config.interest_rate,
+                stake_pool_config.seconds_in_year,
+                stake_pool_config.epoch_end_time,
+            )
+        };
+        rewards
     }
 
     #[view]
