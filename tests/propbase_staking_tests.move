@@ -4267,19 +4267,10 @@ module propbase::propbase_staking_tests {
         propbase_staking::test_claim_principal_and_rewards<PROPS>(address_1, resource);
         propbase_staking::test_claim_principal_and_rewards<PROPS>(address_2, resource);
 
-        let contract_reward_bal = propbase_staking::get_contract_reward_balance();
+        let contract_reward_bal_before = propbase_staking::get_contract_reward_balance();
         propbase_staking::test_withdraw_excess_rewards<PROPS>(admin, resource);
         
-        // let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
-        // let reward_balance_before_invoke = propbase_staking::get_contract_reward_balance();
-
-        // propbase_staking::test_withdraw_excess_rewards<PROPS>(address_1, resource);
-
-        // let reward_balance_after_invoke = propbase_staking::get_contract_reward_balance();
-        // let bal_after_claiming = coin::balance<PROPS>(signer::address_of(address_1));
-
-        // assert!(reward_balance_before_invoke - 948695 == reward_balance_after_invoke, 1);
-        // assert!(bal_before_claiming + 948695 == bal_after_claiming, 2);
-        // propbase_staking::test_claim_principal_and_rewards<PROPS>(address_2, resource);
+        let contract_bal_after = propbase_staking::get_contract_reward_balance();
+        assert!(contract_bal_after == 0, 2)
     }
 }

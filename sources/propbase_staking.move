@@ -14,7 +14,6 @@ module propbase::propbase_staking {
     use aptos_framework::account::{ Self, SignerCapability };
     use aptos_framework::timestamp;
     use aptos_framework::resource_account;
-
     
     struct StakeApp has key {
         app_name: String,
