@@ -4,7 +4,7 @@ version = "1.0.0"
 authors = ["kevin", "neethu.satheesh", "hari.krishna"]
 
 [addresses]
-propbase="0x1"
+propbase="_"
 
 [dev-addresses]
 
