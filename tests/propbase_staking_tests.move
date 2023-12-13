@@ -3476,7 +3476,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_failure_claim_rewards_and_principal_five_years_passed_treasury_withdrawn_rewards_only_pricipal_is_recieved(
+    fun test_failure_claim_rewards_and_principal_five_years_passed_treasury_withdrawn_rewards_only_principal_is_recieved(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -3812,7 +3812,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_successful_withdraw_unclaimed_rewards_user_sucessfully_withdraws_pricipal_only(
+    fun test_successful_withdraw_unclaimed_rewards_user_sucessfully_withdraws_principal_only(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -4402,7 +4402,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_successful_get_current_rewards_earned_works_after_user_withdraw_pricipal_and_rewards(
+    fun test_successful_get_current_rewards_earned_works_after_user_withdraw_principal_and_rewards(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
