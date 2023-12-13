@@ -130,6 +130,8 @@ module propbase::propbase_staking_tests {
     ) {
         setup_test(resource, admin, address_1, address_2);
 
+        let (_, _, i_treasury, _,_) = propbase_staking::get_app_config();
+        assert!(i_treasury == signer::address_of(admin), 2);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
         let (_, _, c_treasury, _,_) = propbase_staking::get_app_config();
 
@@ -173,7 +175,8 @@ module propbase::propbase_staking_tests {
     ) {
         setup_test(resource, admin, address_1, address_2);
 
-
+        let (_, _, _, treasurer_before, _) = propbase_staking::get_app_config();
+        assert!(treasurer_before == signer::address_of(admin), 1);
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         let (_, _, _, treasurer, _) = propbase_staking::get_app_config();
         assert!(treasurer == signer::address_of(address_1), 2);
