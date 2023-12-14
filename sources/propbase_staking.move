@@ -713,6 +713,7 @@ module propbase::propbase_staking {
         };
         let principal = user_state.principal;
         let total_returns = principal + accumulated_rewards;
+        assert!(total_returns >0, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
         *claimed_rewards = *claimed_rewards + accumulated_rewards;
         user_state.withdrawn = user_state.withdrawn + principal;
         user_state.accumulated_rewards = 0;

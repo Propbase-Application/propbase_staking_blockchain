@@ -3936,6 +3936,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x5001B, location = propbase_staking )]
     fun test_failure_claim_rewards_and_principal_principal_and_rewards_already_taken(
         resource: &signer,
         admin: &signer,
