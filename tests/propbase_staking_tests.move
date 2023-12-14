@@ -4364,8 +4364,8 @@ module propbase::propbase_staking_tests {
         debug::print<u64>(&deadline);
         assert!(deadline == 100002, 10);
 
-        let previos_deadline = propbase_staking::get_unclaimed_reward_withdraw_at();
-        assert!(previos_deadline == 100002, 1);
+        let previous_deadline = propbase_staking::get_unclaimed_reward_withdraw_at();
+        assert!(previous_deadline == 100002, 1);
         propbase_staking::set_reward_expiry_time(admin, 20000);
         let updated_deadline = propbase_staking::get_unclaimed_reward_withdraw_at();
 
