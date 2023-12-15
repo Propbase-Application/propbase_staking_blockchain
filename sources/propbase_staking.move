@@ -482,7 +482,6 @@ module propbase::propbase_staking {
             stake_pool_config.seconds_in_year,
             stake_pool_config.epoch_end_time,
         );
-     
         stake_pool_config.staked_amount = stake_pool_config.staked_amount - amount;
         user_state.accumulated_rewards = (accumulated_rewards as u64);
         user_state.rewards_accumulated_at = now;
@@ -614,7 +613,7 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_claim_stake<CoinType>(user:&signer, resource_signer: &signer) acquires StakePool, UserInfo, ClaimPool, RewardPool {
+    public entry fun test_claim_rewards<CoinType>(user:&signer, resource_signer: &signer) acquires StakePool, UserInfo, ClaimPool, RewardPool {
         withdraw_rewards<CoinType>(user, resource_signer);
     }
 
@@ -845,7 +844,9 @@ module propbase::propbase_staking {
     public fun get_user_info(
         user: address
     ): (u64, u64, u64, u64, u64, u64, bool) acquires UserInfo {
-        assert!(exists<UserInfo>(user), error::invalid_argument(E_NOT_STAKED_USER));
+        if(!account::exists_at(user) || !exists<UserInfo>(user)) {
+            return (0, 0, 0, 0, 0, 0, false)
+        };
         let user_config = borrow_global<UserInfo>(user);
         return (
             user_config.principal,
@@ -1011,5 +1012,11 @@ module propbase::propbase_staking {
     public fun get_contract_reward_balance(): u64 acquires RewardPool {
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         reward_state.available_rewards
+    }
+
+    #[view]
+    public fun get_total_claim_info(): (u64, u64) acquires ClaimPool {
+        let claim_state = borrow_global_mut<ClaimPool>(@propbase);
+        return (claim_state.total_rewards_claimed, claim_state.total_claimed_principal)
     }
 }
