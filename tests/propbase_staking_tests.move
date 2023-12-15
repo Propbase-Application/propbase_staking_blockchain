@@ -2037,11 +2037,11 @@ module propbase::propbase_staking_tests {
         assert!(vector::length<u64>(&time_stamp_transactions) == 0, 4);
         let staked_addressess = propbase_staking::get_staked_addressess();
         assert!(vector::length<address>(&staked_addressess) == 0, 9);
-        let (_, staked_amount, _, _, _, _) = propbase_staking::get_stake_pool_config();
+        let (_, staked_amount, _, _, _, _, _) = propbase_staking::get_stake_pool_config();
         assert!(staked_amount == 0, 2);
 
         propbase_staking::add_stake<PROPS>(address_1, 5000000000);
-        let (_, staked_amount, _, _, _, _) = propbase_staking::get_stake_pool_config();
+        let (_, staked_amount, _, _, _, _, _) = propbase_staking::get_stake_pool_config();
         assert!(staked_amount == 5000000000, 2);
 
         let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, first_staked_time, last_staked_time, isWithdrawn) = propbase_staking::get_user_info(signer::address_of(address_1));
@@ -2918,7 +2918,7 @@ module propbase::propbase_staking_tests {
         assert!(*vector::borrow(&amount_transactions_unstake, 0) == 1000000000, 7);
         assert!(*vector::borrow(&time_stamp_transactions_unstake, 0) == 166400, 8);
         assert!(treasury_bal > 0, 9);
-        propbase_staking::test_claim_stake<PROPS>(address_1, resource);
+        propbase_staking::test_claim_rewards<PROPS>(address_1, resource);
         propbase_staking::add_stake<PROPS>(address_1, 2000000000);
         fast_forward_secs(10000);
         let rewards_observed = propbase_staking::get_current_rewards_earned(signer::address_of(address_1));
@@ -3227,7 +3227,7 @@ module propbase::propbase_staking_tests {
         let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, first_staked_time, last_staked_time, isWithdrawn) = propbase_staking::get_user_info(signer::address_of(address_1));
         let amount_transactions = propbase_staking::get_stake_amounts(signer::address_of(address_1));
         let time_stamp_transactions = propbase_staking::get_stake_time_stamps(signer::address_of(address_1));
-        let (_, staked_amount, _, _, _, _) = propbase_staking::get_stake_pool_config();
+        let (_, staked_amount, _, _, _, _, _) = propbase_staking::get_stake_pool_config();
 
         assert!(principal == 10000000000, 111);
         assert!(withdrawn == 0, 112);
@@ -3977,10 +3977,10 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(10000);
 
         propbase_staking::test_withdraw_stake<PROPS>(address_1, resource, 5000000000);
-        propbase_staking::test_claim_stake<PROPS>(address_1, resource);
+        propbase_staking::test_claim_rewards<PROPS>(address_1, resource);
 
         fast_forward_secs(5000);    
-        propbase_staking::test_claim_stake<PROPS>(address_1, resource);
+        propbase_staking::test_claim_rewards<PROPS>(address_1, resource);
     
     }
 
@@ -4026,7 +4026,7 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(10000);
 
         propbase_staking::test_withdraw_stake<PROPS>(address_1, resource, 5000000000);
-        propbase_staking::test_claim_stake<PROPS>(address_1, resource);
+        propbase_staking::test_claim_rewards<PROPS>(address_1, resource);
         fast_forward_secs(10003);    
         
         let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
