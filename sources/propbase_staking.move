@@ -14,8 +14,6 @@ module propbase::propbase_staking {
     use aptos_framework::account::{ Self, SignerCapability };
     use aptos_framework::timestamp;
     use aptos_framework::resource_account;
-
-    use std::debug;
     
     struct StakeApp has key {
         app_name: String,
@@ -484,7 +482,7 @@ module propbase::propbase_staking {
             stake_pool_config.seconds_in_year,
             stake_pool_config.epoch_end_time,
         );
-     
+
         stake_pool_config.staked_amount = stake_pool_config.staked_amount - amount;
         user_state.accumulated_rewards = (accumulated_rewards as u64);
         user_state.rewards_accumulated_at = now;
@@ -620,7 +618,6 @@ module propbase::propbase_staking {
         withdraw_rewards<CoinType>(user, resource_signer);
     }
 
-    // 100%
     public entry fun claim_principal_and_rewards<CoinType>(
         user: &signer,
     ) acquires StakeApp, ClaimPool, StakePool, UserInfo, RewardPool {
@@ -628,7 +625,7 @@ module propbase::propbase_staking {
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         withdraw_principal_and_rewards<CoinType>(user, &resource_signer);
     }
-    // 100%
+
     #[test_only]
     public entry fun test_claim_principal_and_rewards<CoinType>(user:&signer, resource_signer: &signer) acquires StakePool, UserInfo, ClaimPool, RewardPool {
         withdraw_principal_and_rewards<CoinType>(user, resource_signer);
@@ -679,7 +676,6 @@ module propbase::propbase_staking {
         );
     }
 
-    // 100%
     inline fun withdraw_principal_and_rewards<CoinType>(
         user: &signer,
         resource_signer: &signer,
@@ -712,8 +708,6 @@ module propbase::propbase_staking {
         let principal = user_state.principal;
         let total_returns = principal + accumulated_rewards;
         *claimed_rewards = *claimed_rewards + accumulated_rewards;
-        debug::print<String>(&string::utf8(b"**************** claimed_rewards in FUNCTION  ===================== #1"));
-        debug::print<u64>(&*claimed_rewards);
         user_state.withdrawn = user_state.withdrawn + principal;
         user_state.accumulated_rewards = 0;
         user_state.is_total_earnings_withdrawn = true;
@@ -732,7 +726,6 @@ module propbase::propbase_staking {
         );
     }
 
-    // 100%
     inline fun assert_props<CoinType>(){
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
     }
@@ -744,7 +737,7 @@ module propbase::propbase_staking {
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         perform_withdraw_excess_rewards<CoinType>(treasury, &resource_signer);
     }
-    // add for assertions
+
     #[test_only]
     public entry fun test_withdraw_excess_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp, UserInfo {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
@@ -790,7 +783,7 @@ module propbase::propbase_staking {
         reward_state.available_rewards = reward_state.available_rewards - excess;
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, excess);
     }
-    // 100%
+
     public entry fun withdraw_unclaimed_rewards<CoinType>(
         treasury: &signer
     ) acquires RewardPool, StakePool, StakeApp {
@@ -798,7 +791,7 @@ module propbase::propbase_staking {
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         perform_withdraw_unclaimed_rewards<CoinType>(treasury, &resource_signer);
     }
-    // 100%
+
     #[test_only]
     public entry fun test_withdraw_unclaimed_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
         perform_withdraw_unclaimed_rewards<CoinType>(treasury, resource_signer);
@@ -820,35 +813,34 @@ module propbase::propbase_staking {
         reward_state.available_rewards = 0;
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, reward_balance);
     }
-    // 100%
+
     #[view]
     public fun get_app_config(
     ): (String, address, address, address, u64) acquires StakeApp {
         let staking_config = borrow_global<StakeApp>(@propbase);
         (staking_config.app_name, staking_config.admin, staking_config.treasury, staking_config.reward_treasurer, staking_config.min_stake_amount)
     }
-    // 100%
+
     #[view]
     public fun get_stake_pool_config(
     ): (u64, u64, u64, u64, u64, u64) acquires StakePool {
         let staking_pool_config = borrow_global<StakePool>(@propbase);
         (staking_pool_config.pool_cap, staking_pool_config.staked_amount, staking_pool_config.epoch_start_time, staking_pool_config.epoch_end_time, staking_pool_config.interest_rate, staking_pool_config.penalty_rate)
     }
-    // 100%
+
     #[view]
     public fun get_unclaimed_reward_withdraw_at(
     ): u64 acquires StakePool {
         let stake_pool_config = borrow_global<StakePool>(@propbase);
         stake_pool_config.unclaimed_reward_withdraw_at
     }
-    // 100%
+
     #[view]
     public fun get_staked_addressess(): vector<address> acquires StakePool {
         let staking_pool_config = borrow_global<StakePool>(@propbase);
         staking_pool_config.staked_addressess
     }
 
-    // 100%
     #[view]
     public fun get_user_info(
         user: address
@@ -868,7 +860,6 @@ module propbase::propbase_staking {
         )
     }
 
-    // 100%
     #[view]
     public fun get_stake_amounts(
         user:address,
@@ -888,7 +879,7 @@ module propbase::propbase_staking {
             amounts
         }
     }
-    // 100%
+
     #[view]
     public fun get_stake_time_stamps(
         user:address,
@@ -949,7 +940,6 @@ module propbase::propbase_staking {
         }
     }
 
-    // 100%
     #[view]
     public fun expected_rewards(
         user_address: address,
@@ -981,7 +971,6 @@ module propbase::propbase_staking {
         accumulated_rewards
     }
 
-    // 100%
     #[view]
     public fun get_current_rewards_earned(
         user: address,
@@ -1005,7 +994,7 @@ module propbase::propbase_staking {
         };
         rewards
     }
-    // 100 %
+
     #[view]
     public fun get_rewards_claimed_by_user(
         user: address,
@@ -1019,14 +1008,13 @@ module propbase::propbase_staking {
         };
         return *Table::borrow(&claim_state.claimed_rewards, user)
     }
-    // 100 %
+
     #[view]
     public fun get_contract_reward_balance(): u64 acquires RewardPool {
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         reward_state.available_rewards
     }
 
-    // 100%
     #[view]
     public fun get_total_claim_info(): (u64, u64) acquires ClaimPool {
         let claim_state = borrow_global_mut<ClaimPool>(@propbase);
