@@ -209,6 +209,7 @@ module propbase::propbase_staking {
         });
     }
 
+    
     public entry fun set_admin(
         admin: &signer,
         new_admin_address: address,
@@ -228,6 +229,7 @@ module propbase::propbase_staking {
         );
     }
 
+    
     // treasury will be a multisign wallet address that receives the penalty and excess rewards.
     public entry fun set_treasury(
         admin: &signer,
@@ -248,6 +250,7 @@ module propbase::propbase_staking {
         );
     }
 
+    
     // reward treasurer will be a multisign wallet address that holds the reward allocations.
     public entry fun set_reward_treasurer(
         admin: &signer,
@@ -264,6 +267,7 @@ module propbase::propbase_staking {
         );
     }
 
+    
     public entry fun create_or_update_stake_pool(
         admin: &signer,
         pool_name: String,
@@ -350,6 +354,7 @@ module propbase::propbase_staking {
     }
 
     // this function is used to add more time for reward expiry
+    
     public entry fun set_reward_expiry_time(
         admin: &signer,
         additional_time: u64,
@@ -361,6 +366,7 @@ module propbase::propbase_staking {
         stake_pool_config.unclaimed_reward_withdraw_at = stake_pool_config.epoch_end_time + stake_pool_config.unclaimed_reward_withdraw_time;
     }
 
+    
     public entry fun add_stake<CoinType> (
         user: &signer,
         amount: u64
@@ -454,6 +460,7 @@ module propbase::propbase_staking {
         implement_unstake<CoinType>(user, resource_signer, amount);
     }
 
+    
     inline fun implement_unstake<CoinType>(
         user: &signer,
         resource_signer: &signer,
@@ -706,6 +713,7 @@ module propbase::propbase_staking {
         };
         let principal = user_state.principal;
         let total_returns = principal + accumulated_rewards;
+        assert!(total_returns >0, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
         *claimed_rewards = *claimed_rewards + accumulated_rewards;
         user_state.withdrawn = user_state.withdrawn + principal;
         user_state.accumulated_rewards = 0;
@@ -822,9 +830,9 @@ module propbase::propbase_staking {
 
     #[view]
     public fun get_stake_pool_config(
-    ): (u64, u64, u64, u64, u64, u64) acquires StakePool {
+    ): (u64, u64, u64, u64, u64, u64, u64) acquires StakePool {
         let staking_pool_config = borrow_global<StakePool>(@propbase);
-        (staking_pool_config.pool_cap, staking_pool_config.staked_amount, staking_pool_config.epoch_start_time, staking_pool_config.epoch_end_time, staking_pool_config.interest_rate, staking_pool_config.penalty_rate)
+        (staking_pool_config.pool_cap, staking_pool_config.staked_amount, staking_pool_config.epoch_start_time, staking_pool_config.epoch_end_time, staking_pool_config.interest_rate, staking_pool_config.penalty_rate, staking_pool_config.total_penalty)
     }
 
     #[view]
