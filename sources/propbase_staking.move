@@ -159,6 +159,7 @@ module propbase::propbase_staking {
     const E_STAKE_IN_PROGRESS : u64 = 24;
     const E_NOT_IN_CLAIMING_RANGE : u64 = 25;
     const E_EARNINGS_ALREADY_WITHDRAWN: u64 = 27;
+    const E_INVALID_START_TIME : u64 = 28;
 
     fun init_module(resource_account: &signer) {
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -302,6 +303,7 @@ module propbase::propbase_staking {
         if(set_epoch_start_time) {
             assert!(epoch_start_time > 0, error::invalid_argument(E_STAKE_START_TIME_OUT_OF_RANGE));
             assert!(epoch_start_time < stake_pool_config.epoch_end_time || stake_pool_config.epoch_end_time == 0, error::invalid_argument(E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
+            assert!(timestamp::now_seconds() <= epoch_start_time, error::invalid_argument(E_INVALID_START_TIME));
             stake_pool_config.epoch_start_time = epoch_start_time; 
         };
         if(set_epoch_end_time) {
