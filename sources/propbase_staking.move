@@ -208,7 +208,6 @@ module propbase::propbase_staking {
             updated_claim_principal_and_reward_events: account::new_event_handle<ClaimPrincipalAndRewardEvent>(resource_account),
         });
     }
-
     
     public entry fun set_admin(
         admin: &signer,
@@ -228,7 +227,6 @@ module propbase::propbase_staking {
             }
         );
     }
-
     
     // treasury will be a multisign wallet address that receives the penalty and excess rewards.
     public entry fun set_treasury(
@@ -250,7 +248,6 @@ module propbase::propbase_staking {
         );
     }
 
-    
     // reward treasurer will be a multisign wallet address that holds the reward allocations.
     public entry fun set_reward_treasurer(
         admin: &signer,
@@ -267,7 +264,6 @@ module propbase::propbase_staking {
         );
     }
 
-    
     public entry fun create_or_update_stake_pool(
         admin: &signer,
         pool_name: String,
@@ -354,7 +350,6 @@ module propbase::propbase_staking {
     }
 
     // this function is used to add more time for reward expiry
-    
     public entry fun set_reward_expiry_time(
         admin: &signer,
         additional_time: u64,
@@ -366,7 +361,6 @@ module propbase::propbase_staking {
         stake_pool_config.unclaimed_reward_withdraw_at = stake_pool_config.epoch_end_time + stake_pool_config.unclaimed_reward_withdraw_time;
     }
 
-    
     public entry fun add_stake<CoinType> (
         user: &signer,
         amount: u64
@@ -460,7 +454,6 @@ module propbase::propbase_staking {
         implement_unstake<CoinType>(user, resource_signer, amount);
     }
 
-    
     inline fun implement_unstake<CoinType>(
         user: &signer,
         resource_signer: &signer,
