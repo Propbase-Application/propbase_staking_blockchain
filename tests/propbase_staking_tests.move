@@ -281,10 +281,10 @@ module propbase::propbase_staking_tests {
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 50, 15, 1000000000, 31622400, update_config);
 
         let (app_name, _, _, _, min_stake_amount) = propbase_staking::get_app_config();
-        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate, total_penality) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate, total_penalty) = propbase_staking::get_stake_pool_config();
 
         assert!(app_name == string::utf8(b"Hello"), 4);
-        assert!(total_penality == 0, 5);
+        assert!(total_penalty == 0, 5);
         assert!(pool_cap == 20000000000, 5);
         assert!(epoch_start_time == 80000, 6);
         assert!(epoch_end_time == 250000, 7);
@@ -1986,7 +1986,7 @@ module propbase::propbase_staking_tests {
         let (principal, _, _, _, _, _, _) = propbase_staking::get_user_info(signer::address_of(address_1));
         let amount_transactions = propbase_staking::get_stake_amounts(signer::address_of(address_1));
         let time_stamp_transactions = propbase_staking::get_stake_time_stamps(signer::address_of(address_1));
-        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate, total_penality) = propbase_staking::get_stake_pool_config();
+        let (pool_cap, staked_amount, epoch_start_time, epoch_end_time, interest_rate, penalty_rate, total_penalty) = propbase_staking::get_stake_pool_config();
         
         assert!(principal == 10000000000, 1);
         assert!(staked_amount == 10000000000, 2);
@@ -1994,7 +1994,7 @@ module propbase::propbase_staking_tests {
         assert!(vector::length<u64>(&time_stamp_transactions) == 1, 4);
         assert!(*vector::borrow(&amount_transactions, 0) == 10000000000, 5);
         assert!(*vector::borrow(&time_stamp_transactions, 0) == 80000, 6);
-        assert!(total_penality == 0, 7)
+        assert!(total_penalty == 0, 7)
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
@@ -2526,12 +2526,12 @@ module propbase::propbase_staking_tests {
         let (principal, _, _, _, _, _, _) = propbase_staking::get_user_info(signer::address_of(address_1));
         let amount_transactions = propbase_staking::get_stake_amounts(signer::address_of(address_1));
         let time_stamp_transactions = propbase_staking::get_stake_time_stamps(signer::address_of(address_1));
-        let (_, staked_amount, _, _, _, _, total_penality1) = propbase_staking::get_stake_pool_config();
+        let (_, staked_amount, _, _, _, _, total_penalty1) = propbase_staking::get_stake_pool_config();
 
         propbase_staking::test_withdraw_stake<PROPS>(address_1, resource, 1000000000);
         let amount_transactions_unstake = propbase_staking::get_unstake_amounts(signer::address_of(address_1));
         let time_stamp_transactions_unstake = propbase_staking::get_unstake_time_stamps(signer::address_of(address_1));
-        let (_, staked_amount_unstaked, _, _, _, _, total_penality2) = propbase_staking::get_stake_pool_config();
+        let (_, staked_amount_unstaked, _, _, _, _, total_penalty2) = propbase_staking::get_stake_pool_config();
         let (principal2, withdrawn, _, rewards_accumulated_at, _, _, _) = propbase_staking::get_user_info(signer::address_of(address_1));
 
         let treasury_bal = coin::balance<PROPS>(@source_addr);
@@ -2539,10 +2539,10 @@ module propbase::propbase_staking_tests {
         assert!(principal == 1000000000, 1);
         assert!(staked_amount == 1000000000, 2);
         assert!(staked_amount_unstaked == 0, 2);
-        assert!(total_penality1 == 0, 2);
+        assert!(total_penalty1 == 0, 2);
         assert!(withdrawn == 1000000000, 3);
         assert!(principal2 == 0, 3);
-        assert!(total_penality2 == 500000000, 3);
+        assert!(total_penalty2 == 500000000, 3);
         assert!(rewards_accumulated_at == 166400, 3);
         assert!(vector::length<u64>(&amount_transactions) == 1, 3);
         assert!(vector::length<u64>(&time_stamp_transactions) == 1, 4);
@@ -2596,13 +2596,13 @@ module propbase::propbase_staking_tests {
         let (principal, _, _, _, _, _, _) = propbase_staking::get_user_info(signer::address_of(address_1));
         let amount_transactions = propbase_staking::get_stake_amounts(signer::address_of(address_1));
         let time_stamp_transactions = propbase_staking::get_stake_time_stamps(signer::address_of(address_1));
-        let (_, staked_amount, _, _, _, _, total_penality1) = propbase_staking::get_stake_pool_config();
+        let (_, staked_amount, _, _, _, _, total_penalty1) = propbase_staking::get_stake_pool_config();
 
         propbase_staking::test_withdraw_stake<PROPS>(address_1, resource, 1000000000);
         propbase_staking::test_withdraw_stake<PROPS>(address_2, resource, 1000000000);
         let amount_transactions_unstake = propbase_staking::get_unstake_amounts(signer::address_of(address_1));
         let time_stamp_transactions_unstake = propbase_staking::get_unstake_time_stamps(signer::address_of(address_1));
-        let (_, staked_amount_unstaked, _, _, _, _, total_penality2) = propbase_staking::get_stake_pool_config();
+        let (_, staked_amount_unstaked, _, _, _, _, total_penalty2) = propbase_staking::get_stake_pool_config();
         let (principal2, withdrawn, _, rewards_accumulated_at, _, _, _) = propbase_staking::get_user_info(signer::address_of(address_1));
 
         let amount_transactions_unstake2 = propbase_staking::get_unstake_amounts(signer::address_of(address_1));
@@ -2614,11 +2614,11 @@ module propbase::propbase_staking_tests {
         assert!(principal == 1000000000, 1);
         assert!(staked_amount == 2000000000, 2);
         assert!(staked_amount_unstaked == 0, 2);
-        assert!(total_penality1 == 0, 2);
+        assert!(total_penalty1 == 0, 2);
         assert!(withdrawn == 1000000000, 3);
         assert!(withdrawn2 == 1000000000, 3);
         assert!(principal2 == 0, 3);
-        assert!(total_penality2 == 1000000000, 3);
+        assert!(total_penalty2 == 1000000000, 3);
         assert!(rewards_accumulated_at == 166400, 3);
         assert!(rewards_accumulated_at2 == 166400, 3);
         assert!(vector::length<u64>(&amount_transactions) == 1, 3);
@@ -2891,12 +2891,12 @@ module propbase::propbase_staking_tests {
         let (principal, _, _, _, _, _, _) = propbase_staking::get_user_info(signer::address_of(address_1));
         let amount_transactions = propbase_staking::get_stake_amounts(signer::address_of(address_1));
         let time_stamp_transactions = propbase_staking::get_stake_time_stamps(signer::address_of(address_1));
-        let (_, staked_amount, _, _, _, _, total_penality1) = propbase_staking::get_stake_pool_config();
+        let (_, staked_amount, _, _, _, _, total_penalty1) = propbase_staking::get_stake_pool_config();
 
         propbase_staking::test_withdraw_stake<PROPS>(address_1, resource, 1000000000);
         let amount_transactions_unstake = propbase_staking::get_unstake_amounts(signer::address_of(address_1));
         let time_stamp_transactions_unstake = propbase_staking::get_unstake_time_stamps(signer::address_of(address_1));
-        let (_, staked_amount_unstaked, _, _, _, _, total_penality2) = propbase_staking::get_stake_pool_config();
+        let (_, staked_amount_unstaked, _, _, _, _, total_penalty2) = propbase_staking::get_stake_pool_config();
         let (principal2, withdrawn, _, rewards_accumulated_at, _, _, _) = propbase_staking::get_user_info(signer::address_of(address_1));
 
         let treasury_bal = coin::balance<PROPS>(@source_addr);
@@ -2904,10 +2904,10 @@ module propbase::propbase_staking_tests {
         assert!(principal == 1000000000, 1);
         assert!(staked_amount == 1000000000, 2);
         assert!(staked_amount_unstaked == 0, 2);
-        assert!(total_penality1 == 0, 2);
+        assert!(total_penalty1 == 0, 2);
         assert!(withdrawn == 1000000000, 3);
         assert!(principal2 == 0, 3);
-        assert!(total_penality2 == 500000000, 3);
+        assert!(total_penalty2 == 500000000, 3);
         assert!(rewards_accumulated_at == 166400, 3);
         assert!(vector::length<u64>(&amount_transactions) == 1, 3);
         assert!(vector::length<u64>(&time_stamp_transactions) == 1, 4);
