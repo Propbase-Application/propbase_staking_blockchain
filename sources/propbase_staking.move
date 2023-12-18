@@ -125,7 +125,7 @@ module propbase::propbase_staking {
         seconds_in_year: u64
     }
 
-    const PROPS_COIN:vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
+    const PROPS_COIN: vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
     // const SECONDS_IN_DAY: u64 = 86400;
     // const UNCLAIMED_COIN_WITHDRAW_PERIOD: u64 = 15780000;
     // const PROPS_COIN:vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -137,7 +137,7 @@ module propbase::propbase_staking {
     const E_NOT_AUTHORIZED: u64 = 1;
     const E_NOT_NOT_A_TREASURER: u64 = 2;
     const E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME: u64 = 4;
-    const E_STAKE_POOL_EXHAUSTED : u64 = 5;
+    const E_STAKE_POOL_EXHAUSTED: u64 = 5;
     const E_STAKE_ALREADY_STARTED: u64 = 6;
     const E_NOT_PROPS: u64 = 7;
     const E_INVALID_AMOUNT: u64 = 8;
@@ -146,20 +146,20 @@ module propbase::propbase_staking {
     const E_ACCOUNT_DOES_NOT_EXIST: u64 = 11;
     const E_STAKE_POOL_INTEREST_OUT_OF_RANGE: u64 = 12;
     const E_STAKE_POOL_PENALTY_OUT_OF_RANGE: u64 = 13;
-    const E_STAKE_POOL_CAP_OUT_OF_RANGE : u64 = 14;        
-    const E_STAKE_START_TIME_OUT_OF_RANGE : u64 = 15;
-    const E_STAKE_END_TIME_OUT_OF_RANGE : u64 = 16;
-    const E_STAKE_POOL_NAME_CANT_BE_EMPTY : u64 = 17;
-    const E_AMOUNT_MUST_BE_GREATER_THAN_ZERO : u64 = 18;
-    const E_REWARD_NOT_ENOUGH : u64 = 19;
-    const E_STAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO : u64 = 20;
-    const E_STAKE_NOT_ENOUGH : u64 = 21;
+    const E_STAKE_POOL_CAP_OUT_OF_RANGE: u64 = 14;        
+    const E_STAKE_START_TIME_OUT_OF_RANGE: u64 = 15;
+    const E_STAKE_END_TIME_OUT_OF_RANGE: u64 = 16;
+    const E_STAKE_POOL_NAME_CANT_BE_EMPTY: u64 = 17;
+    const E_AMOUNT_MUST_BE_GREATER_THAN_ZERO: u64 = 18;
+    const E_REWARD_NOT_ENOUGH: u64 = 19;
+    const E_STAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO: u64 = 20;
+    const E_STAKE_NOT_ENOUGH: u64 = 21;
     const E_SECONDS_IN_YEAR_INVALID: u64 = 22;
     const E_NOT_ENOUGH_REWARDS_TRY_AGAIN_LATER: u64 = 23;
-    const E_STAKE_IN_PROGRESS : u64 = 24;
-    const E_NOT_IN_CLAIMING_RANGE : u64 = 25;
+    const E_STAKE_IN_PROGRESS: u64 = 24;
+    const E_NOT_IN_CLAIMING_RANGE: u64 = 25;
     const E_EARNINGS_ALREADY_WITHDRAWN: u64 = 27;
-    const E_INVALID_START_TIME : u64 = 28;
+    const E_INVALID_START_TIME: u64 = 28;
 
     fun init_module(resource_account: &signer) {
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -228,7 +228,7 @@ module propbase::propbase_staking {
             }
         );
     }
-    
+
     // treasury will be a multisign wallet address that receives the penalty and excess rewards.
     public entry fun set_treasury(
         admin: &signer,
@@ -238,7 +238,7 @@ module propbase::propbase_staking {
         let old_treasury = contract_config.treasury;
         assert!(account::exists_at(new_treasury_address), error::invalid_argument(E_ACCOUNT_DOES_NOT_EXIST));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
-        
+
         contract_config.treasury = new_treasury_address;
         event::emit_event<SetTreasuryEvent>(
             &mut contract_config.set_treasury_events,
@@ -294,7 +294,7 @@ module propbase::propbase_staking {
         let set_seconds_in_year = *vector::borrow(&value_config, 7);
 
         if(set_epoch_start_time && set_epoch_end_time) {
-            assert!(epoch_start_time < epoch_end_time, error::invalid_argument(E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME))
+            assert!(epoch_start_time < epoch_end_time, error::invalid_argument(E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
         };
         if(set_pool_cap) {
             assert!(pool_cap >= 20000000000, error::invalid_argument(E_STAKE_POOL_CAP_OUT_OF_RANGE));
@@ -333,14 +333,14 @@ module propbase::propbase_staking {
             stake_pool_config.seconds_in_year = seconds_in_year;
         };
 
-        let period = stake_pool_config.epoch_end_time - stake_pool_config.epoch_start_time ;
-        let required_rewards = apply_reward_formula(stake_pool_config.pool_cap,  period, stake_pool_config.interest_rate, stake_pool_config.seconds_in_year);
+        let period = stake_pool_config.epoch_end_time - stake_pool_config.epoch_start_time;
+        let required_rewards = apply_reward_formula(stake_pool_config.pool_cap, period, stake_pool_config.interest_rate, stake_pool_config.seconds_in_year);
         assert!(reward_state.available_rewards >= (required_rewards as u64), error::resource_exhausted(E_REWARD_NOT_ENOUGH));
 
         event::emit_event<SetStakePoolEvent>(
             &mut stake_pool_config.set_pool_config_events,
             SetStakePoolEvent {
-                pool_name : contract_config.app_name,
+                pool_name: contract_config.app_name,
                 pool_cap: stake_pool_config.pool_cap,
                 epoch_start_time: stake_pool_config.epoch_start_time,
                 epoch_end_time: stake_pool_config.epoch_end_time,
@@ -376,7 +376,7 @@ module propbase::propbase_staking {
         assert!(amount >= contract_config.min_stake_amount, error::invalid_argument(E_INVALID_AMOUNT));
         assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
         assert!(now < stake_pool_config.epoch_end_time - SECONDS_IN_DAY, error::out_of_range(E_NOT_IN_STAKING_RANGE));
-        assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap , error::resource_exhausted(E_STAKE_POOL_EXHAUSTED));
+        assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap, error::resource_exhausted(E_STAKE_POOL_EXHAUSTED));
 
         stake_pool_config.staked_amount = stake_pool_config.staked_amount + amount;
         if (!vector::contains(&mut stake_pool_config.staked_addressess, &user_address)) {
@@ -452,7 +452,7 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_withdraw_stake<CoinType>(user:&signer, resource_signer: &signer, amount:u64) acquires StakePool, UserInfo, StakeApp {
+    public entry fun test_withdraw_stake<CoinType>(user: &signer, resource_signer: &signer, amount: u64) acquires StakePool, UserInfo, StakeApp {
         implement_unstake<CoinType>(user, resource_signer, amount);
     }
 
@@ -491,7 +491,7 @@ module propbase::propbase_staking {
         user_state.withdrawn = user_state.withdrawn + amount;
 
         vector::push_back(&mut user_state.unstaked_items, Stake { timestamp: now, amount });
-        let penalty = amount / 100 * stake_pool_config.penalty_rate ;
+        let penalty = amount / 100 * stake_pool_config.penalty_rate;
         let bal_after_penalty = amount - penalty;
         stake_pool_config.total_penalty = stake_pool_config.total_penalty + penalty;
 
@@ -615,7 +615,7 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_claim_rewards<CoinType>(user:&signer, resource_signer: &signer) acquires StakePool, UserInfo, ClaimPool, RewardPool {
+    public entry fun test_claim_rewards<CoinType>(user: &signer, resource_signer: &signer) acquires StakePool, UserInfo, ClaimPool, RewardPool {
         withdraw_rewards<CoinType>(user, resource_signer);
     }
 
@@ -628,7 +628,7 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_claim_principal_and_rewards<CoinType>(user:&signer, resource_signer: &signer) acquires StakePool, UserInfo, ClaimPool, RewardPool {
+    public entry fun test_claim_principal_and_rewards<CoinType>(user: &signer, resource_signer: &signer) acquires StakePool, UserInfo, ClaimPool, RewardPool {
         withdraw_principal_and_rewards<CoinType>(user, resource_signer);
     }
 
@@ -658,7 +658,7 @@ module propbase::propbase_staking {
             stake_pool_config.seconds_in_year,
             stake_pool_config.epoch_end_time,
         );
-        assert!(accumulated_rewards > 0 , error::unavailable(E_NOT_ENOUGH_REWARDS_TRY_AGAIN_LATER));
+        assert!(accumulated_rewards > 0, error::unavailable(E_NOT_ENOUGH_REWARDS_TRY_AGAIN_LATER));
 
         let claimed_rewards = Table::borrow_mut_with_default(&mut claim_state.claimed_rewards, user_address, 0);
         *claimed_rewards = *claimed_rewards + accumulated_rewards;
