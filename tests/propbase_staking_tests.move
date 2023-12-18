@@ -3545,7 +3545,7 @@ module propbase::propbase_staking_tests {
         assert!(rewards_accumulated_at == 0, 13);
         assert!(last_staked_time == 80000, 14);
    
-        fast_forward_secs(10000);
+        fast_forward_secs(86400);
         let rewards_earned1 = propbase_staking::get_current_rewards_earned(signer::address_of(address_1));
         let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
 
