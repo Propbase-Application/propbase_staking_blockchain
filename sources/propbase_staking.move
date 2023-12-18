@@ -124,7 +124,7 @@ module propbase::propbase_staking {
         penalty_rate: u64,
         seconds_in_year: u64
     }
-
+    
     const PROPS_COIN: vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
     const SECONDS_IN_DAY: u64 = 86400;
     const SECONDS_IN_FIVE_YEARS: u64 = 157680000;
@@ -164,7 +164,8 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public(friend) fun init_test(resource_account: &signer, resource_signer_cap: SignerCapability) {
+    public(friend) fun init_test(resource_account: &signer) {
+        let resource_signer_cap = account::create_test_signer_cap(signer::address_of(resource_account));
         init_config(resource_account, resource_signer_cap);
     }
 
@@ -448,11 +449,6 @@ module propbase::propbase_staking {
         implement_unstake<CoinType>(user, &resource_signer, amount);
     }
 
-    #[test_only]
-    public entry fun test_withdraw_stake<CoinType>(user: &signer, resource_signer: &signer, amount: u64) acquires StakePool, UserInfo, StakeApp {
-        implement_unstake<CoinType>(user, resource_signer, amount);
-    }
-
     inline fun implement_unstake<CoinType>(
         user: &signer,
         resource_signer: &signer,
@@ -611,22 +607,12 @@ module propbase::propbase_staking {
         withdraw_rewards<CoinType>(user, &resource_signer);
     }
 
-    #[test_only]
-    public entry fun test_claim_rewards<CoinType>(user: &signer, resource_signer: &signer) acquires StakePool, UserInfo, ClaimPool, RewardPool {
-        withdraw_rewards<CoinType>(user, resource_signer);
-    }
-
     public entry fun claim_principal_and_rewards<CoinType>(
         user: &signer,
     ) acquires StakeApp, ClaimPool, StakePool, UserInfo, RewardPool {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         withdraw_principal_and_rewards<CoinType>(user, &resource_signer);
-    }
-
-    #[test_only]
-    public entry fun test_claim_principal_and_rewards<CoinType>(user: &signer, resource_signer: &signer) acquires StakePool, UserInfo, ClaimPool, RewardPool {
-        withdraw_principal_and_rewards<CoinType>(user, resource_signer);
     }
 
     inline fun withdraw_rewards<CoinType>(
@@ -737,12 +723,6 @@ module propbase::propbase_staking {
         perform_withdraw_excess_rewards<CoinType>(treasury, &resource_signer);
     }
 
-    #[test_only]
-    public entry fun test_withdraw_excess_rewards<CoinType>(treasury: &signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp, UserInfo {
-        let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        perform_withdraw_excess_rewards<CoinType>(treasury, resource_signer);
-    }
-
     inline fun perform_withdraw_excess_rewards<CoinType>(
         user: &signer,
         resource_signer: &signer,
@@ -789,11 +769,6 @@ module propbase::propbase_staking {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         perform_withdraw_unclaimed_rewards<CoinType>(treasury, &resource_signer);
-    }
-
-    #[test_only]
-    public entry fun test_withdraw_unclaimed_rewards<CoinType>(treasury: &signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
-        perform_withdraw_unclaimed_rewards<CoinType>(treasury, resource_signer);
     }
 
     inline fun perform_withdraw_unclaimed_rewards<CoinType>(
