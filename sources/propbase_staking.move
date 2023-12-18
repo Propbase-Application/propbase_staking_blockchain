@@ -355,7 +355,7 @@ module propbase::propbase_staking {
     public entry fun set_reward_expiry_time(
         admin: &signer,
         additional_time: u64,
-    ) acquires StakeApp, StakePool{
+    ) acquires StakeApp, StakePool {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
@@ -741,7 +741,7 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_withdraw_excess_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp, UserInfo {
+    public entry fun test_withdraw_excess_rewards<CoinType>(treasury: &signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp, UserInfo {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         perform_withdraw_excess_rewards<CoinType>(treasury, resource_signer);
     }
@@ -795,7 +795,7 @@ module propbase::propbase_staking {
     }
 
     #[test_only]
-    public entry fun test_withdraw_unclaimed_rewards<CoinType>(treasury:&signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
+    public entry fun test_withdraw_unclaimed_rewards<CoinType>(treasury: &signer, resource_signer: &signer) acquires RewardPool, StakePool, StakeApp {
         perform_withdraw_unclaimed_rewards<CoinType>(treasury, resource_signer);
     }
 
@@ -1000,7 +1000,7 @@ module propbase::propbase_staking {
     #[view]
     public fun get_rewards_claimed_by_user(
         user: address,
-    ):u64 acquires ClaimPool {
+    ): u64 acquires ClaimPool {
         if(!account::exists_at(user) || !exists<UserInfo>(user)) {
             return 0
         }; 
