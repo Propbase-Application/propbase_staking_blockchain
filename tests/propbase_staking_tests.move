@@ -5840,4 +5840,101 @@ module propbase::propbase_staking_tests {
         propbase_staking::claim_principal_and_rewards<AptosCoin>(address_2);
     }
 
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, address_3 = @0xC, aptos_framework = @0x1)]
+    fun test_successful_add_reward_funds(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        address_3: &signer,
+        aptos_framework: &signer,
+    ) {
+        debug::print<String>(&string::utf8(b"test_rewards_earned_for_user_staking_second_time  -------------------------------------  TEST START  ===================== #1"));
+        
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        account::create_account_for_test(signer::address_of(address_3));
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        coin::register<PROPS>(address_1);
+        coin::register<PROPS>(address_2);
+        coin::register<PROPS>(address_3);
+        coin::register<PROPS>(resource);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        vector::push_back(&mut receivers, signer::address_of(address_3));
+        setup_prop(resource, receivers);
+
+        let difference = (280000 - 80000);
+        let req_funds : u128 = difference * 20000000000 * 15;
+        let divisor = 31622400 * 100;
+        let required_funds = req_funds / (divisor as u128);
+
+        let contract_bal_before = coin::balance<PROPS>(@propbase);
+        
+        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+        propbase_staking::add_reward_funds<PROPS>(address_1, (required_funds as u64));
+        propbase_staking::set_treasury(admin, signer::address_of(address_1));
+
+        let contract_bal_after = coin::balance<PROPS>(@propbase);
+        assert!(contract_bal_before + (required_funds as u64) == contract_bal_after, 1);
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, address_3 = @0xC, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x10007, location = propbase_staking )]
+    fun test_failure_add_reward_funds_invalid_coin(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        address_3: &signer,
+        aptos_framework: &signer,
+    ) {
+        debug::print<String>(&string::utf8(b"test_rewards_earned_for_user_staking_second_time  -------------------------------------  TEST START  ===================== #1"));
+        
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        account::create_account_for_test(signer::address_of(address_3));
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        coin::register<PROPS>(address_1);
+        coin::register<PROPS>(address_2);
+        coin::register<PROPS>(address_3);
+        coin::register<PROPS>(resource);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        vector::push_back(&mut receivers, signer::address_of(address_3));
+        setup_prop(resource, receivers);
+
+        let difference = (280000 - 80000);
+        let req_funds : u128 = difference * 20000000000 * 15;
+        let divisor = 31622400 * 100;
+        let required_funds = req_funds / (divisor as u128);
+
+        let contract_bal_before = coin::balance<PROPS>(@propbase);
+        
+        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+        propbase_staking::add_reward_funds<AptosCoin>(address_1, (required_funds as u64));
+        propbase_staking::set_treasury(admin, signer::address_of(address_1));
+
+    }
+
 }
