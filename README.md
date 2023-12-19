@@ -53,7 +53,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 
 ```
-aptos move test --coverage --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
+aptos move test --coverage --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c --ignore-compile-warnings
 ```
 
 ```
@@ -65,6 +65,15 @@ Module 0000000000000000000000000000000000000000000000000000000000000001::propbas
 +-------------------------+
 | % Move Coverage: 95.00  |
 +-------------------------+
+```
+
+## Coverage Summary
+
+Add the following line in Move.toml under [addresses]
+propbase = "0x1"
+
+```
+aptos move coverage summary --summarize-functions --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
 ```
 
 ## Publish via resource account
