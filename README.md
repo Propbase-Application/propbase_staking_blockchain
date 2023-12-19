@@ -47,6 +47,26 @@ propbase = "0x1"
 aptos move test  --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c --ignore-compile-warnings
 ```
 
+## Coverage
+
+Add the following line in Move.toml under [addresses]
+propbase = "0x1"
+
+```
+aptos move test --coverage --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
+```
+
+```
++-------------------------+
+| Move Coverage Summary   |
++-------------------------+
+Module 0000000000000000000000000000000000000000000000000000000000000001::propbase_staking
+>>> % Module coverage: 95.00
++-------------------------+
+| % Move Coverage: 95.00  |
++-------------------------+
+```
+
 ## Publish via resource account
 
 replace it with actual PROP coin address
