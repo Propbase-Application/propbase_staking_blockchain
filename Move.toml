@@ -5,7 +5,7 @@ authors = ["kevin", "neethu.satheesh", "hari.krishna"]
 upgrade_policy = "immutable"
 
 [addresses]
-propbase="0x1"
+propbase="_"
 
 [dev-addresses]
 
