@@ -66,7 +66,18 @@ aptos move test  --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff0640
 ## Test Coverage Summary
 
 Add the following line in Move.toml under [addresses]
+
+```
 propbase = "0x1"
+```
+
+Replace Line 128 with the following line
+
+```
+const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
+```
+
+Run Test Coverage
 
 ```
 aptos move test --coverage --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c --ignore-compile-warnings
@@ -75,7 +86,18 @@ aptos move test --coverage --named-addresses source_addr=87ab7d47a9b0ac84b856168
 ## Function-wise Test Coverage Summary
 
 Add the following line in Move.toml under [addresses]
+
+```
 propbase = "0x1"
+```
+
+Replace Line 128 with the following line
+
+```
+const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
+```
+
+Run Function-wise Test Coverage
 
 ```
 aptos move coverage summary --summarize-functions --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
@@ -95,9 +117,18 @@ Module 0000000000000000000000000000000000000000000000000000000000000001::propbas
 +-------------------------+
 ```
 
-## Publish via resource account
+## Publish via resource account in Testnet/Devnet
 
-Replace it with actual PROPS coin address
+Make sure all local changes are reverted and publish contract by the command as follows
+
+```
+aptos move create-resource-account-and-publish-package --seed [seed] --address-name propbase --profile default --named-addresses source_addr=[default account's address]
+```
+
+## Publish via resource account in Mainnet
+
+Make sure all local changes are reverted.
+Replace line 128 with actual PROPS coin address
 
 ```
 0xe50684a338db732d8fb8a3ac71c4b8633878bd0193bca5de2ebc852a83b35099::propbase_coin::PROPS
@@ -110,24 +141,24 @@ aptos move create-resource-account-and-publish-package --seed [seed] --address-n
 ## Example Function Invoking commands
 
 ```
-aptos move create-resource-account-and-publish-package --seed 1452 --address-name propbase --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
+aptos move create-resource-account-and-publish-package --seed 1456 --address-name propbase --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
 
 ```
 
 Example of created resource account address
 
 ```
-1a3fc28a4c5e25d6d2acf434a0ba32291ec61c43021420a9dec6e4611fa2092c
+01bc229e487ec6919a22dd3c32cb2ee169ed282f9e4bd86655fab1b46556ae82
 ```
 
 ```
-aptos move run --function-id 1a3fc28a4c5e25d6d2acf434a0ba32291ec61c43021420a9dec6e4611fa2092c::propbase_staking::set_admin --args address:0x477c63b95a81fa8aec975044c13fb63494ca928b58800c668acd7a64fec544ba
+aptos move run --function-id 01bc229e487ec6919a22dd3c32cb2ee169ed282f9e4bd86655fab1b46556ae82::propbase_staking::set_admin --args address:0x477c63b95a81fa8aec975044c13fb63494ca928b58800c668acd7a64fec544ba
 ```
 
 ```
-aptos move run --function-id 1a3fc28a4c5e25d6d2acf434a0ba32291ec61c43021420a9dec6e4611fa2092c::propbase_staking::set_treasury --args address:0x746f4a1e6501f852bb31039ee1ec8d9e8be58a0193483d7168b4b21ad1ee5897
+aptos move run --function-id 01bc229e487ec6919a22dd3c32cb2ee169ed282f9e4bd86655fab1b46556ae82::propbase_staking::set_treasury --args address:0x746f4a1e6501f852bb31039ee1ec8d9e8be58a0193483d7168b4b21ad1ee5897
 ```
 
 ```
-aptos move run --function-id 1a3fc28a4c5e25d6d2acf434a0ba32291ec61c43021420a9dec6e4611fa2092c::propbase_staking::set_reward_treasurer --args address:0x746f4a1e6501f852bb31039ee1ec8d9e8be58a0193483d7168b4b21ad1ee5897
+aptos move run --function-id 01bc229e487ec6919a22dd3c32cb2ee169ed282f9e4bd86655fab1b46556ae82::propbase_staking::set_reward_treasurer --args address:0x746f4a1e6501f852bb31039ee1ec8d9e8be58a0193483d7168b4b21ad1ee5897
 ```
