@@ -13,7 +13,6 @@ module propbase::propbase_staking_tests {
     use aptos_framework::timestamp;
     use aptos_framework::aptos_coin::{ AptosCoin };
 
-
     fun setup_prop(resource:&signer,receivers:vector<address>) {
         propbase_coin::init_test(resource);
         let i = 0;
@@ -41,10 +40,7 @@ module propbase::propbase_staking_tests {
         account::create_account_for_test(signer::address_of(admin));
         account::create_account_for_test(signer::address_of(address_1));
         account::create_account_for_test(signer::address_of(address_2));
-        
-        // let seed = x"01";
-        // let (resource1, resource_signer_cap) = account::create_resource_account(admin, seed);
-        // let resource1_addr = signer::address_of(&resource1);
+
         propbase_staking::init_test(resource);
     }
 
