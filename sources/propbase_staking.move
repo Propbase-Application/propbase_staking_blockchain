@@ -14,7 +14,8 @@ module propbase::propbase_staking {
     use aptos_framework::account::{ Self, SignerCapability };
     use aptos_framework::timestamp;
     use aptos_framework::resource_account;
-    
+    use aptos_framework::coin;
+
     struct StakeApp has key {
         app_name: String,
         signer_cap: account::SignerCapability,
@@ -627,15 +628,16 @@ module propbase::propbase_staking {
 
     public entry fun emergency_stop<CoinType>(
         admin: &signer
-    ) acquires StakeApp, RewardPool {
+    ) acquires StakeApp, RewardPool, StakePool {
+        assert_props<CoinType>();
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
-        let contract_bal = get_contract_reward_balance();
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
-        assert_props<CoinType>();
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        assert!(timestamp::now_seconds() < stake_pool_config.epoch_end_time, error::out_of_range(E_STAKE_IN_PROGRESS));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
         assert!(!contract_config.emergency_locked, error::invalid_argument(E_CONTRACT_ALREADY_EMERGENCY_LOCKED));
-        assert!(contract_bal > 0, error::resource_exhausted(E_CONTRACT_HAS_NO_BALANCE));
+        let contract_bal = coin::balance<CoinType>(@propbase);
         contract_config.emergency_locked = true;
         reward_state.available_rewards = 0;
         contract_config.epoch_emergency_stop_time = timestamp::now_seconds();
@@ -993,16 +995,11 @@ module propbase::propbase_staking {
         let user_config = borrow_global<UserInfo>(user);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
+        let end_time;
         if(contract_config.emergency_locked){
-            return get_total_rewards_so_far(
-                user_config.principal,
-                user_config.accumulated_rewards,
-                user_config.rewards_accumulated_at,
-                user_config.last_staked_time,
-                stake_pool_config.interest_rate,
-                stake_pool_config.seconds_in_year,
-                contract_config.epoch_emergency_stop_time,
-            )
+            end_time = contract_config.epoch_emergency_stop_time;
+        }else{
+            end_time = stake_pool_config.epoch_end_time;
         };
         if(!user_config.is_total_earnings_withdrawn){
             rewards = get_total_rewards_so_far(
@@ -1012,7 +1009,7 @@ module propbase::propbase_staking {
                 user_config.last_staked_time,
                 stake_pool_config.interest_rate,
                 stake_pool_config.seconds_in_year,
-                stake_pool_config.epoch_end_time,
+                end_time,
             )
         };
         rewards
