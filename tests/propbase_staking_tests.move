@@ -1,9 +1,10 @@
 #[test_only]
 module propbase::propbase_staking_tests {
 
-    use std::string::{ Self };
+    use std::string::{ Self, String };
     use std::signer;
     use std::vector;
+    use std::debug;
 
     use propbase::propbase_staking;
     use propbase::propbase_coin::{ Self, PROPS };
@@ -4096,7 +4097,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
 
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 100000, 15, 50, 1000000000, 31622400, update_config);
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 31622400, update_config);
         fast_forward_secs(10000);
 
         propbase_staking::add_stake<PROPS>(address_1, 5000000000);
@@ -4113,7 +4114,7 @@ module propbase::propbase_staking_tests {
 
         propbase_staking::add_stake<PROPS>(address_1, 5000000000);
         propbase_staking::emergency_stop<PROPS>(admin);
-        fast_forward_secs(10003);    
+        fast_forward_secs(280000);    
         
         let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
         propbase_staking::claim_principal_and_rewards<PROPS>(address_1);
@@ -6053,13 +6054,8 @@ module propbase::propbase_staking_tests {
         propbase_staking::claim_principal_and_rewards<AptosCoin>(address_2);
     }
 
-<<<<<<< HEAD
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, address_3 = @0xC, aptos_framework = @0x1)]
     fun test_successful_add_reward_funds(
-=======
-    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_successful_emergency_stop(
->>>>>>> 04fc2c7 (implemented emergency stoped)
         resource: &signer,
         admin: &signer,
         address_1: &signer,
@@ -6085,7 +6081,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut receivers, signer::address_of(address_2));
         setup_prop(resource, receivers);
 
-        let difference = (100000 - 80000);
+        let difference = (280000 - 80000);
         let req_funds = difference * 20000000000 * 15;
         let divisor = 31622400 * 100;
         let required_funds = req_funds / divisor;
@@ -6095,7 +6091,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
 
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 100000, 15, 50, 1000000000, 31622400, update_config);
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 31622400, update_config);
 
         fast_forward_secs(10000);
         propbase_staking::add_stake<PROPS>(address_2, 10000000000);
@@ -6134,7 +6130,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut receivers, signer::address_of(address_2));
         setup_prop(resource, receivers);
 
-        let difference = (100000 - 80000);
+        let difference = (280000 - 80000);
         let req_funds = difference * 20000000000 * 15;
         let divisor = 31622400 * 100;
         let required_funds = req_funds / divisor;
@@ -6144,7 +6140,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
 
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 100000, 15, 50, 1000000000, 31622400, update_config);
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 31622400, update_config);
 
         fast_forward_secs(10000);
         propbase_staking::add_stake<PROPS>(address_2, 10000000000);
@@ -6182,7 +6178,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut receivers, signer::address_of(address_2));
         setup_prop(resource, receivers);
 
-        let difference = (100000 - 80000);
+        let difference = (280000 - 80000);
         let req_funds = difference * 20000000000 * 15;
         let divisor = 31622400 * 100;
         let required_funds = req_funds / divisor;
@@ -6192,7 +6188,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
 
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 100000, 15, 50, 1000000000, 31622400, update_config);
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 31622400, update_config);
 
         fast_forward_secs(10000);
         propbase_staking::add_stake<PROPS>(address_2, 10000000000);
@@ -6232,7 +6228,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut receivers, signer::address_of(address_2));
         setup_prop(resource, receivers);
 
-        let difference = (100000 - 80000);
+        let difference = (280000 - 80000);
         let req_funds = difference * 20000000000 * 15;
         let divisor = 31622400 * 100;
         let required_funds = req_funds / divisor;
@@ -6242,7 +6238,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
 
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 100000, 15, 50, 1000000000, 31622400, update_config);
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 31622400, update_config);
 
         fast_forward_secs(10000);
         propbase_staking::add_stake<PROPS>(address_2, 10000000000);
