@@ -634,7 +634,8 @@ module propbase::propbase_staking {
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
-        assert!(timestamp::now_seconds() < stake_pool_config.epoch_end_time, error::out_of_range(E_STAKE_IN_PROGRESS));
+
+        assert!(timestamp::now_seconds() < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
         assert!(!contract_config.emergency_locked, error::invalid_argument(E_CONTRACT_ALREADY_EMERGENCY_LOCKED));
         let contract_bal = coin::balance<CoinType>(@propbase);

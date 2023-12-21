@@ -6254,7 +6254,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20018, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20009, location = propbase_staking )]
     fun test_failure_emergency_stop_pool_already_ended(
         resource: &signer,
         admin: &signer,
