@@ -6290,7 +6290,6 @@ module propbase::propbase_staking_tests {
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
-
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 100000, 15, 50, 1000000000, 31622400, update_config);
 
         fast_forward_secs(10000);

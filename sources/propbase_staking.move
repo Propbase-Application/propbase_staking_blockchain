@@ -999,7 +999,7 @@ module propbase::propbase_staking {
         let end_time;
         if(contract_config.emergency_locked){
             end_time = contract_config.epoch_emergency_stop_time;
-        }else{
+        } else {
             end_time = stake_pool_config.epoch_end_time;
         };
         if(!user_config.is_total_earnings_withdrawn){
