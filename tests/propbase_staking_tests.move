@@ -2420,7 +2420,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x3001F, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x3001A, location = propbase_staking )]
     fun test_failure_add_stake_contract_emergency_stopped(
         resource: &signer,
         admin: &signer,
@@ -3001,7 +3001,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x3001F, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x3001A, location = propbase_staking )]
     fun test_failure_withdraw_stake_contract_emergency_stopped(
         resource: &signer,
         admin: &signer,
@@ -3729,7 +3729,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x3001F, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x3001A, location = propbase_staking )]
     fun test_failure_claim_rewards_contract_emergency_stopped(
         resource: &signer,
         admin: &signer,
@@ -4064,7 +4064,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x3001F, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x3001A, location = propbase_staking )]
     fun test_failure_claim_rewards_and_principal_contract_emergency_stopped(
         resource: &signer,
         admin: &signer,
@@ -6199,7 +6199,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x1001D, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x10003, location = propbase_staking )]
     fun test_failure_emergency_stop_already_stopped(
         resource: &signer,
         admin: &signer,

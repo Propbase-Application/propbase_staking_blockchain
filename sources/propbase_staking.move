@@ -136,6 +136,7 @@ module propbase::propbase_staking {
 
     const E_NOT_AUTHORIZED: u64 = 1;
     const E_NOT_NOT_A_TREASURER: u64 = 2;
+    const E_CONTRACT_ALREADY_EMERGENCY_LOCKED: u64 = 3;
     const E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME: u64 = 4;
     const E_STAKE_POOL_EXHAUSTED: u64 = 5;
     const E_STAKE_ALREADY_STARTED: u64 = 6;
@@ -158,11 +159,10 @@ module propbase::propbase_staking {
     const E_NOT_ENOUGH_REWARDS_TRY_AGAIN_LATER: u64 = 23;
     const E_STAKE_IN_PROGRESS: u64 = 24;
     const E_NOT_IN_CLAIMING_RANGE: u64 = 25;
+    const E_CONTRACT_EMERGENCY_LOCKED : u64 = 26;
     const E_EARNINGS_ALREADY_WITHDRAWN: u64 = 27;
     const E_INVALID_START_TIME: u64 = 28;
-    const E_CONTRACT_ALREADY_EMERGENCY_LOCKED: u64 = 29;
-    const E_CONTRACT_HAS_NO_BALANCE: u64 = 30;
-    const E_CONTRACT_EMERGENCY_LOCKED : u64 = 31;
+
 
     fun init_module(resource_account: &signer) {
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
