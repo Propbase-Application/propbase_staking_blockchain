@@ -106,14 +106,14 @@ aptos move coverage summary --summarize-functions --named-addresses source_addr=
 ## Achieved Test Coverage
 
 ```
-Test result: OK. Total tests: 125; passed: 125; failed: 0
+Test result: OK. Total tests: 132; passed: 132; failed: 0
 +-------------------------+
 | Move Coverage Summary   |
 +-------------------------+
 Module 0000000000000000000000000000000000000000000000000000000000000001::propbase_staking
->>> % Module coverage: 95.00
+>>> % Module coverage: 95.07
 +-------------------------+
-| % Move Coverage: 95.00  |
+| % Move Coverage: 95.07  |
 +-------------------------+
 ```
 
