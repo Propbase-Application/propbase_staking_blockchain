@@ -997,7 +997,7 @@ module propbase::propbase_staking {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
         let end_time;
-        if(contract_config.emergency_locked){
+        if (contract_config.emergency_locked) {
             end_time = contract_config.epoch_emergency_stop_time;
         } else {
             end_time = stake_pool_config.epoch_end_time;
