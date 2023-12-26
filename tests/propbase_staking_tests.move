@@ -4,7 +4,6 @@ module propbase::propbase_staking_tests {
     use std::string::{ Self, String };
     use std::signer;
     use std::vector;
-    use std::debug;
 
     use propbase::propbase_staking;
     use propbase::propbase_coin::{ Self, PROPS };
@@ -2009,8 +2008,14 @@ module propbase::propbase_staking_tests {
         propbase_staking::add_stake<PROPS>(address_1, 10000000000);
 
         let (principal, _, _, _, _, _, _) = propbase_staking::get_user_info(signer::address_of(address_1));
+        let (p, _, _, _, _, _, _) = propbase_staking::get_user_info(@0x0);
+        assert!(p == 0, 1);
         let amount_transactions = propbase_staking::get_stake_amounts(signer::address_of(address_1));
+        let amount_transactions_invalid = propbase_staking::get_stake_amounts(@0x0);
         let time_stamp_transactions = propbase_staking::get_stake_time_stamps(signer::address_of(address_1));
+        let time_stamp_transactions_invalid = propbase_staking::get_stake_time_stamps(@0x0);
+        assert!(vector::length<u64>(&time_stamp_transactions_invalid) == 0, 2);
+        assert!(vector::length<u64>(&amount_transactions_invalid) == 0, 3);
         let (_, staked_amount, _, _, _, _, total_penalty) = propbase_staking::get_stake_pool_config();
         
         assert!(principal == 10000000000, 1);
@@ -2550,6 +2555,44 @@ module propbase::propbase_staking_tests {
 
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::add_reward_funds<PROPS>(address_1, 0);
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x3001A, location = propbase_staking )]
+    fun test_failure_add_reward_funds_emergency_locked(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+
+        coin::register<PROPS>(address_1);
+        coin::register<PROPS>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+        let reward_balance = propbase_staking::get_contract_reward_balance();
+        assert!(reward_balance == 0, 0);
+        propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 50, 5, 1000000000, 31622400, update_config);
+        propbase_staking::emergency_stop<PROPS>(admin);
+        propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
@@ -3257,8 +3300,6 @@ module propbase::propbase_staking_tests {
         address_2: &signer,
         aptos_framework: &signer,
     ) {
-        debug::print<String>(&string::utf8(b"test_expected_rewards  -------------------------------------  TEST START  ===================== #1"));
-        
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
         
         let update_config = vector::empty<bool>();
@@ -3284,7 +3325,6 @@ module propbase::propbase_staking_tests {
 
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 15, 50, 1000000000, 31622400, update_config);
 
-        debug::print<String>(&string::utf8(b"expected_rewards  -------------------------------------  START   ===================== #1"));
         fast_forward_secs(10000);
 
         let expected_rewards = propbase_staking::expected_rewards(signer::address_of(address_1), 5000000000);
@@ -3507,7 +3547,9 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(10000);
 
         let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_1));
+        let claimed_rewards2 = propbase_staking::get_rewards_claimed_by_user(@0x0);
         assert!(claimed_rewards == 0, 21);
+        assert!(claimed_rewards2 == 0, 21);
 
         propbase_staking::add_stake<PROPS>(address_1, 5000000000);
 
@@ -3527,7 +3569,9 @@ module propbase::propbase_staking_tests {
 
         fast_forward_secs(86400);
         let calc_reward = propbase_staking::get_current_rewards_earned(signer::address_of(address_1));
-        
+        let calc_reward_invalid = propbase_staking::get_current_rewards_earned(@0x0);
+        assert!(calc_reward_invalid == 0, 2);
+
         let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_1));
         assert!(claimed_rewards == 0, 21);
 
@@ -3737,8 +3781,6 @@ module propbase::propbase_staking_tests {
         address_2: &signer,
         aptos_framework: &signer,
     ) {
-        debug::print<String>(&string::utf8(b"test_rewards_earned_for_user_staking_second_time  -------------------------------------  TEST START  ===================== #1"));
-        
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
         
         let update_config = vector::empty<bool>();
@@ -4072,8 +4114,6 @@ module propbase::propbase_staking_tests {
         address_2: &signer,
         aptos_framework: &signer,
     ) {
-        debug::print<String>(&string::utf8(b"test_rewards_earned_for_user_staking_second_time  -------------------------------------  TEST START  ===================== #1"));
-        
         setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
         
         let update_config = vector::empty<bool>();
@@ -4733,6 +4773,53 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x3001A, location = propbase_staking )]
+    fun test_failure_withdraw_excess_rewards_contract_emergency_locked(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        coin::register<PROPS>(address_1);
+        coin::register<PROPS>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let difference = (280000 - 80000);
+        let req_funds = difference * 20000000000 * 15;
+        let divisor = 31622400 * 100;
+        let required_funds = req_funds / divisor;
+        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+        propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
+        propbase_staking::set_treasury(admin, signer::address_of(address_1));
+
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 31622400, update_config);
+        fast_forward_secs(86400);
+
+        propbase_staking::add_stake<PROPS>(address_2, 10000000000);
+        propbase_staking::emergency_stop<PROPS>(admin);
+        fast_forward_secs(280000);   
+    
+        propbase_staking::withdraw_excess_rewards<PROPS>(admin);
+
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     fun test_successful_withdraw_unclaimed_rewards(
         resource: &signer,
         admin: &signer,
@@ -4997,6 +5084,53 @@ module propbase::propbase_staking_tests {
         assert!(contract_bal_before == required_funds + 10000000000, 12);
 
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
+
+        propbase_staking::withdraw_unclaimed_rewards<PROPS>(address_1);
+
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x3001A, location = propbase_staking )]
+    fun test_failure_withdraw_unclaimed_rewards_contract_emergency_locked(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        coin::register<PROPS>(address_1);
+        coin::register<PROPS>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let difference = (280000 - 80000);
+        let req_funds = difference * 20000000000 * 15;
+        let divisor = 31622400 * 100;
+        let required_funds = req_funds / divisor;
+        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+        propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
+        propbase_staking::set_treasury(admin, signer::address_of(address_1));
+
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 31622400, update_config);
+        fast_forward_secs(10000);
+
+        propbase_staking::add_stake<PROPS>(address_2, 10000000000);
+        propbase_staking::emergency_stop<PROPS>(admin);
+        fast_forward_secs(157960001);
 
         propbase_staking::withdraw_unclaimed_rewards<PROPS>(address_1);
 
@@ -6085,8 +6219,6 @@ module propbase::propbase_staking_tests {
         let req_funds = difference * 20000000000 * 15;
         let divisor = 31622400 * 100;
         let required_funds = req_funds / divisor;
-        debug::print<String>(&string::utf8(b"****************contract bal1  ===================== #1"));
-        debug::print<u64>(&required_funds);
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
@@ -6100,6 +6232,113 @@ module propbase::propbase_staking_tests {
         propbase_staking::emergency_stop<PROPS>(admin);
         let (_, _, _, _, _, isStopped2) = propbase_staking::get_app_config();
         assert!(isStopped2, 2);
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    fun test_get_unstake_time_stamps(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        coin::register<PROPS>(address_1);
+        coin::register<PROPS>(address_2);
+        coin::register<PROPS>(admin);
+
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let required_funds = (((250000 - 80000) / 100)* (20000000000/31622400)) * 50 ;
+        propbase_staking::set_treasury(admin, signer::address_of(address_2));
+        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+        propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 15, 50, 1000000000, 31622400, update_config);
+        fast_forward_secs(10000);
+
+        propbase_staking::add_stake<PROPS>(address_1, 1000000000);
+        fast_forward_secs(86400);
+
+        propbase_staking::withdraw_stake<PROPS>(address_1, 1000000000);
+
+        let unstake_timestamps = propbase_staking::get_unstake_time_stamps(@0x0);
+        let unstake_timestamps2 = propbase_staking::get_unstake_time_stamps(signer::address_of(address_2));
+        let unstake_amounts = propbase_staking::get_unstake_amounts(@0x0);
+        let unstake_amounts2 = propbase_staking::get_unstake_amounts(signer::address_of(address_2));
+        let len = vector::length(&unstake_timestamps);
+        let len2 = vector::length(&unstake_timestamps2);
+        let len_amt = vector::length(&unstake_amounts);
+        let len_amt2 = vector::length(&unstake_amounts2);
+        assert!(len == 0, 1);
+        assert!(len2 == 0, 2);
+        assert!(len_amt == 0, 3);
+        assert!(len_amt2 == 0, 4)
+
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    fun test_successful_emergency_stop(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        coin::register<PROPS>(address_1);
+        coin::register<PROPS>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let difference = (280000 - 80000);
+        let req_funds = difference * 20000000000 * 15;
+        let divisor = 31622400 * 100;
+        let required_funds = req_funds / divisor;
+        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+        propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
+        propbase_staking::set_treasury(admin, signer::address_of(address_1));
+
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 31622400, update_config);
+
+        fast_forward_secs(10000);
+        propbase_staking::add_stake<PROPS>(address_2, 10000000000);
+        let (_, _, _, _, _, isStopped) = propbase_staking::get_app_config();
+        assert!(isStopped == false, 1);
+        let treasury_bal_before = coin::balance<PROPS>(signer::address_of(address_1));
+        propbase_staking::emergency_stop<PROPS>(admin);
+        let treasury_bal_after = coin::balance<PROPS>(signer::address_of(address_1));
+        let (_, _, _, _, _, isStopped2) = propbase_staking::get_app_config();
+        assert!(isStopped2 == true, 2);
+        assert!(treasury_bal_before + required_funds + 10000000000 == treasury_bal_after, 3);
+
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
@@ -6134,8 +6373,7 @@ module propbase::propbase_staking_tests {
         let req_funds = difference * 20000000000 * 15;
         let divisor = 31622400 * 100;
         let required_funds = req_funds / divisor;
-        debug::print<String>(&string::utf8(b"****************contract bal1  ===================== #1"));
-        debug::print<u64>(&required_funds);
+        
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
@@ -6182,8 +6420,7 @@ module propbase::propbase_staking_tests {
         let req_funds = difference * 20000000000 * 15;
         let divisor = 31622400 * 100;
         let required_funds = req_funds / divisor;
-        debug::print<String>(&string::utf8(b"****************contract bal1  ===================== #1"));
-        debug::print<u64>(&required_funds);
+
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
@@ -6232,8 +6469,7 @@ module propbase::propbase_staking_tests {
         let req_funds = difference * 20000000000 * 15;
         let divisor = 31622400 * 100;
         let required_funds = req_funds / divisor;
-        debug::print<String>(&string::utf8(b"****************contract bal1  ===================== #1"));
-        debug::print<u64>(&required_funds);
+
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
@@ -6281,8 +6517,7 @@ module propbase::propbase_staking_tests {
         let req_funds = difference * 20000000000 * 15;
         let divisor = 31622400 * 100;
         let required_funds = req_funds / divisor;
-        debug::print<String>(&string::utf8(b"****************contract bal1  ===================== #1"));
-        debug::print<u64>(&required_funds);
+
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
