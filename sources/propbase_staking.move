@@ -14,7 +14,8 @@ module propbase::propbase_staking {
     use aptos_framework::account::{ Self, SignerCapability };
     use aptos_framework::timestamp;
     use aptos_framework::resource_account;
-    
+    use aptos_framework::coin;
+
     struct StakeApp has key {
         app_name: String,
         signer_cap: account::SignerCapability,
@@ -22,6 +23,8 @@ module propbase::propbase_staking {
         treasury: address,
         reward_treasurer: address,
         min_stake_amount: u64,
+        emergency_locked: bool,
+        epoch_emergency_stop_time: u64,
         set_admin_events: EventHandle<SetAdminEvent>,
         set_treasury_events: EventHandle<SetTreasuryEvent>,
         set_reward_treasurer_events: EventHandle<address>,
@@ -133,6 +136,7 @@ module propbase::propbase_staking {
 
     const E_NOT_AUTHORIZED: u64 = 1;
     const E_NOT_NOT_A_TREASURER: u64 = 2;
+    const E_CONTRACT_ALREADY_EMERGENCY_LOCKED: u64 = 3;
     const E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME: u64 = 4;
     const E_STAKE_POOL_EXHAUSTED: u64 = 5;
     const E_STAKE_ALREADY_STARTED: u64 = 6;
@@ -155,8 +159,10 @@ module propbase::propbase_staking {
     const E_NOT_ENOUGH_REWARDS_TRY_AGAIN_LATER: u64 = 23;
     const E_STAKE_IN_PROGRESS: u64 = 24;
     const E_NOT_IN_CLAIMING_RANGE: u64 = 25;
+    const E_CONTRACT_EMERGENCY_LOCKED : u64 = 26;
     const E_EARNINGS_ALREADY_WITHDRAWN: u64 = 27;
     const E_INVALID_START_TIME: u64 = 28;
+
 
     fun init_module(resource_account: &signer) {
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -177,6 +183,8 @@ module propbase::propbase_staking {
             treasury: @source_addr,
             reward_treasurer: @source_addr,
             min_stake_amount: 0,
+            emergency_locked: false,
+            epoch_emergency_stop_time: 0,
             set_admin_events: account::new_event_handle<SetAdminEvent>(resource_account),
             set_treasury_events: account::new_event_handle<SetTreasuryEvent>(resource_account),
             set_reward_treasurer_events: account::new_event_handle<address>(resource_account),
@@ -370,6 +378,7 @@ module propbase::propbase_staking {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
 
+        assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(amount >= contract_config.min_stake_amount, error::invalid_argument(E_INVALID_AMOUNT));
         assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
@@ -462,7 +471,8 @@ module propbase::propbase_staking {
         let now = timestamp::now_seconds();
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let user_state = borrow_global_mut<UserInfo>(user_address);
-
+        
+        assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(0));
         assert!(amount > 0, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_ZERO));
         assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(0));
@@ -509,6 +519,7 @@ module propbase::propbase_staking {
     ) acquires StakeApp, RewardPool {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert!(amount > 0, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_ZERO));
         assert_props<CoinType>();
         assert!(contract_config.reward_treasurer == signer::address_of(treasurer), error::permission_denied(E_NOT_NOT_A_TREASURER));
@@ -615,18 +626,39 @@ module propbase::propbase_staking {
         withdraw_principal_and_rewards<CoinType>(user, &resource_signer);
     }
 
+    public entry fun emergency_stop<CoinType>(
+        admin: &signer
+    ) acquires StakeApp, RewardPool, StakePool {
+        assert_props<CoinType>();
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+
+        assert!(timestamp::now_seconds() < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
+        assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
+        assert!(!contract_config.emergency_locked, error::invalid_argument(E_CONTRACT_ALREADY_EMERGENCY_LOCKED));
+        let contract_bal = coin::balance<CoinType>(@propbase);
+        contract_config.emergency_locked = true;
+        reward_state.available_rewards = 0;
+        contract_config.epoch_emergency_stop_time = timestamp::now_seconds();
+        aptos_account::transfer_coins<CoinType>(&resource_signer, contract_config.treasury, contract_bal);
+    }
+
     inline fun withdraw_rewards<CoinType>(
         user: &signer,
         resource_signer: &signer,
-    ) acquires ClaimPool, UserInfo, StakePool, RewardPool {
+    ) acquires ClaimPool, UserInfo, StakePool, RewardPool, StakeApp {
         let user_address = signer::address_of(user);
         assert!(exists<UserInfo>(user_address), error::permission_denied(E_NOT_STAKED_USER));
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
         let user_state = borrow_global_mut<UserInfo>(user_address);
         let claim_state = borrow_global_mut<ClaimPool>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         let now = timestamp::now_seconds();
 
+        assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert!(now < stake_pool_config.epoch_end_time, error::out_of_range(0));
         assert_props<CoinType>();
         assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(E_NOT_IN_CLAIMING_RANGE));
@@ -663,15 +695,17 @@ module propbase::propbase_staking {
     inline fun withdraw_principal_and_rewards<CoinType>(
         user: &signer,
         resource_signer: &signer,
-    ) acquires ClaimPool, UserInfo, StakePool, RewardPool {
+    ) acquires ClaimPool, UserInfo, StakePool, RewardPool, StakeApp {
         let user_address = signer::address_of(user);
         assert!(exists<UserInfo>(user_address), error::permission_denied(E_NOT_STAKED_USER));
         let now = timestamp::now_seconds();
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let user_state = borrow_global_mut<UserInfo>(user_address);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
         let claim_state = borrow_global_mut<ClaimPool>(@propbase);
 
+        assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(!user_state.is_total_earnings_withdrawn, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
         assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(E_STAKE_IN_PROGRESS));
@@ -730,6 +764,7 @@ module propbase::propbase_staking {
         let now = timestamp::now_seconds();
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
+        assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(signer::address_of(user) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
         assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(0));
@@ -780,6 +815,7 @@ module propbase::propbase_staking {
         let reward_balance = get_contract_reward_balance();
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(signer::address_of(user) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
         assert!(now > stake_pool_config.unclaimed_reward_withdraw_at, error::out_of_range(0));
@@ -790,9 +826,9 @@ module propbase::propbase_staking {
 
     #[view]
     public fun get_app_config(
-    ): (String, address, address, address, u64) acquires StakeApp {
+    ): (String, address, address, address, u64, bool) acquires StakeApp {
         let staking_config = borrow_global<StakeApp>(@propbase);
-        (staking_config.app_name, staking_config.admin, staking_config.treasury, staking_config.reward_treasurer, staking_config.min_stake_amount)
+        (staking_config.app_name, staking_config.admin, staking_config.treasury, staking_config.reward_treasurer, staking_config.min_stake_amount, staking_config.emergency_locked)
     }
 
     #[view]
@@ -918,10 +954,14 @@ module propbase::propbase_staking {
     public fun expected_rewards(
         user_address: address,
         principal: u64,
-    ): u64 acquires StakePool, UserInfo {
+    ): u64 acquires StakePool, UserInfo, StakeApp {
         let accumulated_rewards = 0;
         let now = timestamp::now_seconds();
-        let stake_pool_config = borrow_global<StakePool>(@propbase);
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        if(contract_config.emergency_locked){
+            return 0
+        };
         if(now > stake_pool_config.epoch_end_time) {
             return 0
         };
@@ -948,13 +988,20 @@ module propbase::propbase_staking {
     #[view]
     public fun get_current_rewards_earned(
         user: address,
-    ): u64 acquires UserInfo, StakePool {
+    ): u64 acquires UserInfo, StakePool, StakeApp {
         let rewards = 0;
         if(!account::exists_at(user) || !exists<UserInfo>(user)) {
             return rewards
         };
         let user_config = borrow_global<UserInfo>(user);
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
+        let end_time;
+        if(contract_config.emergency_locked){
+            end_time = contract_config.epoch_emergency_stop_time;
+        } else {
+            end_time = stake_pool_config.epoch_end_time;
+        };
         if(!user_config.is_total_earnings_withdrawn){
             rewards = get_total_rewards_so_far(
                 user_config.principal,
@@ -963,7 +1010,7 @@ module propbase::propbase_staking {
                 user_config.last_staked_time,
                 stake_pool_config.interest_rate,
                 stake_pool_config.seconds_in_year,
-                stake_pool_config.epoch_end_time,
+                end_time,
             )
         };
         rewards
