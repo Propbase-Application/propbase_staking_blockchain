@@ -24,6 +24,7 @@ module propbase::propbase_staking {
         reward_treasurer: address,
         min_stake_amount: u64,
         emergency_locked: bool,
+        reward: u64,
         epoch_emergency_stop_time: u64,
         set_admin_events: EventHandle<SetAdminEvent>,
         set_treasury_events: EventHandle<SetTreasuryEvent>,
@@ -128,7 +129,7 @@ module propbase::propbase_staking {
         seconds_in_year: u64
     }
     
-    const PROPS_COIN: vector<u8> = b"0x639fe6c230ef151d0bf0da88c85e0332a0ee147e6a87df39b98ccbe228b5c3a9::propbase_coin::PROPS";
+    const PROPS_COIN: vector<u8> = b"0xd8221ad202d71302027adab3706f9e8731b76b870bc1a163b0922ac5d91a905f::propbase_coin::TEST_PROPS";
     const SECONDS_IN_DAY: u64 = 86400;
     const SECONDS_IN_FIVE_YEARS: u64 = 157680000;
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
@@ -184,6 +185,7 @@ module propbase::propbase_staking {
             reward_treasurer: @source_addr,
             min_stake_amount: 0,
             emergency_locked: false,
+            reward: 0,
             epoch_emergency_stop_time: 0,
             set_admin_events: account::new_event_handle<SetAdminEvent>(resource_account),
             set_treasury_events: account::new_event_handle<SetTreasuryEvent>(resource_account),
@@ -527,6 +529,7 @@ module propbase::propbase_staking {
         let prev_reward = reward_state.available_rewards;
         let updated_reward = prev_reward + amount;
         reward_state.available_rewards = updated_reward;
+        contract_config.reward = updated_reward;
         aptos_account::transfer_coins<CoinType>(treasurer, @propbase, amount);
 
         event::emit_event<UpdateRewardsEvent>(
@@ -826,9 +829,9 @@ module propbase::propbase_staking {
 
     #[view]
     public fun get_app_config(
-    ): (String, address, address, address, u64, bool) acquires StakeApp {
+    ): (String, address, address, address, u64, bool, u64) acquires StakeApp {
         let staking_config = borrow_global<StakeApp>(@propbase);
-        (staking_config.app_name, staking_config.admin, staking_config.treasury, staking_config.reward_treasurer, staking_config.min_stake_amount, staking_config.emergency_locked)
+        (staking_config.app_name, staking_config.admin, staking_config.treasury, staking_config.reward_treasurer, staking_config.min_stake_amount, staking_config.emergency_locked, staking_config.reward)
     }
 
     #[view]
