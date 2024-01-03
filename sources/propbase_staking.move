@@ -23,6 +23,7 @@ module propbase::propbase_staking {
         treasury: address,
         reward_treasurer: address,
         min_stake_amount: u64,
+        max_stake_amount: u64,
         emergency_locked: bool,
         reward: u64,
         epoch_emergency_stop_time: u64,
@@ -126,6 +127,8 @@ module propbase::propbase_staking {
         epoch_end_time: u64,
         interest_rate: u64,
         penalty_rate: u64,
+        min_stake_amount: u64,
+        max_stake_amount: u64,
         seconds_in_year: u64
     }
     
@@ -163,6 +166,8 @@ module propbase::propbase_staking {
     const E_CONTRACT_EMERGENCY_LOCKED : u64 = 26;
     const E_EARNINGS_ALREADY_WITHDRAWN: u64 = 27;
     const E_INVALID_START_TIME: u64 = 28;
+    const INVALID_MAX_STAKE_AMOUNT: u64 = 29;
+    const E_USER_STAKE_LIMIT_REACHED: u64 = 30;
 
 
     fun init_module(resource_account: &signer) {
@@ -184,6 +189,7 @@ module propbase::propbase_staking {
             treasury: @source_addr,
             reward_treasurer: @source_addr,
             min_stake_amount: 0,
+            max_stake_amount: 0,
             emergency_locked: false,
             reward: 0,
             epoch_emergency_stop_time: 0,
@@ -282,6 +288,7 @@ module propbase::propbase_staking {
         interest_rate: u64,
         penalty_rate: u64,
         min_stake_amount: u64,
+        max_stake_amount: u64,
         seconds_in_year: u64,
         value_config: vector<bool>
     ) acquires StakePool, StakeApp, RewardPool {
@@ -299,7 +306,8 @@ module propbase::propbase_staking {
         let set_interest_rate = *vector::borrow(&value_config, 4);
         let set_penalty_rate = *vector::borrow(&value_config, 5);
         let set_min_stake_amount = *vector::borrow(&value_config, 6);
-        let set_seconds_in_year = *vector::borrow(&value_config, 7);
+        let set_max_stake_amount = *vector::borrow(&value_config, 7);
+        let set_seconds_in_year = *vector::borrow(&value_config, 8);
 
         if(set_epoch_start_time && set_epoch_end_time) {
             assert!(epoch_start_time < epoch_end_time, error::invalid_argument(E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
@@ -336,6 +344,10 @@ module propbase::propbase_staking {
             assert!(min_stake_amount > 0, error::invalid_argument(E_STAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO));
             contract_config.min_stake_amount = min_stake_amount;
         };
+        if(set_max_stake_amount) {
+            assert!(max_stake_amount > 0 && max_stake_amount <= stake_pool_config.pool_cap / 2, error::invalid_argument(INVALID_MAX_STAKE_AMOUNT));
+            contract_config.max_stake_amount = max_stake_amount;
+        };
         if(set_seconds_in_year) {
             assert!(seconds_in_year == SECONDS_IN_NON_LEAP_YEAR || seconds_in_year == SECONDS_IN_LEAP_YEAR, error::invalid_argument(E_SECONDS_IN_YEAR_INVALID));
             stake_pool_config.seconds_in_year = seconds_in_year;
@@ -354,6 +366,8 @@ module propbase::propbase_staking {
                 epoch_end_time: stake_pool_config.epoch_end_time,
                 interest_rate: stake_pool_config.interest_rate,
                 penalty_rate: stake_pool_config.penalty_rate,
+                min_stake_amount: contract_config.min_stake_amount,
+                max_stake_amount: contract_config.max_stake_amount,
                 seconds_in_year: stake_pool_config.seconds_in_year
             }
         );
@@ -396,6 +410,7 @@ module propbase::propbase_staking {
         if(!exists<UserInfo>(user_address)) {
             let stake_buffer = vector::empty<Stake>();
             let unstake_buffer = vector::empty<Stake>();
+            assert!(amount <= contract_config.max_stake_amount, error::resource_exhausted(E_USER_STAKE_LIMIT_REACHED));
             vector::push_back(&mut stake_buffer, Stake { timestamp: now, amount });
             move_to(user, UserInfo {
                 principal: amount,
@@ -423,6 +438,7 @@ module propbase::propbase_staking {
             );
         } else {
             let user_state = borrow_global_mut<UserInfo>(user_address);
+            assert!(user_state.principal + amount <= contract_config.max_stake_amount, error::resource_exhausted(E_USER_STAKE_LIMIT_REACHED));
             let accumulated_rewards = get_total_rewards_so_far(
                 user_state.principal,
                 user_state.accumulated_rewards,
@@ -829,9 +845,9 @@ module propbase::propbase_staking {
 
     #[view]
     public fun get_app_config(
-    ): (String, address, address, address, u64, bool, u64) acquires StakeApp {
+    ): (String, address, address, address, u64, u64, bool, u64) acquires StakeApp {
         let staking_config = borrow_global<StakeApp>(@propbase);
-        (staking_config.app_name, staking_config.admin, staking_config.treasury, staking_config.reward_treasurer, staking_config.min_stake_amount, staking_config.emergency_locked, staking_config.reward)
+        (staking_config.app_name, staking_config.admin, staking_config.treasury, staking_config.reward_treasurer, staking_config.min_stake_amount, staking_config.max_stake_amount, staking_config.emergency_locked, staking_config.reward)
     }
 
     #[view]
