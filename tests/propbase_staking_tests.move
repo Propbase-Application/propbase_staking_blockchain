@@ -2612,11 +2612,12 @@ module propbase::propbase_staking_tests {
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
 
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 15, 50, 1000000000, 17000000000, 31622400, update_config);
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 250000, 15, 50, 1000000000, 10000000000, 31622400, update_config);
         fast_forward_secs(10000);
 
-        propbase_staking::add_stake<PROPS>(address_2, 17000000000);
-        propbase_staking::add_stake<PROPS>(address_1, 5000000000);
+        propbase_staking::add_stake<PROPS>(address_2, 10000000000);
+        propbase_staking::add_stake<PROPS>(address_1, 10000000000);
+        propbase_staking::add_stake<PROPS>(admin, 10000000000);
 
     }
 
