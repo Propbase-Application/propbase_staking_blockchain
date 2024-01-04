@@ -25,7 +25,10 @@ module propbase::propbase_staking {
         min_stake_amount: u64,
         max_stake_amount: u64,
         emergency_locked: bool,
+        excess_reward_calculated: bool,
         reward: u64,
+        required_rewards: u64,
+        excess_reward_calculated_addresses: vector<address>,
         epoch_emergency_stop_time: u64,
         set_admin_events: EventHandle<SetAdminEvent>,
         set_treasury_events: EventHandle<SetTreasuryEvent>,
@@ -166,9 +169,10 @@ module propbase::propbase_staking {
     const E_CONTRACT_EMERGENCY_LOCKED : u64 = 26;
     const E_EARNINGS_ALREADY_WITHDRAWN: u64 = 27;
     const E_INVALID_START_TIME: u64 = 28;
-    const INVALID_MAX_STAKE_AMOUNT: u64 = 29;
+    const E_INVALID_MAX_STAKE_AMOUNT: u64 = 29;
     const E_USER_STAKE_LIMIT_REACHED: u64 = 30;
     const E_MAX_STAKE_MUST_BE_GREATER_THAN_MIN_STAKE : u64 = 31;
+    const E_EXCESS_REWARD_NOT_CALCULATED: u64 = 32;
 
 
     fun init_module(resource_account: &signer) {
@@ -192,7 +196,10 @@ module propbase::propbase_staking {
             min_stake_amount: 0,
             max_stake_amount: 0,
             emergency_locked: false,
+            excess_reward_calculated: false,
             reward: 0,
+            required_rewards: 0,
+            excess_reward_calculated_addresses: vector::empty<address>(),
             epoch_emergency_stop_time: 0,
             set_admin_events: account::new_event_handle<SetAdminEvent>(resource_account),
             set_treasury_events: account::new_event_handle<SetTreasuryEvent>(resource_account),
@@ -347,7 +354,7 @@ module propbase::propbase_staking {
         };
         if(set_max_stake_amount) {
             assert!(max_stake_amount > contract_config.min_stake_amount, error::invalid_argument(E_MAX_STAKE_MUST_BE_GREATER_THAN_MIN_STAKE));
-            assert!(max_stake_amount <= stake_pool_config.pool_cap / 2, error::invalid_argument(INVALID_MAX_STAKE_AMOUNT));
+            assert!(max_stake_amount <= stake_pool_config.pool_cap / 2, error::invalid_argument(E_INVALID_MAX_STAKE_AMOUNT));
             contract_config.max_stake_amount = max_stake_amount;
         };
         if(set_seconds_in_year) {
@@ -772,7 +779,7 @@ module propbase::propbase_staking {
 
     public entry fun withdraw_excess_rewards<CoinType>(
         treasury: &signer
-    ) acquires RewardPool, StakePool, StakeApp, UserInfo {
+    ) acquires RewardPool, StakePool, StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         perform_withdraw_excess_rewards<CoinType>(treasury, &resource_signer);
@@ -782,25 +789,52 @@ module propbase::propbase_staking {
         user: &signer,
         resource_signer: &signer,
     ) {
+        let reward_balance = get_contract_reward_balance();
         let now = timestamp::now_seconds();
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+
+
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(signer::address_of(user) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
         assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(0));
+        assert!(contract_config.excess_reward_calculated == true, error::permission_denied(E_EXCESS_REWARD_NOT_CALCULATED));
 
-        let reward_balance = get_contract_reward_balance();
-        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        let excess = reward_balance - contract_config.required_rewards;
+        let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
+        reward_state.available_rewards = reward_state.available_rewards - excess;
+        aptos_account::transfer_coins<CoinType>(&resource_signer, contract_config.treasury, excess);
+    }
+
+    public entry fun calculate_excess_reward<CoinType>(
+        user: &signer,  
+        user_limit: u8,     
+    ) acquires StakeApp, StakePool, UserInfo {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let stake_pool_config = borrow_global<StakePool>(@propbase);
+        let now = timestamp::now_seconds();
+
+        assert_props<CoinType>();
+        assert!(signer::address_of(user) == contract_config.treasury || signer::address_of(user) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
+        assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(0));
+
+        let index = vector::length(&contract_config.excess_reward_calculated_addresses);
         let length = vector::length(&stake_pool_config.staked_addressess);
-        let index = 0;
+        let limit = 20;
+        if(user_limit > 0){
+            limit = user_limit;
+        };
+        let i = 0;
         let total_rewards: u64 = 0;
 
-        while (length > 0 && index < length) {
-            let user = *vector::borrow(&stake_pool_config.staked_addressess, index);
-            let user_state = borrow_global<UserInfo>(user);
+        while (length > 0 && index < length && i < (limit as u64)) {
+            let user_addr = *vector::borrow(&stake_pool_config.staked_addressess, index);
+            let user_state = borrow_global<UserInfo>(user_addr);
             let rewards = 0;
             if(!user_state.is_total_earnings_withdrawn){
+                vector::push_back(&mut contract_config.excess_reward_calculated_addresses, user_addr);
                 rewards = get_total_rewards_so_far(
                     user_state.principal,
                     user_state.accumulated_rewards,
@@ -813,10 +847,14 @@ module propbase::propbase_staking {
             };
             total_rewards = total_rewards + rewards;
             index = index + 1;
+            i = i + 1;
         };
-        let excess = reward_balance - total_rewards;
-        reward_state.available_rewards = reward_state.available_rewards - excess;
-        aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, excess);
+        contract_config.required_rewards = contract_config.required_rewards + total_rewards;
+
+        if (index == length) {
+            contract_config.excess_reward_calculated = true;
+        };
+
     }
 
     public entry fun withdraw_unclaimed_rewards<CoinType>(
@@ -1053,13 +1091,13 @@ module propbase::propbase_staking {
 
     #[view]
     public fun get_contract_reward_balance(): u64 acquires RewardPool {
-        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        let reward_state = borrow_global<RewardPool>(@propbase);
         reward_state.available_rewards
     }
 
     #[view]
     public fun get_total_claim_info(): (u64, u64) acquires ClaimPool {
-        let claim_state = borrow_global_mut<ClaimPool>(@propbase);
+        let claim_state = borrow_global<ClaimPool>(@propbase);
         return (claim_state.total_rewards_claimed, claim_state.total_claimed_principal)
     }
 }

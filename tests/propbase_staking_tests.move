@@ -1,7 +1,7 @@
 #[test_only]
 module propbase::propbase_staking_tests {
 
-    use std::string::{ Self, String };
+    use std::string::{ Self };
     use std::signer;
     use std::vector;
 
@@ -6440,8 +6440,6 @@ module propbase::propbase_staking_tests {
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
         fast_forward_secs(20000000000);
 
-        propbase_staking::withdraw_excess_rewards<PROPS>(address_1);
-
         let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_2));
         assert!(claimed_rewards == 0, 21);
         propbase_staking::claim_principal_and_rewards<PROPS>(address_2);
@@ -6491,8 +6489,6 @@ module propbase::propbase_staking_tests {
 
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
         fast_forward_secs(20000000000);
-
-        propbase_staking::withdraw_excess_rewards<PROPS>(address_1);
 
         let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_2));
         assert!(claimed_rewards == 0, 21);
