@@ -166,7 +166,7 @@ module propbase::propbase_staking {
     const E_CONTRACT_EMERGENCY_LOCKED : u64 = 26;
     const E_EARNINGS_ALREADY_WITHDRAWN: u64 = 27;
     const E_INVALID_START_TIME: u64 = 28;
-    const INVALID_MAX_STAKE_AMOUNT: u64 = 29;
+    const E_INVALID_MAX_STAKE_AMOUNT: u64 = 29;
     const E_USER_STAKE_LIMIT_REACHED: u64 = 30;
     const E_MAX_STAKE_MUST_BE_GREATER_THAN_MIN_STAKE : u64 = 31;
 
@@ -347,7 +347,7 @@ module propbase::propbase_staking {
         };
         if(set_max_stake_amount) {
             assert!(max_stake_amount > contract_config.min_stake_amount, error::invalid_argument(E_MAX_STAKE_MUST_BE_GREATER_THAN_MIN_STAKE));
-            assert!(max_stake_amount <= stake_pool_config.pool_cap / 2, error::invalid_argument(INVALID_MAX_STAKE_AMOUNT));
+            assert!(max_stake_amount <= stake_pool_config.pool_cap / 2, error::invalid_argument(E_INVALID_MAX_STAKE_AMOUNT));
             contract_config.max_stake_amount = max_stake_amount;
         };
         if(set_seconds_in_year) {
