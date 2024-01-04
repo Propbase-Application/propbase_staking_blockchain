@@ -674,10 +674,9 @@ module propbase::propbase_staking {
 
     public entry fun emergency_stop<CoinType>(
         admin: &signer
-    ) acquires StakeApp, RewardPool, StakePool {
+    ) acquires StakeApp, StakePool {
         assert_props<CoinType>();
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        let reward_state = borrow_global_mut<RewardPool>(@propbase);
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let now = timestamp::now_seconds();
         let admin_address = signer::address_of(admin);
