@@ -133,8 +133,8 @@ module propbase::propbase_staking {
     }
     
     const PROPS_COIN: vector<u8> = b"0xd8221ad202d71302027adab3706f9e8731b76b870bc1a163b0922ac5d91a905f::propbase_coin::TEST_PROPS";
-    const SECONDS_IN_DAY: u64 = 86400;
-    const SECONDS_IN_FIVE_YEARS: u64 = 157680000;
+    const SECONDS_IN_DAY: u64 = 1;
+    const SECONDS_IN_FIVE_YEARS: u64 = 2;
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
     const SECONDS_IN_LEAP_YEAR: u64 = 31622400;
 
@@ -168,6 +168,7 @@ module propbase::propbase_staking {
     const E_INVALID_START_TIME: u64 = 28;
     const INVALID_MAX_STAKE_AMOUNT: u64 = 29;
     const E_USER_STAKE_LIMIT_REACHED: u64 = 30;
+    const E_MAX_STAKE_MUST_BE_GREATER_THAN_MIN_STAKE : u64 = 31;
 
 
     fun init_module(resource_account: &signer) {
@@ -345,7 +346,8 @@ module propbase::propbase_staking {
             contract_config.min_stake_amount = min_stake_amount;
         };
         if(set_max_stake_amount) {
-            assert!(max_stake_amount > 0 && max_stake_amount <= stake_pool_config.pool_cap / 2, error::invalid_argument(INVALID_MAX_STAKE_AMOUNT));
+            assert!(max_stake_amount > contract_config.min_stake_amount, error::invalid_argument(E_MAX_STAKE_MUST_BE_GREATER_THAN_MIN_STAKE));
+            assert!(max_stake_amount <= stake_pool_config.pool_cap / 2, error::invalid_argument(INVALID_MAX_STAKE_AMOUNT));
             contract_config.max_stake_amount = max_stake_amount;
         };
         if(set_seconds_in_year) {
