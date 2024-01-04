@@ -133,8 +133,8 @@ module propbase::propbase_staking {
     }
     
     const PROPS_COIN: vector<u8> = b"0xd8221ad202d71302027adab3706f9e8731b76b870bc1a163b0922ac5d91a905f::propbase_coin::TEST_PROPS";
-    const SECONDS_IN_DAY: u64 = 1;
-    const SECONDS_IN_FIVE_YEARS: u64 = 2;
+    const SECONDS_IN_DAY: u64 = 86400;  
+    const SECONDS_IN_FIVE_YEARS: u64 = 157680000;
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
     const SECONDS_IN_LEAP_YEAR: u64 = 31622400;
 
