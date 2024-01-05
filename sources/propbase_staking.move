@@ -672,10 +672,9 @@ module propbase::propbase_staking {
         withdraw_principal_and_rewards<CoinType>(user);
     }
 
-    public entry fun emergency_stop<CoinType>(
+    public entry fun emergency_stop(
         admin: &signer
     ) acquires StakeApp, StakePool {
-        assert_props<CoinType>();
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let now = timestamp::now_seconds();
@@ -889,10 +888,6 @@ module propbase::propbase_staking {
         let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         perform_withdraw_excess_rewards<CoinType>(treasury, &resource_signer);
     }
-
-    // calculate_rewards() {
-    //     let length = vector::length(&stake_pool_config.staked_addressess);
-    // }
 
     inline fun perform_withdraw_excess_rewards<CoinType>(
         user: &signer,
