@@ -174,6 +174,7 @@ module propbase::propbase_staking {
     const E_USER_STAKE_LIMIT_REACHED: u64 = 30;
     const E_MAX_STAKE_MUST_BE_GREATER_THAN_MIN_STAKE : u64 = 31;
     const E_EXCESS_REWARD_NOT_CALCULATED: u64 = 32;
+    const E_EXCESS_REWARD_ALREADY_CALCULATED: u64 = 32;
 
 
     fun init_module(resource_account: &signer) {
@@ -809,7 +810,7 @@ module propbase::propbase_staking {
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, excess);
     }
 
-    public entry fun calculate_required_rewards<CoinType>(
+    public entry fun calculate_required_rewards(
         user: &signer,  
         user_limit: u8,     
     ) acquires StakeApp, StakePool, UserInfo {
@@ -817,9 +818,9 @@ module propbase::propbase_staking {
         let stake_pool_config = borrow_global<StakePool>(@propbase);
         let now = timestamp::now_seconds();
 
-        assert_props<CoinType>();
         assert!(signer::address_of(user) == contract_config.treasury || signer::address_of(user) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
         assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(E_STAKE_IN_PROGRESS));
+        assert!(!contract_config.excess_reward_calculated, error::invalid_argument(E_EXCESS_REWARD_ALREADY_CALCULATED));
 
         let index = vector::length(&contract_config.excess_reward_calculated_addresses);
         let length = vector::length(&stake_pool_config.staked_addressess);

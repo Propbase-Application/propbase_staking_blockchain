@@ -5015,7 +5015,7 @@ module propbase::propbase_staking_tests {
         let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
         let reward_balance_before_invoke = propbase_staking::get_contract_reward_balance();
 
-        propbase_staking::calculate_required_rewards<PROPS>(admin, 5);
+        propbase_staking::calculate_required_rewards(admin, 5);
         propbase_staking::withdraw_excess_rewards<PROPS>(address_1);
 
         let reward_balance_after_invoke = propbase_staking::get_contract_reward_balance();
@@ -5259,7 +5259,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::add_stake<PROPS>(address_1, 5000000000);
         fast_forward_secs(280000);   
 
-        propbase_staking::calculate_required_rewards<PROPS>(admin, 1);
+        propbase_staking::calculate_required_rewards(admin, 1);
         propbase_staking::withdraw_excess_rewards<PROPS>(admin);
 
     }
@@ -6058,7 +6058,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::claim_principal_and_rewards<PROPS>(address_1);
         propbase_staking::claim_principal_and_rewards<PROPS>(address_2);
 
-        propbase_staking::calculate_required_rewards<PROPS>(admin, 5);
+        propbase_staking::calculate_required_rewards(admin, 5);
         propbase_staking::withdraw_excess_rewards<PROPS>(admin);
         
         let contract_bal_after = propbase_staking::get_contract_reward_balance();
@@ -6120,7 +6120,7 @@ module propbase::propbase_staking_tests {
         // propbase_staking::withdraw_stake<PROPS>(address_1, 1000000000);
         fast_forward_secs(100);  
         fast_forward_secs(1792295300);
-        propbase_staking::calculate_required_rewards<PROPS>(admin, 5);
+        propbase_staking::calculate_required_rewards(admin, 5);
         propbase_staking::withdraw_excess_rewards<PROPS>(admin);
 
         propbase_staking::claim_principal_and_rewards<PROPS>(address_1);
@@ -6291,7 +6291,7 @@ module propbase::propbase_staking_tests {
         assert!(contract_bal_before == required_funds + 10000000000, 1);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
 
-        propbase_staking::calculate_required_rewards<PROPS>(admin, 5);
+        propbase_staking::calculate_required_rewards(admin, 5);
         propbase_staking::withdraw_excess_rewards<PROPS>(address_1);
 
         let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_2));
@@ -6385,7 +6385,7 @@ module propbase::propbase_staking_tests {
         let contract_bal_before = coin::balance<PROPS>(@propbase);
         assert!(contract_bal_before == required_funds + 10000000000 + 8000000000, 1);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
-        propbase_staking::calculate_required_rewards<PROPS>(admin, 5);
+        propbase_staking::calculate_required_rewards(admin, 5);
         propbase_staking::withdraw_excess_rewards<PROPS>(address_1);
 
         // User 1
@@ -7049,13 +7049,14 @@ module propbase::propbase_staking_tests {
         fast_forward_secs(10000);
 
         propbase_staking::add_stake<PROPS>(address_2, 10000000000);
+        propbase_staking::add_stake<PROPS>(address_1, 10000000000);
         fast_forward_secs(280000);   
         
         let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
         let reward_balance_before_invoke = propbase_staking::get_contract_reward_balance();
 
         let (_, _, _, _, _, _, _, _, rewards_not_calculated) = propbase_staking::get_app_config();
-        propbase_staking::calculate_required_rewards<PROPS>(admin, 5);
+        propbase_staking::calculate_required_rewards(admin, 5);
         let (_, _, _, _, _, _, _, _, rewards_calculated) = propbase_staking::get_app_config();
         assert!(!rewards_not_calculated, 1);
         assert!(rewards_calculated, 2);
@@ -7108,61 +7109,10 @@ module propbase::propbase_staking_tests {
         let reward_balance_before_invoke = propbase_staking::get_contract_reward_balance();
 
         let (_, _, _, _, _, _, _, _, rewards_not_calculated) = propbase_staking::get_app_config();
-        propbase_staking::calculate_required_rewards<PROPS>(admin, 0);
+        propbase_staking::calculate_required_rewards(admin, 0);
         let (_, _, _, _, _, _, _, _, rewards_calculated) = propbase_staking::get_app_config();
         assert!(!rewards_not_calculated, 1);
         assert!(rewards_calculated, 2);
-    }
-
-    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x10007, location = propbase_staking )]
-    fun test_failure_calculate_required_rewards_not_props(
-        resource: &signer,
-        admin: &signer,
-        address_1: &signer,
-        address_2: &signer,
-        aptos_framework: &signer,
-    ) {
-        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
-        
-        let update_config = vector::empty<bool>();
-        vector::push_back(&mut update_config, true);
-        vector::push_back(&mut update_config, true);
-        vector::push_back(&mut update_config, true);
-        vector::push_back(&mut update_config, true);
-        vector::push_back(&mut update_config, true);
-        vector::push_back(&mut update_config, true);
-        vector::push_back(&mut update_config, true);
-        vector::push_back(&mut update_config, true);
-        vector::push_back(&mut update_config, true);
-
-        coin::register<PROPS>(address_1);
-        coin::register<PROPS>(address_2);
-        let receivers = vector::empty<address>();
-        vector::push_back(&mut receivers, signer::address_of(address_1));
-        vector::push_back(&mut receivers, signer::address_of(address_2));
-        setup_prop(resource, receivers);
-
-        let difference = (280000 - 80000);
-        let req_funds = difference * 20000000000 * 15;
-        let divisor = 31622400 * 100;
-        let required_funds = req_funds / divisor;
-
-        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
-        propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
-        propbase_staking::set_treasury(admin, signer::address_of(address_1));
-
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 10000000000, 31622400, update_config);
-        fast_forward_secs(10000);
-
-        propbase_staking::add_stake<PROPS>(address_2, 10000000000);
-        fast_forward_secs(280000);   
-        
-        let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
-        let reward_balance_before_invoke = propbase_staking::get_contract_reward_balance();
-
-        propbase_staking::calculate_required_rewards<AptosCoin>(admin, 5);
-
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
@@ -7212,8 +7162,59 @@ module propbase::propbase_staking_tests {
         let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
         let reward_balance_before_invoke = propbase_staking::get_contract_reward_balance();
 
-        propbase_staking::calculate_required_rewards<PROPS>(address_2, 5);
+        propbase_staking::calculate_required_rewards(address_2, 5);
 
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x10020, location = propbase_staking )]
+    fun test_failure_calculate_required_rewards_rewards_already_calculated(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        coin::register<PROPS>(address_1);
+        coin::register<PROPS>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let difference = (280000 - 80000);
+        let req_funds = difference * 20000000000 * 15;
+        let divisor = 31622400 * 100;
+        let required_funds = req_funds / divisor;
+
+        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+        propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
+        propbase_staking::set_treasury(admin, signer::address_of(address_1));
+
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 10000000000, 31622400, update_config);
+        fast_forward_secs(10000);
+
+        propbase_staking::add_stake<PROPS>(address_2, 10000000000);
+        fast_forward_secs(280000);   
+        
+        let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
+        let reward_balance_before_invoke = propbase_staking::get_contract_reward_balance();
+
+        propbase_staking::calculate_required_rewards(admin, 5);
+        propbase_staking::calculate_required_rewards(admin, 5);
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
@@ -7259,7 +7260,7 @@ module propbase::propbase_staking_tests {
 
         propbase_staking::add_stake<PROPS>(address_2, 10000000000);
 
-        propbase_staking::calculate_required_rewards<PROPS>(admin, 5);
+        propbase_staking::calculate_required_rewards(admin, 5);
         fast_forward_secs(280000);   
         
 
