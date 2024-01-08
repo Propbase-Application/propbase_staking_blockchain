@@ -3,7 +3,7 @@ module propbase::propbase_staking {
     #[test_only]
     friend propbase::propbase_staking_tests;
 
-    use std::string::{ Self, String, utf8 };
+    use std::string::{ Self, String };
     use std::signer;
     use std::vector;
     use std::error;
@@ -15,8 +15,6 @@ module propbase::propbase_staking {
     use aptos_framework::timestamp;
     use aptos_framework::resource_account;
     use aptos_framework::coin;
-
-    use aptos_std::debug;
 
     struct StakeApp has key {
         app_name: String,
@@ -867,25 +865,17 @@ module propbase::propbase_staking {
             stake_pool_config.epoch_end_time,
             contract_config.epoch_emergency_stop_time
         );
-        debug::print<String>(&utf8(b"reward_state.available_rewards"));
-        debug::print<u64>(&reward_state.available_rewards);
 
         if (reward_state.available_rewards == 0) {
             accumulated_rewards = 0;
         };
-        debug::print<String>(&utf8(b"accumulated_rewards"));
-        debug::print<u64>(&accumulated_rewards);
         let principal = user_state.principal;
         let total_returns = principal + accumulated_rewards;
         if (is_batch && total_returns <= 0) {
             return (0, 0)
         };
         assert!(total_returns > 0, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
-        debug::print<String>(&utf8(b"*claimed_rewards 1111"));
-        debug::print<u64>(&*claimed_rewards);
         *claimed_rewards = *claimed_rewards + accumulated_rewards;
-        debug::print<String>(&utf8(b"*claimed_rewards 222222"));
-        debug::print<u64>(&*claimed_rewards);
         user_state.withdrawn = user_state.withdrawn + principal;
         user_state.accumulated_rewards = 0;
         user_state.is_total_earnings_withdrawn = true;
@@ -1180,12 +1170,7 @@ module propbase::propbase_staking {
         let user_config = borrow_global<UserInfo>(user);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
-        // let end_time;
-        // if (contract_config.emergency_locked) {
-        //     end_time = contract_config.epoch_emergency_stop_time;
-        // } else {
-        //     end_time = stake_pool_config.epoch_end_time;
-        // };
+
         if(!user_config.is_total_earnings_withdrawn){
             rewards = get_total_rewards_so_far(
                 user_config.principal,
