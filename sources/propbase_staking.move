@@ -30,10 +30,13 @@ module propbase::propbase_staking {
         required_rewards: u64,
         excess_reward_calculated_addresses: vector<address>,
         epoch_emergency_stop_time: u64,
+        emergency_asset_distributed_addressess: vector<address>,
         set_admin_events: EventHandle<SetAdminEvent>,
         set_treasury_events: EventHandle<SetTreasuryEvent>,
         set_reward_treasurer_events: EventHandle<address>,
-        set_excess_reward_calculated_event: EventHandle<bool>
+        set_excess_reward_calculated_event: EventHandle<bool>,
+        emergency_stop_events: EventHandle<EmergencyStopEvent>,
+        emergency_asset_distribution_events: EventHandle<EmergencyAssetDistributionEvent>,
     }
 
     struct StakePool has key {
@@ -135,10 +138,21 @@ module propbase::propbase_staking {
         max_stake_amount: u64,
         seconds_in_year: u64
     }
+
+    struct EmergencyStopEvent has drop, store {
+        time: u64,
+        admin: address,
+        emergency_locked: bool
+    }
+
+    struct EmergencyAssetDistributionEvent has drop, store {
+        distributed_addressess: vector<address>,
+        distributed_assets: vector<u64>
+    }
     
     const PROPS_COIN: vector<u8> = b"0xd8221ad202d71302027adab3706f9e8731b76b870bc1a163b0922ac5d91a905f::propbase_coin::TEST_PROPS";
     const SECONDS_IN_DAY: u64 = 86400;  
-    const SECONDS_IN_FIVE_YEARS: u64 = 157680000;
+    const SECONDS_IN_FIVE_YEARS: u64 = 157680000; // SECONDS_IN_TWO_YEARS
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
     const SECONDS_IN_LEAP_YEAR: u64 = 31622400;
 
@@ -174,8 +188,8 @@ module propbase::propbase_staking {
     const E_USER_STAKE_LIMIT_REACHED: u64 = 30;
     const E_MAX_STAKE_MUST_BE_GREATER_THAN_MIN_STAKE : u64 = 31;
     const E_EXCESS_REWARD_NOT_CALCULATED: u64 = 32;
-    const E_EXCESS_REWARD_ALREADY_CALCULATED: u64 = 32;
-
+    const E_EXCESS_REWARD_ALREADY_CALCULATED: u64 = 33;
+    const E_CONTRACT_NOT_EMERGENCY_LOCKED: u64 = 34;
 
     fun init_module(resource_account: &signer) {
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
@@ -203,10 +217,13 @@ module propbase::propbase_staking {
             required_rewards: 0,
             excess_reward_calculated_addresses: vector::empty<address>(),
             epoch_emergency_stop_time: 0,
+            emergency_asset_distributed_addressess: vector::empty<address>(),
             set_admin_events: account::new_event_handle<SetAdminEvent>(resource_account),
             set_treasury_events: account::new_event_handle<SetTreasuryEvent>(resource_account),
             set_reward_treasurer_events: account::new_event_handle<address>(resource_account),
             set_excess_reward_calculated_event: account::new_event_handle<bool>(resource_account),
+            emergency_stop_events: account::new_event_handle<EmergencyStopEvent>(resource_account),
+            emergency_asset_distribution_events: account::new_event_handle<EmergencyAssetDistributionEvent>(resource_account),
         });
         move_to(resource_account, StakePool {
             pool_cap: 0,
@@ -235,6 +252,7 @@ module propbase::propbase_staking {
         });
     }
     
+    // admin will be a multisign wallet address.
     public entry fun set_admin(
         admin: &signer,
         new_admin_address: address,
@@ -459,6 +477,7 @@ module propbase::propbase_staking {
                 stake_pool_config.interest_rate,
                 stake_pool_config.seconds_in_year,
                 stake_pool_config.epoch_end_time,
+                contract_config.epoch_emergency_stop_time
             );
 
             user_state.accumulated_rewards = (accumulated_rewards as u64);
@@ -516,6 +535,7 @@ module propbase::propbase_staking {
             stake_pool_config.interest_rate,
             stake_pool_config.seconds_in_year,
             stake_pool_config.epoch_end_time,
+            contract_config.epoch_emergency_stop_time
         );
         stake_pool_config.staked_amount = stake_pool_config.staked_amount - amount;
         user_state.accumulated_rewards = (accumulated_rewards as u64);
@@ -591,11 +611,15 @@ module propbase::propbase_staking {
         interest_rate: u64,
         seconds_in_year: u64,
         epoch_end_time: u64,
+        epoch_emergency_stop_time: u64
     ): u64 acquires StakePool, StakeApp {
         let rewards;
         let now = timestamp::now_seconds();
         if(now > epoch_end_time) {
             now = epoch_end_time;
+        };
+        if(epoch_emergency_stop_time > 0 && now > epoch_emergency_stop_time) {
+            now = epoch_emergency_stop_time;
         };
         if (rewards_accumulated_at > 0) {
             rewards = ((accumulated_rewards as u128) + apply_reward_formula(
@@ -652,28 +676,90 @@ module propbase::propbase_staking {
     public entry fun claim_principal_and_rewards<CoinType>(
         user: &signer,
     ) acquires StakeApp, ClaimPool, StakePool, UserInfo, RewardPool {
-        let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
-        withdraw_principal_and_rewards<CoinType>(user, &resource_signer);
+        withdraw_principal_and_rewards<CoinType>(user);
     }
 
-    public entry fun emergency_stop<CoinType>(
+    public entry fun emergency_stop(
         admin: &signer
-    ) acquires StakeApp, RewardPool, StakePool {
+    ) acquires StakeApp, StakePool {
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let now = timestamp::now_seconds();
+        let admin_address = signer::address_of(admin);
+
+        assert!(now < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
+        assert!(admin_address == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
+        assert!(!contract_config.emergency_locked, error::invalid_argument(E_CONTRACT_ALREADY_EMERGENCY_LOCKED));
+
+        contract_config.emergency_locked = true;
+        contract_config.epoch_emergency_stop_time = now;
+        event::emit_event<EmergencyStopEvent>(
+            &mut contract_config.emergency_stop_events,
+            EmergencyStopEvent {
+                time: now,
+                admin: admin_address,
+                emergency_locked: contract_config.emergency_locked
+            }
+        );
+    }
+
+    public entry fun emergency_asset_distribution<CoinType>(
+        admin: &signer,
+        user_limit: u8,
+    ) acquires UserInfo, StakeApp, StakePool, RewardPool, ClaimPool {
         assert_props<CoinType>();
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
-        let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
-        let reward_state = borrow_global_mut<RewardPool>(@propbase);
-        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
-
-        assert!(timestamp::now_seconds() < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
-        assert!(!contract_config.emergency_locked, error::invalid_argument(E_CONTRACT_ALREADY_EMERGENCY_LOCKED));
-        let contract_bal = coin::balance<CoinType>(@propbase);
-        contract_config.emergency_locked = true;
-        reward_state.available_rewards = 0;
-        contract_config.epoch_emergency_stop_time = timestamp::now_seconds();
-        aptos_account::transfer_coins<CoinType>(&resource_signer, contract_config.treasury, contract_bal);
+        let contract_balance = coin::balance<CoinType>(@propbase);
+        assert!(contract_balance > 0, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
+
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        let claim_state = borrow_global_mut<ClaimPool>(@propbase);
+        assert!(contract_config.emergency_locked, error::invalid_state(E_CONTRACT_NOT_EMERGENCY_LOCKED));
+
+        let distributed_addressess_length = vector::length(&contract_config.emergency_asset_distributed_addressess);
+        let length = vector::length(&stake_pool_config.staked_addressess);
+        let limit = 20;
+        if (user_limit > 0) {
+            limit = user_limit;
+        };
+        let index = distributed_addressess_length;
+        let i = 0;
+        let distributed_addressess = vector::empty<address>();
+        let distributed_assets = vector::empty<u64>();
+        while (length > 0 && index < length && i < (limit as u64)) {
+            let user = *vector::borrow(&stake_pool_config.staked_addressess, index);
+            let user_state = borrow_global_mut<UserInfo>(user);
+            let (total_returns, _) = transfer_principal_and_rewards<CoinType>(
+                user,
+                user_state,
+                contract_config,
+                stake_pool_config,
+                reward_state,
+                claim_state,
+                true
+            );
+            vector::push_back(&mut contract_config.emergency_asset_distributed_addressess, user);
+            vector::push_back(&mut distributed_addressess, user);
+            vector::push_back(&mut distributed_assets, total_returns);
+            index = index + 1;
+            i = i + 1;
+        };
+        if (index == length) {
+            let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
+            let contract_balance_new = coin::balance<CoinType>(@propbase);
+            aptos_account::transfer_coins<CoinType>(&resource_signer, contract_config.treasury, contract_balance_new);
+            reward_state.available_rewards = 0;
+        };
+        event::emit_event<EmergencyAssetDistributionEvent>(
+            &mut contract_config.emergency_asset_distribution_events,
+            EmergencyAssetDistributionEvent {
+                distributed_addressess: distributed_addressess,
+                distributed_assets: distributed_assets
+            }
+        );
     }
 
     inline fun withdraw_rewards<CoinType>(
@@ -703,6 +789,7 @@ module propbase::propbase_staking {
             stake_pool_config.interest_rate,
             stake_pool_config.seconds_in_year,
             stake_pool_config.epoch_end_time,
+            contract_config.epoch_emergency_stop_time
         );
         assert!(accumulated_rewards > 0, error::unavailable(E_NOT_ENOUGH_REWARDS_TRY_AGAIN_LATER));
 
@@ -724,8 +811,7 @@ module propbase::propbase_staking {
     }
 
     inline fun withdraw_principal_and_rewards<CoinType>(
-        user: &signer,
-        resource_signer: &signer,
+        user: &signer
     ) acquires ClaimPool, UserInfo, StakePool, RewardPool, StakeApp {
         let user_address = signer::address_of(user);
         assert!(exists<UserInfo>(user_address), error::permission_denied(E_NOT_STAKED_USER));
@@ -733,14 +819,41 @@ module propbase::propbase_staking {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let user_state = borrow_global_mut<UserInfo>(user_address);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
-        let stake_pool_config = borrow_global<StakePool>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let claim_state = borrow_global_mut<ClaimPool>(@propbase);
 
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(!user_state.is_total_earnings_withdrawn, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
         assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(E_STAKE_IN_PROGRESS));
+        let (total_returns, accumulated_rewards) = transfer_principal_and_rewards<CoinType>(
+            user_address,
+            user_state,
+            contract_config,
+            stake_pool_config,
+            reward_state,
+            claim_state,
+            false
+        );
+        event::emit_event<ClaimPrincipalAndRewardEvent>(
+            &mut claim_state.updated_claim_principal_and_reward_events,
+            ClaimPrincipalAndRewardEvent {
+                timestamp: now,
+                claimed_amount: total_returns,
+                reward_amount: accumulated_rewards
+            }
+        );
+    }
 
+    fun transfer_principal_and_rewards<CoinType>(
+        user_address: address,
+        user_state: &mut UserInfo,
+        contract_config: &mut StakeApp,
+        stake_pool_config: &mut StakePool,
+        reward_state: &mut RewardPool,
+        claim_state: &mut ClaimPool,
+        is_batch: bool
+    ): (u64, u64) {
         let claimed_rewards = Table::borrow_mut_with_default(&mut claim_state.claimed_rewards, user_address, 0);
         let accumulated_rewards = get_total_rewards_so_far(
             user_state.principal,
@@ -750,12 +863,17 @@ module propbase::propbase_staking {
             stake_pool_config.interest_rate,
             stake_pool_config.seconds_in_year,
             stake_pool_config.epoch_end_time,
+            contract_config.epoch_emergency_stop_time
         );
-        if (reward_state.available_rewards == 0){
+
+        if (reward_state.available_rewards == 0) {
             accumulated_rewards = 0;
         };
         let principal = user_state.principal;
         let total_returns = principal + accumulated_rewards;
+        if (is_batch && total_returns <= 0) {
+            return (0, 0)
+        };
         assert!(total_returns > 0, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
         *claimed_rewards = *claimed_rewards + accumulated_rewards;
         user_state.withdrawn = user_state.withdrawn + principal;
@@ -764,16 +882,9 @@ module propbase::propbase_staking {
         reward_state.available_rewards = reward_state.available_rewards - accumulated_rewards;
         claim_state.total_rewards_claimed = claim_state.total_rewards_claimed + accumulated_rewards;
         claim_state.total_claimed_principal = claim_state.total_claimed_principal + principal;
-        aptos_account::transfer_coins<CoinType>(resource_signer, user_address, total_returns);
-
-        event::emit_event<ClaimPrincipalAndRewardEvent>(
-            &mut claim_state.updated_claim_principal_and_reward_events,
-            ClaimPrincipalAndRewardEvent {
-                timestamp: now,
-                claimed_amount: total_returns,
-                reward_amount: accumulated_rewards
-            }
-        );
+        let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
+        aptos_account::transfer_coins<CoinType>(&resource_signer, user_address, total_returns);
+        return (total_returns, accumulated_rewards)
     }
 
     inline fun assert_props<CoinType>(){
@@ -843,6 +954,7 @@ module propbase::propbase_staking {
                     stake_pool_config.interest_rate,
                     stake_pool_config.seconds_in_year,
                     stake_pool_config.epoch_end_time,
+                    contract_config.epoch_emergency_stop_time
                 );
             };
             contract_config.required_rewards = contract_config.required_rewards + rewards;
@@ -1058,12 +1170,7 @@ module propbase::propbase_staking {
         let user_config = borrow_global<UserInfo>(user);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
-        let end_time;
-        if (contract_config.emergency_locked) {
-            end_time = contract_config.epoch_emergency_stop_time;
-        } else {
-            end_time = stake_pool_config.epoch_end_time;
-        };
+
         if(!user_config.is_total_earnings_withdrawn){
             rewards = get_total_rewards_so_far(
                 user_config.principal,
@@ -1072,7 +1179,8 @@ module propbase::propbase_staking {
                 user_config.last_staked_time,
                 stake_pool_config.interest_rate,
                 stake_pool_config.seconds_in_year,
-                end_time,
+                stake_pool_config.epoch_end_time,
+                contract_config.epoch_emergency_stop_time
             )
         };
         rewards
@@ -1102,5 +1210,11 @@ module propbase::propbase_staking {
     public fun get_total_claim_info(): (u64, u64) acquires ClaimPool {
         let claim_state = borrow_global<ClaimPool>(@propbase);
         return (claim_state.total_rewards_claimed, claim_state.total_claimed_principal)
+    }
+
+    #[view]
+    public fun get_emergency_asset_distributed_addressess(): vector<address> acquires StakeApp {
+        let staking_app_config = borrow_global<StakeApp>(@propbase);
+        staking_app_config.emergency_asset_distributed_addressess
     }
 }
