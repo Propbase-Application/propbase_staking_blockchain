@@ -805,9 +805,8 @@ module propbase::propbase_staking {
         assert!(contract_config.excess_reward_calculated, error::permission_denied(E_EXCESS_REWARD_NOT_CALCULATED));
 
         let excess = reward_balance - contract_config.required_rewards;
-        let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
         reward_state.available_rewards = reward_state.available_rewards - excess;
-        aptos_account::transfer_coins<CoinType>(&resource_signer, contract_config.treasury, excess);
+        aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, excess);
     }
 
     public entry fun calculate_required_rewards<CoinType>(
