@@ -7317,7 +7317,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, address_3 = @0xC, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x30020, location = propbase_staking)]
+    #[expected_failure(abort_code = 0x30022, location = propbase_staking)]
     fun test_failure_emergency_asset_distribution_when_not_in_emergency(
         resource: &signer,
         admin: &signer,
@@ -8069,11 +8069,9 @@ module propbase::propbase_staking_tests {
 
         coin::register<PROPS>(address_1);
         coin::register<PROPS>(address_2);
-        coin::register<PROPS>(address_3);
         let receivers = vector::empty<address>();
         vector::push_back(&mut receivers, signer::address_of(address_1));
         vector::push_back(&mut receivers, signer::address_of(address_2));
-        vector::push_back(&mut receivers, signer::address_of(address_3));
         setup_prop(resource, receivers);
 
         let difference = (280000 - 80000);
@@ -8206,7 +8204,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x10020, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x10021, location = propbase_staking )]
     fun test_failure_calculate_required_rewards_rewards_already_calculated(
         resource: &signer,
         admin: &signer,
