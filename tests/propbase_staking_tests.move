@@ -3757,7 +3757,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    fun test_expected_rewards_returns_zero_contract_end_time_reached(
+    fun test_expected_rewards_returns_zero_when_contract_end_time_reached(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
