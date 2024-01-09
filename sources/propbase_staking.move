@@ -151,10 +151,10 @@ module propbase::propbase_staking {
     }
     
     const PROPS_COIN: vector<u8> = b"0xd8221ad202d71302027adab3706f9e8731b76b870bc1a163b0922ac5d91a905f::propbase_coin::TEST_PROPS";
-    const SECONDS_IN_DAY: u64 = 86400;  
-    const SECONDS_IN_FIVE_YEARS: u64 = 157680000; // SECONDS_IN_TWO_YEARS
+    const SECONDS_IN_DAY: u64 = 86400;
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
     const SECONDS_IN_LEAP_YEAR: u64 = 31622400;
+    const DEFAULT_REWARD_EXPIRY_TIME: u64 = 31536000 * 2;
 
     const E_NOT_AUTHORIZED: u64 = 1;
     const E_NOT_NOT_A_TREASURER: u64 = 2;
@@ -234,7 +234,7 @@ module propbase::propbase_staking {
             seconds_in_year: 0,
             staked_amount: 0,
             total_penalty: 0,
-            unclaimed_reward_withdraw_time: SECONDS_IN_FIVE_YEARS,
+            unclaimed_reward_withdraw_time: DEFAULT_REWARD_EXPIRY_TIME,
             unclaimed_reward_withdraw_at: 0,
             staked_addressess: vector::empty<address>(),
             set_pool_config_events: account::new_event_handle<SetStakePoolEvent>(resource_account),
@@ -411,7 +411,7 @@ module propbase::propbase_staking {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
-        stake_pool_config.unclaimed_reward_withdraw_time = SECONDS_IN_FIVE_YEARS + additional_time;
+        stake_pool_config.unclaimed_reward_withdraw_time = DEFAULT_REWARD_EXPIRY_TIME + additional_time;
         stake_pool_config.unclaimed_reward_withdraw_at = stake_pool_config.epoch_end_time + stake_pool_config.unclaimed_reward_withdraw_time;
     }
 

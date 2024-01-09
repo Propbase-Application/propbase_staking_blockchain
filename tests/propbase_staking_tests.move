@@ -13,8 +13,6 @@ module propbase::propbase_staking_tests {
     use aptos_framework::timestamp;
     use aptos_framework::aptos_coin::{ AptosCoin };
 
-    use aptos_std::debug;
-
     fun setup_prop(resource:&signer,receivers:vector<address>) {
         propbase_coin::init_test(resource);
         let i = 0;
@@ -4157,20 +4155,10 @@ module propbase::propbase_staking_tests {
 
         let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, _, last_staked_time, _) = propbase_staking::get_user_info(signer::address_of(address_1));
         let now = timestamp::now_seconds();
-        debug::print<String>(&utf8(b"now"));
-        debug::print<u64>(&now);
-        debug::print<String>(&utf8(b"accumulated_rewards"));
-        debug::print<u64>(&accumulated_rewards);
-        debug::print<String>(&utf8(b"rewards_accumulated_at"));
-        debug::print<u64>(&rewards_accumulated_at);
-        debug::print<String>(&utf8(b"last_staked_time"));
-        debug::print<u64>(&last_staked_time);
 
         propbase_staking::claim_rewards<PROPS>(address_1);
 
         let claimed_rewards1 = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_1));
-        debug::print<String>(&utf8(b"claimed_rewards1 ==============================="));
-        debug::print<u64>(&claimed_rewards1);
         assert!(claimed_rewards1 == 4335533 + 47434, 20);
         
         let bal_after_claiming = coin::balance<PROPS>(signer::address_of(address_1));
@@ -5849,10 +5837,10 @@ module propbase::propbase_staking_tests {
 
         propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 100000, 15, 50, 1000000000, 10000000000, 31622400, update_config);
         let deadline = propbase_staking::get_unclaimed_reward_withdraw_at();
-        assert!(deadline == 157780000, 10);
+        assert!(deadline == 63172000, 10);
 
         let previous_deadline = propbase_staking::get_unclaimed_reward_withdraw_at();
-        assert!(previous_deadline == 157780000, 1);
+        assert!(previous_deadline == 63172000, 1);
         propbase_staking::set_reward_expiry_time(admin, 20000);
         let updated_deadline = propbase_staking::get_unclaimed_reward_withdraw_at();
 
