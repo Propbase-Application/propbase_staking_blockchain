@@ -34,7 +34,7 @@ module propbase::propbase_staking {
         set_admin_events: EventHandle<SetAdminEvent>,
         set_treasury_events: EventHandle<SetTreasuryEvent>,
         set_reward_treasurer_events: EventHandle<address>,
-        set_excess_reward_calculated_event: EventHandle<bool>,
+        set_excess_reward_calculated_event: EventHandle<SetExcessRewardCalculatedEvent>,
         emergency_stop_events: EventHandle<EmergencyStopEvent>,
         emergency_asset_distribution_events: EventHandle<EmergencyAssetDistributionEvent>,
     }
@@ -145,6 +145,11 @@ module propbase::propbase_staking {
         emergency_locked: bool
     }
 
+    struct SetExcessRewardCalculatedEvent has drop, store {
+        required_rewards: u64,
+        required_rewards_calculated: bool
+    }
+
     struct EmergencyAssetDistributionEvent has drop, store {
         distributed_addressess: vector<address>,
         distributed_assets: vector<u64>
@@ -221,7 +226,7 @@ module propbase::propbase_staking {
             set_admin_events: account::new_event_handle<SetAdminEvent>(resource_account),
             set_treasury_events: account::new_event_handle<SetTreasuryEvent>(resource_account),
             set_reward_treasurer_events: account::new_event_handle<address>(resource_account),
-            set_excess_reward_calculated_event: account::new_event_handle<bool>(resource_account),
+            set_excess_reward_calculated_event: account::new_event_handle<SetExcessRewardCalculatedEvent>(resource_account),
             emergency_stop_events: account::new_event_handle<EmergencyStopEvent>(resource_account),
             emergency_asset_distribution_events: account::new_event_handle<EmergencyAssetDistributionEvent>(resource_account),
         });
@@ -964,9 +969,12 @@ module propbase::propbase_staking {
 
         if (index == length) {
             contract_config.excess_reward_calculated = true;
-            event::emit_event<bool>(
+            event::emit_event<SetExcessRewardCalculatedEvent>(
                 &mut contract_config.set_excess_reward_calculated_event,
-                true
+                SetExcessRewardCalculatedEvent {
+                    required_rewards: contract_config.required_rewards,
+                    required_rewards_calculated: true,
+                }
             )
         };
 
