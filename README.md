@@ -40,7 +40,7 @@ const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
 Run compile
 
 ```
-aptos move compile  --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
+aptos move compile  --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c --save-metadata
 ```
 
 ## Test
@@ -106,14 +106,14 @@ aptos move coverage summary --summarize-functions --named-addresses source_addr=
 ## Achieved Test Coverage
 
 ```
-Test result: OK. Total tests: 144; passed: 144; failed: 0
+Test result: OK. Total tests: 160; passed: 160; failed: 0
 +-------------------------+
 | Move Coverage Summary   |
 +-------------------------+
 Module 0000000000000000000000000000000000000000000000000000000000000001::propbase_staking
->>> % Module coverage: 95.35
+>>> % Module coverage: 95.32
 +-------------------------+
-| % Move Coverage: 95.35  |
+| % Move Coverage: 95.32  |
 ```
 
 ## Publish via resource account in Testnet/Devnet
@@ -140,18 +140,18 @@ aptos move create-resource-account-and-publish-package --seed [seed] --address-n
 ## Example Function Invoking commands
 
 ```
-aptos move create-resource-account-and-publish-package --seed 1460 --address-name propbase --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
+aptos move create-resource-account-and-publish-package --seed 1491 --address-name propbase --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
 
 ```
 
 Example of created resource account address
 
 ```
-80825ee45935bf4011d2c1942abf7cb4e4b270193cc3da5377cf6c598a2991c6
+9db11743b9e88f0030dcde53d746b00ca56466f30ce6f4e340b759d220c90b49
 ```
 
 ```
-aptos move run --function-id 80825ee45935bf4011d2c1942abf7cb4e4b270193cc3da5377cf6c598a2991c6::propbase_staking::set_admin --args address:0x477c63b95a81fa8aec975044c13fb63494ca928b58800c668acd7a64fec544ba
+aptos move run --function-id 9db11743b9e88f0030dcde53d746b00ca56466f30ce6f4e340b759d220c90b49::propbase_staking::set_admin --args address:0x477c63b95a81fa8aec975044c13fb63494ca928b58800c668acd7a64fec544ba
 ```
 
 ```

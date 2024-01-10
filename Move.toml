@@ -1,6 +1,6 @@
 [package]
 name = "propbase_staking"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["kevin", "neethu.satheesh", "hari.krishna"]
 upgrade_policy = "immutable"
 
