@@ -1163,6 +1163,32 @@ module propbase::propbase_staking {
     }
 
     #[view]
+    public fun expected_rewards_per_stake(
+        principal: u64,
+    ): u64 acquires StakePool, StakeApp {
+        let accumulated_rewards = 0;
+        let now = timestamp::now_seconds();
+        let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
+        if(contract_config.emergency_locked){
+            return 0
+        };
+        if(now > stake_pool_config.epoch_end_time) {
+            return 0
+        };
+        if(principal > 0) {
+            let reward = apply_reward_formula(
+                principal,
+                stake_pool_config.epoch_end_time - now,
+                stake_pool_config.interest_rate,
+                stake_pool_config.seconds_in_year
+            );
+            accumulated_rewards = (reward as u64);
+        };
+        accumulated_rewards
+    }
+
+    #[view]
     public fun get_current_rewards_earned(
         user: address,
     ): u64 acquires UserInfo, StakePool, StakeApp {
