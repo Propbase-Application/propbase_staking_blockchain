@@ -106,14 +106,14 @@ aptos move coverage summary --summarize-functions --named-addresses source_addr=
 ## Achieved Test Coverage
 
 ```
-Test result: OK. Total tests: 160; passed: 160; failed: 0
+Test result: OK. Total tests: 165; passed: 165; failed: 0
 +-------------------------+
 | Move Coverage Summary   |
 +-------------------------+
 Module 0000000000000000000000000000000000000000000000000000000000000001::propbase_staking
->>> % Module coverage: 95.32
+>>> % Module coverage: 95.42
 +-------------------------+
-| % Move Coverage: 95.32  |
+| % Move Coverage: 95.42  |
 ```
 
 ## Publish via resource account in Testnet/Devnet
@@ -140,18 +140,18 @@ aptos move create-resource-account-and-publish-package --seed [seed] --address-n
 ## Example Function Invoking commands
 
 ```
-aptos move create-resource-account-and-publish-package --seed 1491 --address-name propbase --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
+aptos move create-resource-account-and-publish-package --seed 1495 --address-name propbase --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
 
 ```
 
 Example of created resource account address
 
 ```
-9db11743b9e88f0030dcde53d746b00ca56466f30ce6f4e340b759d220c90b49
+800982c521edb7bc4bd62d3e5ef1c3a8f0d7a2275ba3354b909c1017fb8377e7
 ```
 
 ```
-aptos move run --function-id 9db11743b9e88f0030dcde53d746b00ca56466f30ce6f4e340b759d220c90b49::propbase_staking::set_admin --args address:0x477c63b95a81fa8aec975044c13fb63494ca928b58800c668acd7a64fec544ba
+aptos move run --function-id 800982c521edb7bc4bd62d3e5ef1c3a8f0d7a2275ba3354b909c1017fb8377e7::propbase_staking::set_admin --args address:0x477c63b95a81fa8aec975044c13fb63494ca928b58800c668acd7a64fec544ba
 ```
 
 ```
