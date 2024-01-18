@@ -40,7 +40,7 @@ const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
 Run compile
 
 ```
-aptos move compile  --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
+aptos move compile  --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c --save-metadata
 ```
 
 ## Test
@@ -106,15 +106,14 @@ aptos move coverage summary --summarize-functions --named-addresses source_addr=
 ## Achieved Test Coverage
 
 ```
-Test result: OK. Total tests: 132; passed: 132; failed: 0
+Test result: OK. Total tests: 165; passed: 165; failed: 0
 +-------------------------+
 | Move Coverage Summary   |
 +-------------------------+
 Module 0000000000000000000000000000000000000000000000000000000000000001::propbase_staking
->>> % Module coverage: 95.07
+>>> % Module coverage: 95.42
 +-------------------------+
-| % Move Coverage: 95.07  |
-+-------------------------+
+| % Move Coverage: 95.42  |
 ```
 
 ## Publish via resource account in Testnet/Devnet
@@ -141,18 +140,18 @@ aptos move create-resource-account-and-publish-package --seed [seed] --address-n
 ## Example Function Invoking commands
 
 ```
-aptos move create-resource-account-and-publish-package --seed 1460 --address-name propbase --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
+aptos move create-resource-account-and-publish-package --seed 1495 --address-name propbase --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
 
 ```
 
 Example of created resource account address
 
 ```
-80825ee45935bf4011d2c1942abf7cb4e4b270193cc3da5377cf6c598a2991c6
+800982c521edb7bc4bd62d3e5ef1c3a8f0d7a2275ba3354b909c1017fb8377e7
 ```
 
 ```
-aptos move run --function-id 80825ee45935bf4011d2c1942abf7cb4e4b270193cc3da5377cf6c598a2991c6::propbase_staking::set_admin --args address:0x477c63b95a81fa8aec975044c13fb63494ca928b58800c668acd7a64fec544ba
+aptos move run --function-id 800982c521edb7bc4bd62d3e5ef1c3a8f0d7a2275ba3354b909c1017fb8377e7::propbase_staking::set_admin --args address:0x477c63b95a81fa8aec975044c13fb63494ca928b58800c668acd7a64fec544ba
 ```
 
 ```
