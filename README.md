@@ -31,7 +31,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 128 with the following line
+Replace Line 158 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -51,7 +51,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 128 with the following line
+Replace Line 158 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -60,7 +60,7 @@ const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
 Run Test
 
 ```
-aptos move test  --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c --ignore-compile-warnings
+aptos move test --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c --ignore-compile-warnings
 ```
 
 ## Test Coverage Summary
@@ -71,7 +71,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 128 with the following line
+Replace Line 158 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -91,7 +91,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 128 with the following line
+Replace Line 158 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -108,7 +108,7 @@ aptos move coverage summary --summarize-functions --named-addresses source_addr=
 ```
 Test result: OK. Total tests: 165; passed: 165; failed: 0
 +-------------------------+
-| Move Coverage Summary   |
+| Move Coverage Summary |
 +-------------------------+
 Module 0000000000000000000000000000000000000000000000000000000000000001::propbase_staking
 >>> % Module coverage: 95.42
@@ -127,7 +127,7 @@ aptos move create-resource-account-and-publish-package --seed [seed] --address-n
 ## Publish via resource account in Mainnet
 
 Make sure all local changes are reverted.
-Replace line 128 with actual PROPS coin address
+Replace line 158 with actual PROPS coin address
 
 ```
 0xe50684a338db732d8fb8a3ac71c4b8633878bd0193bca5de2ebc852a83b35099::propbase_coin::PROPS
@@ -140,18 +140,18 @@ aptos move create-resource-account-and-publish-package --seed [seed] --address-n
 ## Example Function Invoking commands
 
 ```
-aptos move create-resource-account-and-publish-package --seed 1495 --address-name propbase --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
+aptos move create-resource-account-and-publish-package --seed 1504 --address-name propbase --named-addresses source_addr=87ab7d47a9b0ac84b856168b68fff06408cc5f1c691a6c5366c3ab116d76d93c
 
 ```
 
 Example of created resource account address
 
 ```
-800982c521edb7bc4bd62d3e5ef1c3a8f0d7a2275ba3354b909c1017fb8377e7
+2001b58f4c62066f9c22f2cc8513280cdd6ecd5bdcc6128ed042bd6137fb3323
 ```
 
 ```
-aptos move run --function-id 800982c521edb7bc4bd62d3e5ef1c3a8f0d7a2275ba3354b909c1017fb8377e7::propbase_staking::set_admin --args address:0x477c63b95a81fa8aec975044c13fb63494ca928b58800c668acd7a64fec544ba
+aptos move run --function-id 2001b58f4c62066f9c22f2cc8513280cdd6ecd5bdcc6128ed042bd6137fb3323::propbase_staking::set_admin --args address:0x477c63b95a81fa8aec975044c13fb63494ca928b58800c668acd7a64fec544ba
 ```
 
 ```
