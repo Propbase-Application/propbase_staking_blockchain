@@ -4330,6 +4330,298 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    fun test_successful_claim_rewards_exactly_at_one_sec_before_pool_end_time(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        coin::register<PROPS>(address_1);
+        coin::register<PROPS>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+        propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 10000000000, 31622400, update_config);
+        fast_forward_secs(10000);
+
+        let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_1));
+        let claimed_rewards2 = propbase_staking::get_rewards_claimed_by_user(@0x0);
+        assert!(claimed_rewards == 0, 21);
+        assert!(claimed_rewards2 == 0, 21);
+
+        propbase_staking::add_stake<PROPS>(address_1, 5000000000);
+
+        let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, _, last_staked_time, _) = propbase_staking::get_user_info(signer::address_of(address_1));
+        
+        assert!(principal == 5000000000, 1);
+        assert!(withdrawn == 0, 11);
+        assert!(accumulated_rewards == 0, 12);
+        assert!(rewards_accumulated_at == 0, 13);
+        assert!(last_staked_time == 80000, 14);
+   
+        fast_forward_secs(10000);
+
+        propbase_staking::add_stake<PROPS>(address_1, 5000000000);
+        
+        let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
+
+        fast_forward_secs(86400);
+        let calc_reward = propbase_staking::get_current_rewards_earned(signer::address_of(address_1));
+        let calc_reward_invalid = propbase_staking::get_current_rewards_earned(@0x0);
+        assert!(calc_reward_invalid == 0, 2);
+
+        let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_1));
+        assert!(claimed_rewards == 0, 21);
+
+        let available_rewards_1 = propbase_staking::get_contract_reward_balance();
+
+        propbase_staking::claim_rewards<PROPS>(address_1);
+        let bal_after_claiming = coin::balance<PROPS>(signer::address_of(address_1));
+        assert!(bal_before_claiming + calc_reward == bal_after_claiming, 15);
+        assert!(calc_reward == 4335533, 16);
+        let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, _, last_staked_time, _) = propbase_staking::get_user_info(signer::address_of(address_1));
+        assert!(principal == 5000000000 * 2, 16);
+        assert!(withdrawn == 0, 17);
+        assert!(accumulated_rewards == 0, 17);
+        assert!(rewards_accumulated_at == 176400, 18);
+        assert!(last_staked_time == 90000, 19);
+
+        let claimed_rewards1 = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_1));
+        assert!(claimed_rewards1 == 4335533, 20);
+
+        let available_rewards_2 = propbase_staking::get_contract_reward_balance();
+        assert!(available_rewards_2 == available_rewards_1 - claimed_rewards1, 21);
+        let (total_rewards_claimed, total_claimed_principal) = propbase_staking::get_total_claim_info();
+        assert!(total_rewards_claimed == claimed_rewards1, 22);
+        assert!(total_claimed_principal == 0, 23);
+
+        
+        fast_forward_secs(103599);
+        let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
+        let calc_reward = propbase_staking::get_current_rewards_earned(signer::address_of(address_1));
+
+        let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, _, last_staked_time, _) = propbase_staking::get_user_info(signer::address_of(address_1));
+        let now = timestamp::now_seconds();
+
+        propbase_staking::claim_rewards<PROPS>(address_1);
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    fun test_successful_claim_rewards_exactly_at_pool_end_time(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        coin::register<PROPS>(address_1);
+        coin::register<PROPS>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+        propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 10000000000, 31622400, update_config);
+        fast_forward_secs(10000);
+
+        let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_1));
+        let claimed_rewards2 = propbase_staking::get_rewards_claimed_by_user(@0x0);
+        assert!(claimed_rewards == 0, 21);
+        assert!(claimed_rewards2 == 0, 21);
+
+        propbase_staking::add_stake<PROPS>(address_1, 5000000000);
+
+        let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, _, last_staked_time, _) = propbase_staking::get_user_info(signer::address_of(address_1));
+        
+        assert!(principal == 5000000000, 1);
+        assert!(withdrawn == 0, 11);
+        assert!(accumulated_rewards == 0, 12);
+        assert!(rewards_accumulated_at == 0, 13);
+        assert!(last_staked_time == 80000, 14);
+   
+        fast_forward_secs(10000);
+
+        propbase_staking::add_stake<PROPS>(address_1, 5000000000);
+        
+        let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
+
+        fast_forward_secs(86400);
+        let calc_reward = propbase_staking::get_current_rewards_earned(signer::address_of(address_1));
+        let calc_reward_invalid = propbase_staking::get_current_rewards_earned(@0x0);
+        assert!(calc_reward_invalid == 0, 2);
+
+        let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_1));
+        assert!(claimed_rewards == 0, 21);
+
+        let available_rewards_1 = propbase_staking::get_contract_reward_balance();
+
+        propbase_staking::claim_rewards<PROPS>(address_1);
+        let bal_after_claiming = coin::balance<PROPS>(signer::address_of(address_1));
+        assert!(bal_before_claiming + calc_reward == bal_after_claiming, 15);
+        assert!(calc_reward == 4335533, 16);
+        let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, _, last_staked_time, _) = propbase_staking::get_user_info(signer::address_of(address_1));
+        assert!(principal == 5000000000 * 2, 16);
+        assert!(withdrawn == 0, 17);
+        assert!(accumulated_rewards == 0, 17);
+        assert!(rewards_accumulated_at == 176400, 18);
+        assert!(last_staked_time == 90000, 19);
+
+        let claimed_rewards1 = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_1));
+        assert!(claimed_rewards1 == 4335533, 20);
+
+        let available_rewards_2 = propbase_staking::get_contract_reward_balance();
+        assert!(available_rewards_2 == available_rewards_1 - claimed_rewards1, 21);
+        let (total_rewards_claimed, total_claimed_principal) = propbase_staking::get_total_claim_info();
+        assert!(total_rewards_claimed == claimed_rewards1, 22);
+        assert!(total_claimed_principal == 0, 23);
+
+        
+        fast_forward_secs(103600);
+        let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
+        let calc_reward = propbase_staking::get_current_rewards_earned(signer::address_of(address_1));
+
+        let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, _, last_staked_time, _) = propbase_staking::get_user_info(signer::address_of(address_1));
+        let now = timestamp::now_seconds();
+
+        propbase_staking::claim_rewards<PROPS>(address_1);
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    #[expected_failure(abort_code = 0x20000, location = propbase_staking )]
+    fun test_failure_claim_rewards_exactly_at_one_sec_after_pool_end_time(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+        aptos_framework: &signer,
+    ) {
+        setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        
+        let update_config = vector::empty<bool>();
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+        vector::push_back(&mut update_config, true);
+
+        coin::register<PROPS>(address_1);
+        coin::register<PROPS>(address_2);
+        let receivers = vector::empty<address>();
+        vector::push_back(&mut receivers, signer::address_of(address_1));
+        vector::push_back(&mut receivers, signer::address_of(address_2));
+        setup_prop(resource, receivers);
+
+        let required_funds = (20000000000 / 100) * 50;
+        propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+        propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
+
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 10000000000, 31622400, update_config);
+        fast_forward_secs(10000);
+
+        let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_1));
+        let claimed_rewards2 = propbase_staking::get_rewards_claimed_by_user(@0x0);
+        assert!(claimed_rewards == 0, 21);
+        assert!(claimed_rewards2 == 0, 21);
+
+        propbase_staking::add_stake<PROPS>(address_1, 5000000000);
+
+        let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, _, last_staked_time, _) = propbase_staking::get_user_info(signer::address_of(address_1));
+        
+        assert!(principal == 5000000000, 1);
+        assert!(withdrawn == 0, 11);
+        assert!(accumulated_rewards == 0, 12);
+        assert!(rewards_accumulated_at == 0, 13);
+        assert!(last_staked_time == 80000, 14);
+   
+        fast_forward_secs(10000);
+
+        propbase_staking::add_stake<PROPS>(address_1, 5000000000);
+        
+        let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
+
+        fast_forward_secs(86400);
+        let calc_reward = propbase_staking::get_current_rewards_earned(signer::address_of(address_1));
+        let calc_reward_invalid = propbase_staking::get_current_rewards_earned(@0x0);
+        assert!(calc_reward_invalid == 0, 2);
+
+        let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_1));
+        assert!(claimed_rewards == 0, 21);
+
+        let available_rewards_1 = propbase_staking::get_contract_reward_balance();
+
+        propbase_staking::claim_rewards<PROPS>(address_1);
+        let bal_after_claiming = coin::balance<PROPS>(signer::address_of(address_1));
+        assert!(bal_before_claiming + calc_reward == bal_after_claiming, 15);
+        assert!(calc_reward == 4335533, 16);
+        let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, _, last_staked_time, _) = propbase_staking::get_user_info(signer::address_of(address_1));
+        assert!(principal == 5000000000 * 2, 16);
+        assert!(withdrawn == 0, 17);
+        assert!(accumulated_rewards == 0, 17);
+        assert!(rewards_accumulated_at == 176400, 18);
+        assert!(last_staked_time == 90000, 19);
+
+        let claimed_rewards1 = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_1));
+        assert!(claimed_rewards1 == 4335533, 20);
+
+        let available_rewards_2 = propbase_staking::get_contract_reward_balance();
+        assert!(available_rewards_2 == available_rewards_1 - claimed_rewards1, 21);
+        let (total_rewards_claimed, total_claimed_principal) = propbase_staking::get_total_claim_info();
+        assert!(total_rewards_claimed == claimed_rewards1, 22);
+        assert!(total_claimed_principal == 0, 23);
+
+        
+        fast_forward_secs(103601);
+        let bal_before_claiming = coin::balance<PROPS>(signer::address_of(address_1));
+        let calc_reward = propbase_staking::get_current_rewards_earned(signer::address_of(address_1));
+
+        let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, _, last_staked_time, _) = propbase_staking::get_user_info(signer::address_of(address_1));
+        let now = timestamp::now_seconds();
+
+        propbase_staking::claim_rewards<PROPS>(address_1);
+    }
+
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     fun test_successful_claim_rewards_multiple_times(
         resource: &signer,
         admin: &signer,
@@ -5058,6 +5350,109 @@ module propbase::propbase_staking_tests {
         propbase_staking::claim_principal_and_rewards<PROPS>(address_1);
 
     }
+
+    // #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    // #[expected_failure(abort_code = 0x20018, location = propbase_staking )]
+    // fun test_failure_claim_rewards_and_principal_exactly_at_pool_ends(
+    //     resource: &signer,
+    //     admin: &signer,
+    //     address_1: &signer,
+    //     address_2: &signer,
+    //     aptos_framework: &signer,
+    // ) {
+
+    //     setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        
+    //     let update_config = vector::empty<bool>();
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+
+    //     coin::register<PROPS>(address_1);
+    //     coin::register<PROPS>(address_2);
+    //     let receivers = vector::empty<address>();
+    //     vector::push_back(&mut receivers, signer::address_of(address_1));
+    //     vector::push_back(&mut receivers, signer::address_of(address_2));
+    //     setup_prop(resource, receivers);
+
+    //     let required_funds = (20000000000 / 100) * 50;
+    //     propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+    //     propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
+
+    //     propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 10000000000, 31622400, update_config);
+    //     fast_forward_secs(10000);
+
+    //     propbase_staking::add_stake<PROPS>(address_1, 5000000000);
+
+    //     let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, _, last_staked_time, _) = propbase_staking::get_user_info(signer::address_of(address_1));
+        
+    //     assert!(principal == 5000000000, 1);
+    //     assert!(withdrawn == 0, 11);
+    //     assert!(accumulated_rewards == 0, 12);
+    //     assert!(rewards_accumulated_at == 0, 13);
+    //     assert!(last_staked_time == 80000, 14);
+   
+
+    //     fast_forward_secs(190000);
+    //     propbase_staking::claim_principal_and_rewards<PROPS>(address_1);
+    // }
+
+    // #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
+    // fun test_success_claim_rewards_and_principal_exactly_at_one_sec_after_pool_ends(
+    //     resource: &signer,
+    //     admin: &signer,
+    //     address_1: &signer,
+    //     address_2: &signer,
+    //     aptos_framework: &signer,
+    // ) {
+
+    //     setup_test_time_based(resource, admin, address_1, address_2, aptos_framework, 70000);
+        
+    //     let update_config = vector::empty<bool>();
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+    //     vector::push_back(&mut update_config, true);
+
+    //     coin::register<PROPS>(address_1);
+    //     coin::register<PROPS>(address_2);
+    //     let receivers = vector::empty<address>();
+    //     vector::push_back(&mut receivers, signer::address_of(address_1));
+    //     vector::push_back(&mut receivers, signer::address_of(address_2));
+    //     setup_prop(resource, receivers);
+
+    //     let required_funds = (20000000000 / 100) * 50;
+    //     propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
+    //     propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
+
+    //     propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 280000, 15, 50, 1000000000, 10000000000, 31622400, update_config);
+    //     fast_forward_secs(10000);
+
+    //     propbase_staking::add_stake<PROPS>(address_1, 5000000000);
+
+    //     let (principal, withdrawn, accumulated_rewards, rewards_accumulated_at, _, last_staked_time, _) = propbase_staking::get_user_info(signer::address_of(address_1));
+        
+    //     assert!(principal == 5000000000, 1);
+    //     assert!(withdrawn == 0, 11);
+    //     assert!(accumulated_rewards == 0, 12);
+    //     assert!(rewards_accumulated_at == 0, 13);
+    //     assert!(last_staked_time == 80000, 14);
+   
+
+    //     fast_forward_secs(190000);
+    //     propbase_staking::claim_principal_and_rewards<PROPS>(address_1);
+    // }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
     #[expected_failure(abort_code = 0x5001B, location = propbase_staking )]
