@@ -780,7 +780,7 @@ module propbase::propbase_staking {
         let now = timestamp::now_seconds();
 
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
-        assert!(now < stake_pool_config.epoch_end_time, error::out_of_range(0));
+        assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(0));
         assert_props<CoinType>();
         assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(E_NOT_IN_CLAIMING_RANGE));
         assert!(reward_state.available_rewards > 0, error::resource_exhausted(E_REWARD_NOT_ENOUGH));
