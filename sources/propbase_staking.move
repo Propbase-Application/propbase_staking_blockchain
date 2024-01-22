@@ -571,14 +571,15 @@ module propbase::propbase_staking {
     public entry fun add_reward_funds<CoinType>(
         treasurer: &signer,
         amount: u64,
-    ) acquires StakeApp, RewardPool {
+    ) acquires StakeApp, RewardPool, StakePool {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let reward_state = borrow_global_mut<RewardPool>(@propbase);
+        let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert!(amount > 0, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_ZERO));
         assert_props<CoinType>();
         assert!(contract_config.reward_treasurer == signer::address_of(treasurer), error::permission_denied(E_NOT_NOT_A_TREASURER));
-
+        assert!((timestamp::now_seconds() < stake_pool_config.epoch_start_time) || stake_pool_config.epoch_start_time == 0, error::permission_denied(E_STAKE_ALREADY_STARTED));
         let prev_reward = reward_state.available_rewards;
         let updated_reward = prev_reward + amount;
         reward_state.available_rewards = updated_reward;
@@ -779,7 +780,7 @@ module propbase::propbase_staking {
         let now = timestamp::now_seconds();
 
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
-        assert!(now < stake_pool_config.epoch_end_time, error::out_of_range(0));
+        assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(0));
         assert_props<CoinType>();
         assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(E_NOT_IN_CLAIMING_RANGE));
         assert!(reward_state.available_rewards > 0, error::resource_exhausted(E_REWARD_NOT_ENOUGH));
