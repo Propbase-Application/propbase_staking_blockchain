@@ -737,6 +737,8 @@ module propbase::propbase_staking {
         (rewards as u64)
     }
 
+    /// This function is used by user to collect rewards for their $PROPS investment in staking period
+    /// Input: user - user account
     public entry fun claim_rewards<CoinType>(
         user: &signer,
     ) acquires StakeApp, ClaimPool, StakePool, UserInfo, RewardPool {
@@ -745,12 +747,16 @@ module propbase::propbase_staking {
         withdraw_rewards<CoinType>(user, &resource_signer);
     }
 
+    /// This function is used by user to collect rewards & principal for their $PROPS investment after staking period
+    /// Input: user - user account
     public entry fun claim_principal_and_rewards<CoinType>(
         user: &signer,
     ) acquires StakeApp, ClaimPool, StakePool, UserInfo, RewardPool {
         withdraw_principal_and_rewards<CoinType>(user);
     }
 
+    /// This function is used by admin to stop user transactions in case of emergency 
+    /// Input: admin - admin account
     public entry fun emergency_stop(
         admin: &signer
     ) acquires StakeApp, StakePool {
@@ -775,6 +781,9 @@ module propbase::propbase_staking {
         );
     }
 
+    /// This function is used by admin to distritbute user staked $PROPS and rewards $PROPS to user 
+    /// Input: admin - admin account
+    /// Input: user_limit - number of users to process distribution
     public entry fun emergency_asset_distribution<CoinType>(
         admin: &signer,
         user_limit: u8,
@@ -832,6 +841,9 @@ module propbase::propbase_staking {
         );
     }
 
+    /// This function is a helper function this is used by admin to distribute user staked $PROPS and rewards $PROPS to user 
+    /// Input: user - user account
+    /// Input: resource_signer - resource signer where the contract lives
     inline fun withdraw_rewards<CoinType>(
         user: &signer,
         resource_signer: &signer,
