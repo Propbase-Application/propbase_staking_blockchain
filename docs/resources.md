@@ -45,7 +45,7 @@
 
     interest_rate: APY value of the pool at which rewards are calculated.
 
-    penalty_rate: fee applied when a user unstakes.
+    penalty_rate: fee percentage applied when a user unstakes.
 
     seconds_in_year: number of seconds in a year to accommodate the leap year in reward calculation. This can be either 31536000 (SECONDS_IN_NON_LEAP_YEAR) or 31622400 (SECONDS_IN_LEAP_YEAR) based on the year and month of the pool.
 
@@ -79,9 +79,9 @@
 ### UserInfo - stored under user account
 
 ```
-    principal: the amount staked by the user available in the pool at given time.
+    principal: $PROPS amount staked by the user available in the pool at given time.
 
-    withdrawn: the amount unstaked by the user at given time.
+    withdrawn: $PROPS amount unstaked by the user at given time.
 
     staked_items: the occurences of the staking of the user containing the time and amount of stake.
 
@@ -89,7 +89,7 @@
 
     accumulated_rewards: rewards are calculated and summed up whenever user stakes, unstakes and claim rewards.
 
-    rewards_accumulated_at: timestamp at which accumulated_rewards are calculated.
+    rewards_accumulated_at: timestamp at which accumulated_rewards are last calculated.
 
     last_staked_time: Last staked time of the user.
 

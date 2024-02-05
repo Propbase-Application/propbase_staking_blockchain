@@ -3,7 +3,7 @@
 PROPS Staking App is where one can stake $PROPS and gain $PROPS as rewards.
 The project is developed using the Move language, Aptos standard libraries, and runs on top of the Aptos blockchain.
 
-### Key Highlights:
+## App Highlights:
 
 Effortless Staking: Stake PROPS seamlessly for hassle-free earning and engagement.
 
@@ -21,9 +21,21 @@ First-Come, First-Served: Secure your spot in the rewarding journey with this si
 
 ## Contract Features:
 
-The contract is designed to be deployed under a resource account. The contract lives under the resource address, making the contract cannot be controlled by any private key. Read more about resource account here[https://aptos.dev/move/move-on-aptos/resource-accounts].
+The contract is designed to be deployed under a resource account. The contract lives under the resource address, making the contract cannot be controlled by any private key. Read more about resource account [here](https://aptos.dev/move/move-on-aptos/resource-accounts).
 
-More features and architecture are described at docs[https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs].
+The package is a immutable one, hence no one can update this.
+
+Commands to install aptos CLI and initializing commands are given below.
+
+The package meta info and dependent aptos librabries are mentioned in [Move.toml](https://github.com/Propbase-Application/propbase_staking_blockchain/blob/main/Move.toml
+
+Contract highlights and the roles in the contract are mentioned at [staking_highlights.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/staking_highlights.png).
+
+Functional use cases, flow chart diagram, contract time line diagrams are mentioned at [staking_functional_diagram.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/staking_functional_diagram.png).
+
+The contract architecture diagram is given at[Propbase_contract_architecture_diagram.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/Propbase_contract_architecture_diagram.png).
+
+Contract source files are at [propbase_staking.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/sources/propbase_staking.move).
 
 ## Install Aptos CLI
 
