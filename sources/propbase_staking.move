@@ -1,3 +1,6 @@
+/// @title Propbase Staking Project
+/// @author Kevin Goose
+/// @notice This is staking contract for $PROPS serves as infrastructure for user to stake
 module propbase::propbase_staking {
 
     #[test_only]
@@ -196,17 +199,26 @@ module propbase::propbase_staking {
     const E_EXCESS_REWARD_ALREADY_CALCULATED: u64 = 33;
     const E_CONTRACT_NOT_EMERGENCY_LOCKED: u64 = 34;
 
+    /// @notice Setups initial state values for each data structure
+    /// @dev This function is invoked automatically when the module is published
+    /// @param none auto-generated while deployment
+    /// @return none
     fun init_module(resource_account: &signer) {
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
         init_config(resource_account, resource_signer_cap);
     }
 
+    /// @notice This function is test only 
     #[test_only]
     public(friend) fun init_test(resource_account: &signer) {
         let resource_signer_cap = account::create_test_signer_cap(signer::address_of(resource_account));
         init_config(resource_account, resource_signer_cap);
     }
 
+    /// @notice It is helper function to setup initila values for state variables
+    /// @dev This function is invoked automatically
+    /// @param none auto-generated while deployment
+    /// @return none
     fun init_config(resource_account: &signer, resource_signer_cap: SignerCapability) {
         move_to(resource_account, StakeApp {
             app_name: string::utf8(b""),
