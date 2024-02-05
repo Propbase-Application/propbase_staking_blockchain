@@ -973,10 +973,14 @@ module propbase::propbase_staking {
         return (total_returns, accumulated_rewards)
     }
 
+    /// This function is a helper function this is used to check CoinType 
+    /// Input: none
     inline fun assert_props<CoinType>(){
         assert!(type_info::type_name<CoinType>() == string::utf8(PROPS_COIN), error::invalid_argument(E_NOT_PROPS));
     }
 
+    /// This function is used by treasuy to withdraw excess rewards 
+    /// Input: treasury - treasury account
     public entry fun withdraw_excess_rewards<CoinType>(
         treasury: &signer
     ) acquires RewardPool, StakePool, StakeApp {
@@ -985,6 +989,9 @@ module propbase::propbase_staking {
         perform_withdraw_excess_rewards<CoinType>(treasury, &resource_signer);
     }
 
+    /// This function is a helper function this is used by treasury to withdraw excess rewards
+    /// Input: user - user account
+    /// Input: resource_signer - resource signer where the contract lives
     inline fun perform_withdraw_excess_rewards<CoinType>(
         user: &signer,
         resource_signer: &signer,
@@ -1006,6 +1013,9 @@ module propbase::propbase_staking {
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, excess);
     }
 
+    /// This function is a helper function this is used to calculate required rewards before withdrawing excess rewards
+    /// Input: user - user account
+    /// Input: user_limit - number of users for which to calculkate rewards
     public entry fun calculate_required_rewards(
         user: &signer,  
         user_limit: u8,     
@@ -1059,6 +1069,8 @@ module propbase::propbase_staking {
         };
     }
 
+    /// This function is used by treasuy to withdraw unclaimed rewards after reward expiry
+    /// Input: treasury - treasury account
     public entry fun withdraw_unclaimed_rewards<CoinType>(
         treasury: &signer
     ) acquires RewardPool, StakePool, StakeApp {
@@ -1067,6 +1079,9 @@ module propbase::propbase_staking {
         perform_withdraw_unclaimed_rewards<CoinType>(treasury, &resource_signer);
     }
 
+    /// This function is a helper function this is used to transfer total $PROPS balance to treasury
+    /// Input: user - treasury account
+    /// Input: resource_signer - resource signer where the contract lives
     inline fun perform_withdraw_unclaimed_rewards<CoinType>(
         user: &signer,
         resource_signer: &signer,
@@ -1085,6 +1100,17 @@ module propbase::propbase_staking {
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, reward_balance);
     }
 
+    /// This function is a view function that tracks StakeApp state variable
+    /// Input: none
+    /// Output: app_name - pool name
+    /// Output: admin - admin address
+    /// Output: treasury -treasury address
+    /// Output: reward_treasurer - reward treasurer address
+    /// Output: min_stake_amount - minimum $PROPS that can be staked by user
+    /// Output: max_stake_amount - maximum $PROPS that can be staked by user
+    /// Output: emergency_locked - boolean tracks whether contract is emergency locked 
+    /// Output: reward - it tracks reward $Props added
+    /// Output: excess_reward_calculated - boolean tracking whether excess reward is calculated
     #[view]
     public fun get_app_config(
     ): (String, address, address, address, u64, u64, bool, u64, bool) acquires StakeApp {
@@ -1092,6 +1118,15 @@ module propbase::propbase_staking {
         (staking_config.app_name, staking_config.admin, staking_config.treasury, staking_config.reward_treasurer, staking_config.min_stake_amount, staking_config.max_stake_amount, staking_config.emergency_locked, staking_config.reward, staking_config.excess_reward_calculated)
     }
 
+    /// This function is a view function that tracks StakePool state variable
+    /// Input: none
+    /// Output: pool_cap - total possible $PROPS that can be staked
+    /// Output: staked_amount - total staked amount $PROPS by users
+    /// Output: epoch_start_time - pool start time in UNIX timestamp
+    /// Output: epoch_end_time - pool end time in UNIX timestamp
+    /// Output: interest_rate - %APY for staking 
+    /// Output: penalty_rate - %Penality for unstaking before end time
+    /// Output: total_penalty - total penalty $PROPS transfered to treasury
     #[view]
     public fun get_stake_pool_config(
     ): (u64, u64, u64, u64, u64, u64, u64) acquires StakePool {
@@ -1099,6 +1134,8 @@ module propbase::propbase_staking {
         (staking_pool_config.pool_cap, staking_pool_config.staked_amount, staking_pool_config.epoch_start_time, staking_pool_config.epoch_end_time, staking_pool_config.interest_rate, staking_pool_config.penalty_rate, staking_pool_config.total_penalty)
     }
 
+    /// This function is a view function that tracks reward expiry time
+    /// Output: reward expiry UNIX timestamp 
     #[view]
     public fun get_unclaimed_reward_withdraw_at(
     ): u64 acquires StakePool {
@@ -1106,12 +1143,24 @@ module propbase::propbase_staking {
         stake_pool_config.unclaimed_reward_withdraw_at
     }
 
+    /// This function is a view function that tracks users addresses staked in this contract 
+    /// Input: none
+    /// Output: vector of addresses
     #[view]
     public fun get_staked_addressess(): vector<address> acquires StakePool {
         let staking_pool_config = borrow_global<StakePool>(@propbase);
         staking_pool_config.staked_addressess
     }
 
+    /// This function is a view function that tracks UserInfo state variable
+    /// Input: user - user address
+    /// Output: principal - user $PROPS staked amount
+    /// Output: withdrawn - user total $PROPS withdrawn from contract
+    /// Output: accumulated_rewards - user $PROPS rewards accumulated
+    /// Output: rewards_accumulated_at - last reward $PROPS accumulated timestamp 
+    /// Output: first_staked_time - user first staked timestamp in UNIX
+    /// Output: last_staked_time - user last staked timestamp in UNIX
+    /// Output: is_total_earnings_withdrawn - boolean which tracks whether reward $PROPS claimed bu user
     #[view]
     public fun get_user_info(
         user: address
@@ -1131,6 +1180,9 @@ module propbase::propbase_staking {
         )
     }
 
+    /// This function is a view function that tracks users staked amounts
+    /// Input: user - user address
+    /// Output: vector of staked amounts
     #[view]
     public fun get_stake_amounts(
         user:address,
@@ -1151,6 +1203,9 @@ module propbase::propbase_staking {
         }
     }
 
+    /// This function is a view function that tracks users staked timestamps
+    /// Input: user - user address
+    /// Output: vector of stake timestamps in UNIX
     #[view]
     public fun get_stake_time_stamps(
         user:address,
@@ -1171,6 +1226,9 @@ module propbase::propbase_staking {
         }
     }
 
+    /// This function is a view function that tracks users unstaked amounts
+    /// Input: user - user address
+    /// Output: vector of unstaked amounts
     #[view]
     public fun get_unstake_amounts(
         user:address,
@@ -1191,6 +1249,9 @@ module propbase::propbase_staking {
         }
     }
 
+    /// This function is a view function that tracks users unstaked timestamps
+    /// Input: user - user address
+    /// Output: vector of unstake timestamps in UNIX
     #[view]
     public fun get_unstake_time_stamps(
         user:address,
@@ -1211,6 +1272,9 @@ module propbase::propbase_staking {
         }
     }
 
+    /// This function is a view function that tracks $PROPS rewards are caculated considering total pricipal plus amount is staked till end time
+    /// Input: principal - amount for whixh expected rewards calculated
+    /// Output: total reward $PROPS that can be earned for principal and previos staked $PROPS is kept till pool ends    
     #[view]
     public fun expected_rewards(
         user_address: address,
@@ -1246,6 +1310,9 @@ module propbase::propbase_staking {
         accumulated_rewards
     }
 
+    /// This function is a view function that tracks $PROPS rewards that can be earned if principal is staked till pool ends
+    /// Input: principal - amount 
+    /// Output: total reward $PROPS that can be earned for principal is kept till pool ends only this pricipal is considered  
     #[view]
     public fun expected_rewards_per_stake(
         principal: u64,
@@ -1272,6 +1339,9 @@ module propbase::propbase_staking {
         accumulated_rewards
     }
 
+    /// This function is a view function that tracks $PROPS rewards earned by a specific user
+    /// Input: user - User address
+    /// Output: total reward $PROPS currently earned
     #[view]
     public fun get_current_rewards_earned(
         user: address,
@@ -1299,6 +1369,9 @@ module propbase::propbase_staking {
         rewards
     }
 
+    /// This function is a view function that tracks $PROPS claimed by a specific user
+    /// Input: user - User address
+    /// Output: total reward $PROPS claimed
     #[view]
     public fun get_rewards_claimed_by_user(
         user: address,
@@ -1313,18 +1386,28 @@ module propbase::propbase_staking {
         return *Table::borrow(&claim_state.claimed_rewards, user)
     }
 
+    /// This function is a view function that tracks $PROPS reward balance
+    /// Input: none
+    /// Output: total reward $PROPS balance 
     #[view]
     public fun get_contract_reward_balance(): u64 acquires RewardPool {
         let reward_state = borrow_global<RewardPool>(@propbase);
         reward_state.available_rewards
     }
 
+    /// This function is a view function that tracks users $PROPS claimed & $PROPS principal
+    /// Input: none
+    /// Output: total claimed reward $PROPS from contract
+    /// Output: total claimed principal $PROPS from contract
     #[view]
     public fun get_total_claim_info(): (u64, u64) acquires ClaimPool {
         let claim_state = borrow_global<ClaimPool>(@propbase);
         return (claim_state.total_rewards_claimed, claim_state.total_claimed_principal)
     }
 
+    /// This function is a view function that tracks $PROPS distributed addresses during emergency
+    /// Input: none
+    /// Output: vector of $PROPS distributed addresses
     #[view]
     public fun get_emergency_asset_distributed_addressess(): vector<address> acquires StakeApp {
         let staking_app_config = borrow_global<StakeApp>(@propbase);
