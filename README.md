@@ -21,7 +21,9 @@ First-Come, First-Served: Secure your spot in the rewarding journey with this si
 
 ## Contract Features:
 
-The contract is designed to be deployed under a resource account, making the contract cannot be controlled by any private key.
+The contract is designed to be deployed under a resource account. The contract lives under the resource address, making the contract cannot be controlled by any private key. Read more about resource account here[https://aptos.dev/move/move-on-aptos/resource-accounts].
+
+More features and architecture are described at docs[https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs].
 
 ## Install Aptos CLI
 
