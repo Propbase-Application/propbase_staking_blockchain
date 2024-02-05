@@ -27,13 +27,13 @@ The package is a immutable one, hence no one can update this.
 
 Commands to install aptos CLI and initializing commands are given below.
 
-The package meta info and dependent aptos librabries are mentioned in [Move.toml](https://github.com/Propbase-Application/propbase_staking_blockchain/blob/main/Move.toml
+The package meta info and dependent aptos librabries are mentioned in [Move.toml](https://github.com/Propbase-Application/propbase_staking_blockchain/blob/main/Move.toml).
 
 Contract highlights and the roles in the contract are mentioned at [staking_highlights.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/staking_highlights.png).
 
 Functional use cases, flow chart diagram, contract time line diagrams are mentioned at [staking_functional_diagram.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/staking_functional_diagram.png).
 
-The contract architecture diagram is given at[Propbase_contract_architecture_diagram.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/Propbase_contract_architecture_diagram.png).
+The contract architecture diagram is given at [Propbase_contract_architecture_diagram.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/Propbase_contract_architecture_diagram.png).
 
 Contract source files are at [propbase_staking.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/sources/propbase_staking.move).
 
@@ -72,7 +72,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 158 with the following line
+Replace Line 164 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -96,7 +96,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 158 with the following line
+Replace Line 164 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -116,7 +116,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 158 with the following line
+Replace Line 164 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -136,7 +136,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 158 with the following line
+Replace Line 164 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -172,7 +172,7 @@ aptos move create-resource-account-and-publish-package --seed [seed] --address-n
 ## Publish via resource account in Mainnet
 
 Make sure all local changes are reverted.
-Replace line 158 with actual PROPS coin address
+Replace line 164 with actual PROPS coin address
 
 ```
 0xe50684a338db732d8fb8a3ac71c4b8633878bd0193bca5de2ebc852a83b35099::propbase_coin::PROPS
