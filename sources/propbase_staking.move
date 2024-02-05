@@ -1,6 +1,4 @@
-/// @title Propbase Staking Project
-/// @author Kevin Goose
-/// @notice This is staking contract for $PROPS serves as infrastructure for user to stake
+/// This module provides the foundation to stake $PROPS token with flexibility in staking periods
 module propbase::propbase_staking {
 
     #[test_only]
@@ -158,67 +156,135 @@ module propbase::propbase_staking {
         distributed_assets: vector<u64>
     }
 
+    //
+    // Constants
+    //
     const PROPS_COIN: vector<u8> = b"0xe50684a338db732d8fb8a3ac71c4b8633878bd0193bca5de2ebc852a83b35099::propbase_coin::PROPS";
     const SECONDS_IN_DAY: u64 = 86400;
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
     const SECONDS_IN_LEAP_YEAR: u64 = 31622400;
     const DEFAULT_REWARD_EXPIRY_TIME: u64 = 31536000 * 2;
 
+    /// Address of the sender accouunt not have access rights
     const E_NOT_AUTHORIZED: u64 = 1;
+
+    /// Address of the sender account is not treasurer address
     const E_NOT_NOT_A_TREASURER: u64 = 2;
+
+    /// Contract is already emergency locked, can't lock it again
     const E_CONTRACT_ALREADY_EMERGENCY_LOCKED: u64 = 3;
+
+    /// Confirured start time should be lesser than end time
     const E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME: u64 = 4;
+
+    /// $PROPS are not avaiable in the contract for claimming or withdrawing
     const E_STAKE_POOL_EXHAUSTED: u64 = 5;
+
+    /// configured start time is already passed so no further editing in confirations are possible 
     const E_STAKE_ALREADY_STARTED: u64 = 6;
+
+    /// 'CoinType' mismatched for $PROPS
     const E_NOT_PROPS: u64 = 7;
+
+    /// $PROPS amount is not in configured range of possible investment
     const E_INVALID_AMOUNT: u64 = 8;
+
+    /// Current time is not in staking period either it is before or after staking time 
     const E_NOT_IN_STAKING_RANGE: u64 = 9;
+
+    /// Sender address never staked $PROPS in this contract
     const E_NOT_STAKED_USER: u64 = 10;
+
+    /// Address passed is not a valid aptos address
     const E_ACCOUNT_DOES_NOT_EXIST: u64 = 11;
+
+    /// APY configured should be less than 100 and greater than zero percent
     const E_STAKE_POOL_INTEREST_OUT_OF_RANGE: u64 = 12;
+
+    /// Penality can't be more than 50 or zero percent
     const E_STAKE_POOL_PENALTY_OUT_OF_RANGE: u64 = 13;
-    const E_STAKE_POOL_CAP_OUT_OF_RANGE: u64 = 14;        
+
+    /// Pool cap should be greater than 200 $PROPS
+    const E_STAKE_POOL_CAP_OUT_OF_RANGE: u64 = 14;     
+
+    /// Start time should be greater than zero percent
     const E_STAKE_START_TIME_OUT_OF_RANGE: u64 = 15;
+
+    /// End time should be greater than zero
     const E_STAKE_END_TIME_OUT_OF_RANGE: u64 = 16;
+
+    /// Pool name identifies each pool should be not empty string
     const E_STAKE_POOL_NAME_CANT_BE_EMPTY: u64 = 17;
+
+    /// Amount $PROPS should be greater than zero
     const E_AMOUNT_MUST_BE_GREATER_THAN_ZERO: u64 = 18;
+
+    /// Reward $PROPS added should be greater than the required $PROPS for rewards distribution
     const E_REWARD_NOT_ENOUGH: u64 = 19;
+
+    /// $PROPS added should be greater than the required zero
     const E_STAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO: u64 = 20;
+
+    /// $PROPS not available for unstake as not enough pricipal
     const E_STAKE_NOT_ENOUGH: u64 = 21;
+
+    /// Seconds in a year should be either seconds in 365 days for non leap year or seconds in 366 days for leap year
     const E_SECONDS_IN_YEAR_INVALID: u64 = 22;
+
+    /// Rewards accumulated should be greater than zero
     const E_NOT_ENOUGH_REWARDS_TRY_AGAIN_LATER: u64 = 23;
+
+    /// Time is in staking range
     const E_STAKE_IN_PROGRESS: u64 = 24;
+
+    /// Time for claiming $PROPS rewards should be greater than first staked time
     const E_NOT_IN_CLAIMING_RANGE: u64 = 25;
+
+    /// Contract is locked by the admin so no further user actions are possible  
     const E_CONTRACT_EMERGENCY_LOCKED: u64 = 26;
+
+    /// Rewards $PROPS are already withdrawn
     const E_EARNINGS_ALREADY_WITHDRAWN: u64 = 27;
+
+    /// Current Time should be before the configured start time
     const E_INVALID_START_TIME: u64 = 28;
+
+    /// Max stake amount should be less than or equal to half of pool cap
     const E_INVALID_MAX_STAKE_AMOUNT: u64 = 29;
+
+    /// Max stake limit reached for $PROPS
     const E_USER_STAKE_LIMIT_REACHED: u64 = 30;
+
+    /// Max stake must be greater than min stake 
     const E_MAX_STAKE_MUST_BE_GREATER_THAN_MIN_STAKE: u64 = 31;
+
+    /// Excess rewards must be caculated for staked users w.r.t $PROPS amount and time for withdrawing excess rewards
     const E_EXCESS_REWARD_NOT_CALCULATED: u64 = 32;
+
+    /// Excess reward is calculated and can be withdrawn now
     const E_EXCESS_REWARD_ALREADY_CALCULATED: u64 = 33;
+
+    /// Emergency must be declared before distribution 
     const E_CONTRACT_NOT_EMERGENCY_LOCKED: u64 = 34;
 
-    /// @notice Setups initial state values for each data structure
-    /// @dev This function is invoked automatically when the module is published
-    /// @param none auto-generated while deployment
-    /// @return none
+    /// This function is invoked automatically when the module is published
+    /// Input: resource_account - resource account where the contract lives. This is passed by the publish command when its being deployed
     fun init_module(resource_account: &signer) {
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
         init_config(resource_account, resource_signer_cap);
     }
 
-    /// @notice This function is test only 
+    /// This function is invoked only when test is running. This enables us to test the contract for a resource account
+    /// Input: resource_account - resource account where the contract lives
     #[test_only]
     public(friend) fun init_test(resource_account: &signer) {
         let resource_signer_cap = account::create_test_signer_cap(signer::address_of(resource_account));
         init_config(resource_account, resource_signer_cap);
     }
 
-    /// @notice It is helper function to setup initila values for state variables
-    /// @dev This function is invoked automatically
-    /// @param none auto-generated while deployment
-    /// @return none
+    ///  This function initialise the resources under resource_account
+    /// Input: resource_account - resource account where the contract lives.
+    /// Input resource_signer_cap - signer capability of resource account
     fun init_config(resource_account: &signer, resource_signer_cap: SignerCapability) {
         move_to(resource_account, StakeApp {
             app_name: string::utf8(b""),
