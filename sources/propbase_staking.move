@@ -1,3 +1,4 @@
+/// This module provides the foundation to stake $PROPS token with flexibility in staking periods
 module propbase::propbase_staking {
 
     #[test_only]
@@ -155,6 +156,9 @@ module propbase::propbase_staking {
         distributed_assets: vector<u64>
     }
 
+    //
+    // Constants
+    //
     const PROPS_COIN: vector<u8> = b"0xe50684a338db732d8fb8a3ac71c4b8633878bd0193bca5de2ebc852a83b35099::propbase_coin::PROPS";
     const SECONDS_IN_DAY: u64 = 86400;
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
@@ -174,7 +178,7 @@ module propbase::propbase_staking {
     const E_ACCOUNT_DOES_NOT_EXIST: u64 = 11;
     const E_STAKE_POOL_INTEREST_OUT_OF_RANGE: u64 = 12;
     const E_STAKE_POOL_PENALTY_OUT_OF_RANGE: u64 = 13;
-    const E_STAKE_POOL_CAP_OUT_OF_RANGE: u64 = 14;        
+    const E_STAKE_POOL_CAP_OUT_OF_RANGE: u64 = 14;     
     const E_STAKE_START_TIME_OUT_OF_RANGE: u64 = 15;
     const E_STAKE_END_TIME_OUT_OF_RANGE: u64 = 16;
     const E_STAKE_POOL_NAME_CANT_BE_EMPTY: u64 = 17;
@@ -196,17 +200,24 @@ module propbase::propbase_staking {
     const E_EXCESS_REWARD_ALREADY_CALCULATED: u64 = 33;
     const E_CONTRACT_NOT_EMERGENCY_LOCKED: u64 = 34;
 
+    /// This function is invoked automatically when the module is published
+    /// Input: resource_account - resource account where the contract lives. This is passed by the publish command when its being deployed
     fun init_module(resource_account: &signer) {
         let resource_signer_cap = resource_account::retrieve_resource_account_cap(resource_account, @source_addr);
         init_config(resource_account, resource_signer_cap);
     }
 
+    /// This function is invoked only when test is running. This enables us to test the contract for a resource account
+    /// Input: resource_account - resource account where the contract lives
     #[test_only]
     public(friend) fun init_test(resource_account: &signer) {
         let resource_signer_cap = account::create_test_signer_cap(signer::address_of(resource_account));
         init_config(resource_account, resource_signer_cap);
     }
 
+    /// This function initialise the resources under resource_account
+    /// Input: resource_account - resource account where the contract lives.
+    /// Input resource_signer_cap - signer capability of resource account
     fun init_config(resource_account: &signer, resource_signer_cap: SignerCapability) {
         move_to(resource_account, StakeApp {
             app_name: string::utf8(b""),
@@ -257,7 +268,9 @@ module propbase::propbase_staking {
         });
     }
     
-    // admin will be a multisign wallet address.
+    /// This function sets updated admin address
+    /// Input: admin - current admin account
+    /// Input: new_admin_address - it is the updated admin address which will be multisign after configuration.
     public entry fun set_admin(
         admin: &signer,
         new_admin_address: address,
@@ -277,7 +290,9 @@ module propbase::propbase_staking {
         );
     }
 
-    // treasury will be a multisign wallet address that receives the penalty and excess rewards.
+    /// This function sets new treasury address
+    /// Input: admin - admin account
+    /// Input: new_treasury_address - it is the new treasury address which will be multisign after configuration.
     public entry fun set_treasury(
         admin: &signer,
         new_treasury_address: address,
@@ -297,7 +312,9 @@ module propbase::propbase_staking {
         );
     }
 
-    // reward treasurer will be a multisign wallet address that holds the reward allocations.
+    /// This function sets new treasurer address
+    /// Input: admin - admin account
+    /// Input: new_treasurer - it is the new treasurer address which will be multisign after configuration.
     public entry fun set_reward_treasurer(
         admin: &signer,
         new_treasurer: address,
@@ -313,6 +330,18 @@ module propbase::propbase_staking {
         );
     }
 
+    /// This function sets the contract configurations for pool
+    /// Input: admin - admin account
+    /// Input: pool_name - it is the pool name that can be used to identify a specific pool.
+    /// Input: pool_cap - it is the total size of the pool.
+    /// Input: epoch_start_time - it is UNIX timestamp of pool start time
+    /// Input: epoch_end_time - it is UNIX timestamp of pool end time
+    /// Input: interest_rate - it is reward APY% $PROPS provided on investments in the pool
+    /// Input: penalty_rate - it is penality percentage for early unstaking
+    /// Input: min_stake_amount - it is $PROPS amount lower limit for adding stakes
+    /// Input: max_stake_amount - it is $PROPS amount upper limit for adding stakes
+    /// Input: seconds_in_year - seconds in 365 days or 366 days based on pool start time
+    /// Input: value_config - it is array of boolean configs
     public entry fun create_or_update_stake_pool(
         admin: &signer,
         pool_name: String,
@@ -408,7 +437,9 @@ module propbase::propbase_staking {
         );
     }
 
-    // this function is used to add more time for reward expiry
+    /// This function adds time to reward expiry ie. two years used to increase time for reward expiry
+    /// Input: admin - admin account
+    /// Input: additional_time - it is additional time in UNIX timestamp that will be added 
     public entry fun set_reward_expiry_time(
         admin: &signer,
         additional_time: u64,
@@ -420,6 +451,9 @@ module propbase::propbase_staking {
         stake_pool_config.unclaimed_reward_withdraw_at = stake_pool_config.epoch_end_time + stake_pool_config.unclaimed_reward_withdraw_time;
     }
 
+    /// This function allows users to stake $PROPS in the contract in staking period 
+    /// Input: user - user account
+    /// Input: amount - it is $PROPS amount to stake 
     public entry fun add_stake<CoinType> (
         user: &signer,
         amount: u64
@@ -503,6 +537,9 @@ module propbase::propbase_staking {
         }
     }
 
+    /// This function allows users to unstake $PROPS in the contract in staking period with a penality on principal
+    /// Input: user - user account
+    /// Input: amount - it is $PROPS amount to stake 
     public entry fun withdraw_stake<CoinType> (
         user: &signer,
         amount: u64
@@ -512,6 +549,10 @@ module propbase::propbase_staking {
         implement_unstake<CoinType>(user, &resource_signer, amount);
     }
 
+    /// This is helper function for withdrawing stake
+    /// Input: user - user account
+    /// Input: resource_signer - resource signer where the contract lives
+    /// Input: amount - it is $PROPS amount to stake 
     inline fun implement_unstake<CoinType>(
         user: &signer,
         resource_signer: &signer,
@@ -568,6 +609,9 @@ module propbase::propbase_staking {
         );
     }
 
+    /// This function allows treasurer account to add reward funds to the contract
+    /// Input: treasurer - treasurer account
+    /// Input: amount - it is $PROPS amount to add as reward 
     public entry fun add_reward_funds<CoinType>(
         treasurer: &signer,
         amount: u64,
@@ -595,7 +639,12 @@ module propbase::propbase_staking {
         );
     }
 
-    // Rewards = Principal * Number of Years (Period) * Rate / 100
+    /// This function is a helper function that calculates the rewards
+    /// Input: principal - user staked amount
+    /// Input: period - time difference in UNIX time between end time to start time
+    /// Input: interest_rate - it is %APY 
+    /// Input: seconds_in_year - seconds in 365 days or 366 days
+    /// Output: returns the rewards based on inputs
     inline fun apply_reward_formula(
         principal: u64,
         period: u64,
@@ -609,6 +658,16 @@ module propbase::propbase_staking {
         total_interest / 100
     }
 
+    /// This function is a helper function that calculates the accumulated rewards
+    /// Input: principal - user staked amount
+    /// Input: accumulated_rewards - rewards accumulated till now
+    /// Input: rewards_accumulated_at - last accumulation time
+    /// Input: last_staked_time - last user staked timestamp in UNIX time
+    /// Input: interest_rate - it is %APY 
+    /// Input: seconds_in_year - seconds in 365 days or 366 days
+    /// Input: epoch_end_time - current accumulation time
+    /// Input: epoch_emergency_stop_time - in case of emergency, emergency decalred time is used as end time
+    /// Output: returns the rewards based on inputs
     inline fun get_total_rewards_so_far(
         principal: u64,
         accumulated_rewards: u64,
@@ -644,6 +703,13 @@ module propbase::propbase_staking {
         };
         (rewards as u64)
     }
+
+    /// This function is a helper function that calculates the rewards if user kept the stake till end of pool
+    /// Input: user_address - user address for which rewards are needed to be calculated
+    /// Input: interest_rate - contract interest rate in %APY
+    /// Input: seconds_in_year - seconds in 365 days or 366 days
+    /// Input: epoch_end_time - pool end time in UNIX timestamp
+    /// Output: returns rewards expected at pool end time
 
     inline fun get_rewards_till_the_end_of_epoch(
         user_address: address,
