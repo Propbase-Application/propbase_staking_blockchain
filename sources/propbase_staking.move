@@ -841,7 +841,7 @@ module propbase::propbase_staking {
         );
     }
 
-    /// This function is a helper function this is used by admin to distribute user staked $PROPS and rewards $PROPS to user 
+    /// This function is a helper function this is used by user to claim $PROPS rewards
     /// Input: user - user account
     /// Input: resource_signer - resource signer where the contract lives
     inline fun withdraw_rewards<CoinType>(
@@ -892,6 +892,8 @@ module propbase::propbase_staking {
         );
     }
 
+    /// This function is a helper function this is used by user to claim principal and rewards 
+    /// Input: user - user account
     inline fun withdraw_principal_and_rewards<CoinType>(
         user: &signer
     ) acquires ClaimPool, UserInfo, StakePool, RewardPool, StakeApp {
@@ -927,6 +929,9 @@ module propbase::propbase_staking {
         );
     }
 
+    /// This function is a helper function this is used to transfer $PROPS from resource account to user_address 
+    /// Input: user_address - user account address
+    
     fun transfer_principal_and_rewards<CoinType>(
         user_address: address,
         user_state: &mut UserInfo,
