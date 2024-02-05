@@ -1,6 +1,35 @@
 # propbase-staking
 
-propbase staking integrations
+PROPS Staking App is where one can stake $PROPS and gain $PROPS as rewards.
+The project is developed using the Move language, Aptos standard libraries, and runs on top of the Aptos blockchain.
+
+### Key Highlights:
+
+Effortless Staking: Stake PROPS seamlessly for hassle-free earning and engagement.
+
+Daily Rewards: Claim your gains daily, injecting dynamism into your staking journey.
+
+Transparent Fees: Enjoy clear fee structures, ensuring you stay in control of your rewards.
+
+Flexible Unstaking: Unstake your assets at any time, offering unparalleled flexibility.
+
+Fixed APY: Experience stability with a fixed Annual Percentage Yield (APY).
+
+Capped Pools: Balanced and sustainable staking environments with capped pool limits.
+
+First-Come, First-Served: Secure your spot in the rewarding journey with this simple participation approach.
+
+## Contract Features:
+
+The contract is designed to be deployed under a resource account. The contract lives under the resource address, making the contract cannot be controlled by any private key. Read more about resource account here[https://aptos.dev/move/move-on-aptos/resource-accounts].
+
+More features and architecture are described at docs[https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs].
+
+## Install Aptos CLI
+
+```
+https://aptos.dev/tools/aptos-cli/install-cli/
+```
 
 ## Initializing commands:
 
@@ -17,7 +46,7 @@ Initialize admin address
 aptos init --profile default
 ```
 
-Initialize admin address and add the admin address in Move.toml under addresses
+Initialize any wallet profile as follows
 
 ```
 aptos init --profile admin
@@ -38,6 +67,10 @@ const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
 ```
 
 Run compile
+
+```
+aptos move compile --named-addresses source_addr=[default or any account's address]
+```
 
 ```
 aptos move compile  --named-addresses source_addr=12347d47a9b0ac564856168b68fff06408cc5f1c691yur5366c3ab116d76rsdf --save-metadata
