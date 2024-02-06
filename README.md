@@ -1,6 +1,57 @@
 # propbase-staking
 
-propbase staking integrations
+PROPS Staking App is where one can stake $PROPS and gain $PROPS as rewards.
+The project is developed using the Move language, Aptos standard libraries, and runs on top of the Aptos blockchain.
+
+## App Highlights:
+
+Effortless Staking: Stake PROPS seamlessly for hassle-free earning and engagement.
+
+Daily Rewards: Claim your gains daily, injecting dynamism into your staking journey.
+
+Transparent Fees: Enjoy clear fee structures, ensuring you stay in control of your rewards.
+
+Flexible Unstaking: Unstake your assets at any time, offering unparalleled flexibility.
+
+Fixed APY: Experience stability with a fixed Annual Percentage Yield (APY).
+
+Capped Pools: Balanced and sustainable staking environments with capped pool limits.
+
+First-Come, First-Served: Secure your spot in the rewarding journey with this simple participation approach.
+
+## Contract Technical Features:
+
+The project is developed using the Move language, Aptos standard libraries, and runs on top of the Aptos blockchain.
+
+The contract is designed to be deployed under a resource account. The contract lives under the resource address, making the contract cannot be controlled by any private key. Read more about resource account [here](https://aptos.dev/move/move-on-aptos/resource-accounts).
+
+The contract package is an immutable one, hence no one can update it.
+
+Commands to install aptos CLI and initializing commands are given below.
+
+The folder structure is explained in [project_folder_structure.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/project_folder_structure.png).
+
+The package meta info and dependent aptos librabries are mentioned in [Move.toml](https://github.com/Propbase-Application/propbase_staking_blockchain/blob/main/Move.toml).
+
+Contract highlights and the roles in the contract are mentioned at [staking_highlights.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/staking_highlights.png).
+
+Functional use cases, flow chart diagram, contract time line diagrams are mentioned at [staking_functional_diagram.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/staking_functional_diagram.png).
+
+The contract architecture diagram is given at [Propbase_contract_architecture_diagram.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/Propbase_contract_architecture_diagram.png).
+
+Contract source files are at [propbase_staking.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/sources/propbase_staking.move).
+
+Test files are here at [propbase_staking_tests.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/tests/propbase_staking_tests.move). Commands for testing are mentioned down below.
+
+Deployment commands are given down below.
+
+All the docs are available at [docs](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs)
+
+## Install Aptos CLI
+
+```
+https://aptos.dev/tools/aptos-cli/install-cli/
+```
 
 ## Initializing commands:
 
@@ -17,7 +68,7 @@ Initialize admin address
 aptos init --profile default
 ```
 
-Initialize admin address and add the admin address in Move.toml under addresses
+Initialize any wallet profile as follows
 
 ```
 aptos init --profile admin
@@ -31,7 +82,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 158 with the following line
+Replace Line 164 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -40,10 +91,22 @@ const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
 Run compile
 
 ```
+aptos move compile --named-addresses source_addr=[default or any account's address]
+```
+
+```
 aptos move compile  --named-addresses source_addr=12347d47a9b0ac564856168b68fff06408cc5f1c691yur5366c3ab116d76rsdf --save-metadata
 ```
 
 ## Test
+
+Test files are here at [propbase_staking_tests.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/tests/propbase_staking_tests.move). Commands for testing are mentioned down below.
+
+There is a [PROP.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/sources/test/PROP.move) file with address 0x1 to mimick the $PROPS coin in test cases. Hence this 0x1 address needs to be hard coded in the contract and in Move.html for running tests.
+
+Since the contract uses resource account, for testing the contract, we need to create a different resource address. This creates a situation where the signer capability are different for test mode and non-test mode. Hence some functions where signer capability are directly required as in init_module are not directly testable in test mode. Here we wont be able to achieve the test coverage.
+
+Commands to run tests are as follows:
 
 Add the following line in Move.toml under [addresses]
 
@@ -51,7 +114,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 158 with the following line
+Replace Line 164 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -71,7 +134,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 158 with the following line
+Replace Line 164 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -91,7 +154,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 158 with the following line
+Replace Line 164 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -127,7 +190,7 @@ aptos move create-resource-account-and-publish-package --seed [seed] --address-n
 ## Publish via resource account in Mainnet
 
 Make sure all local changes are reverted.
-Replace line 158 with actual PROPS coin address
+Replace line 164 with actual PROPS coin address
 
 ```
 0xe50684a338db732d8fb8a3ac71c4b8633878bd0193bca5de2ebc852a83b35099::propbase_coin::PROPS
