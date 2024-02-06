@@ -19,13 +19,17 @@ Capped Pools: Balanced and sustainable staking environments with capped pool lim
 
 First-Come, First-Served: Secure your spot in the rewarding journey with this simple participation approach.
 
-## Contract Features:
+## Contract Technical Features:
+
+The project is developed using the Move language, Aptos standard libraries, and runs on top of the Aptos blockchain.
 
 The contract is designed to be deployed under a resource account. The contract lives under the resource address, making the contract cannot be controlled by any private key. Read more about resource account [here](https://aptos.dev/move/move-on-aptos/resource-accounts).
 
-The package is a immutable one, hence no one can update this.
+The contract package is an immutable one, hence no one can update it.
 
 Commands to install aptos CLI and initializing commands are given below.
+
+The folder structure is explained in [project_folder_structure.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/project_folder_structure.png).
 
 The package meta info and dependent aptos librabries are mentioned in [Move.toml](https://github.com/Propbase-Application/propbase_staking_blockchain/blob/main/Move.toml).
 
@@ -36,6 +40,12 @@ Functional use cases, flow chart diagram, contract time line diagrams are mentio
 The contract architecture diagram is given at [Propbase_contract_architecture_diagram.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/Propbase_contract_architecture_diagram.png).
 
 Contract source files are at [propbase_staking.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/sources/propbase_staking.move).
+
+Test files are here at [propbase_staking_tests.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/tests/propbase_staking_tests.move). Commands for testing are mentioned down below.
+
+Deployment commands are given down below.
+
+All the docs are available at [docs](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs)
 
 ## Install Aptos CLI
 
@@ -89,6 +99,14 @@ aptos move compile  --named-addresses source_addr=12347d47a9b0ac564856168b68fff0
 ```
 
 ## Test
+
+Test files are here at [propbase_staking_tests.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/tests/propbase_staking_tests.move). Commands for testing are mentioned down below.
+
+There is a [PROP.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/sources/test/PROP.move) file with address 0x1 to mimick the $PROPS coin in test cases. Hence this 0x1 address needs to be hard coded in the contract and in Move.html for running tests.
+
+Since the contract uses resource account, for testing the contract, we need to create a different resource address. This creates a situation where the signer capability are different for test mode and non-test mode. Hence some functions where signer capability are directly required as in init_module are not directly testable in test mode. Here we wont be able to achieve the test coverage.
+
+Commands to run tests are as follows:
 
 Add the following line in Move.toml under [addresses]
 
