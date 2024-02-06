@@ -25,7 +25,7 @@ The project is developed using the Move language, Aptos standard libraries, and 
 
 The contract is designed to be deployed under a resource account. The contract lives under the resource address, making the contract cannot be controlled by any private key. Read more about resource account [here](https://aptos.dev/move/move-on-aptos/resource-accounts).
 
-The contract package is a immutable one, hence no one can update it.
+The contract package is an immutable one, hence no one can update it.
 
 Commands to install aptos CLI and initializing commands are given below.
 
@@ -102,9 +102,9 @@ aptos move compile  --named-addresses source_addr=12347d47a9b0ac564856168b68fff0
 
 Test files are here at [propbase_staking_tests.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/tests/propbase_staking_tests.move). Commands for testing are mentioned down below.
 
-There is a PROP.move with address 0x1 to mimick the $PROPS coin in test cases. Hence this 0x1 address needs to be hard coded in the contract and in Move.html for running tests.
+There is a [PROP.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/sources/test/PROP.move) file with address 0x1 to mimick the $PROPS coin in test cases. Hence this 0x1 address needs to be hard coded in the contract and in Move.html for running tests.
 
-Since the contract uses resourse account, for testing the contract, we need to create a different resource address. This creates a situation where the signer capability are different for test mode and non-test mode. Hence some functions where signer capability are directly required as in init_module are not directly testable in test mode. Here we wont be able to achieve the test coverage.
+Since the contract uses resource account, for testing the contract, we need to create a different resource address. This creates a situation where the signer capability are different for test mode and non-test mode. Hence some functions where signer capability are directly required as in init_module are not directly testable in test mode. Here we wont be able to achieve the test coverage.
 
 Commands to run tests are as follows:
 
