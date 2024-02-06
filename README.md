@@ -19,7 +19,9 @@ Capped Pools: Balanced and sustainable staking environments with capped pool lim
 
 First-Come, First-Served: Secure your spot in the rewarding journey with this simple participation approach.
 
-## Contract Features:
+## Contract Technical Features:
+
+The project is developed using the Move language, Aptos standard libraries, and runs on top of the Aptos blockchain.
 
 The contract is designed to be deployed under a resource account. The contract lives under the resource address, making the contract cannot be controlled by any private key. Read more about resource account [here](https://aptos.dev/move/move-on-aptos/resource-accounts).
 
@@ -36,6 +38,13 @@ Functional use cases, flow chart diagram, contract time line diagrams are mentio
 The contract architecture diagram is given at [Propbase_contract_architecture_diagram.png](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/docs/Propbase_contract_architecture_diagram.png).
 
 Contract source files are at [propbase_staking.move](https://github.com/Propbase-Application/propbase_staking_blockchain/tree/main/sources/propbase_staking.move).
+
+Test files are here at ...
+Commands are mentioned down below.
+
+Deployment
+
+/docs
 
 ## Install Aptos CLI
 
@@ -89,6 +98,10 @@ aptos move compile  --named-addresses source_addr=12347d47a9b0ac564856168b68fff0
 ```
 
 ## Test
+
+Explain test files - PROP.move
+contract
+100%
 
 Add the following line in Move.toml under [addresses]
 
