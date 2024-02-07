@@ -181,7 +181,12 @@ Module 0000000000000000000000000000000000000000000000000000000000000001::propbas
 
 ## Publish via resource account in Testnet/Devnet
 
-Make sure all local changes are reverted and publish contract by the command as follows
+Make sure all local changes are reverted.
+Replace line 164 with actual PROPS coin address
+
+```
+0xd8221ad202d71302027adab3706f9e8731b76b870bc1a163b0922ac5d91a905f::propbase_coin::TEST_PROPS
+```
 
 ```
 aptos move create-resource-account-and-publish-package --seed [seed] --address-name propbase --profile default --named-addresses source_addr=[default account's address]
@@ -197,7 +202,7 @@ Replace line 164 with actual PROPS coin address
 ```
 
 ```
-aptos move create-resource-account-and-publish-package --seed [seed] --address-name propbase --profile default --named-addresses source_addr=[default account's address]
+aptos move create-resource-account-and-publish-package --seed [seed] --address-name propbase --profile default --named-addresses source_addr=[default account's address] --included-artifacts none
 ```
 
 ## Example Function Invoking commands
