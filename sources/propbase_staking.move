@@ -52,6 +52,7 @@ module propbase::propbase_staking {
         unclaimed_reward_withdraw_time: u64,
         unclaimed_reward_withdraw_at: u64,
         staked_addressess: vector<address>,
+        exited_addressess: vector<address>,
         set_pool_config_events: EventHandle<SetStakePoolEvent>,
     }
 
@@ -156,9 +157,7 @@ module propbase::propbase_staking {
         distributed_assets: vector<u64>
     }
 
-    //
     // Constants
-    //
 
     // The address of the PROPS coin is defined to be checked on coin transaction.
     const PROPS_COIN: vector<u8> = b"0xe50684a338db732d8fb8a3ac71c4b8633878bd0193bca5de2ebc852a83b35099::propbase_coin::PROPS";
@@ -186,7 +185,7 @@ module propbase::propbase_staking {
     const E_STAKE_POOL_NAME_CANT_BE_EMPTY: u64 = 17;
     const E_AMOUNT_MUST_BE_GREATER_THAN_ZERO: u64 = 18;
     const E_REWARD_NOT_ENOUGH: u64 = 19;
-    const E_STAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO: u64 = 20;
+    const E_AMOUNT_MUST_BE_GREATER_THAN_OR_EQUAL_TO_ONE: u64 = 20;
     const E_STAKE_NOT_ENOUGH: u64 = 21;
     const E_SECONDS_IN_YEAR_INVALID: u64 = 22;
     const E_NOT_ENOUGH_REWARDS_TRY_AGAIN_LATER: u64 = 23;
@@ -255,6 +254,7 @@ module propbase::propbase_staking {
             unclaimed_reward_withdraw_time: DEFAULT_REWARD_EXPIRY_TIME,
             unclaimed_reward_withdraw_at: 0,
             staked_addressess: vector::empty<address>(),
+            exited_addressess: vector::empty<address>(),
             set_pool_config_events: account::new_event_handle<SetStakePoolEvent>(resource_account),
         });
         move_to(resource_account, RewardPool {
@@ -406,7 +406,7 @@ module propbase::propbase_staking {
             contract_config.app_name = pool_name;
         };
         if(set_min_stake_amount) {
-            assert!(min_stake_amount > 0, error::invalid_argument(E_STAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO));
+            assert!(min_stake_amount >= 100000000, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_OR_EQUAL_TO_ONE));
             contract_config.min_stake_amount = min_stake_amount;
         };
         if(set_max_stake_amount) {
@@ -572,7 +572,7 @@ module propbase::propbase_staking {
 
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(0));
-        assert!(amount > 0, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_ZERO));
+        assert!(amount >= 100000000, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_OR_EQUAL_TO_ONE));
         assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(0));
         assert!(user_state.principal >= amount, error::resource_exhausted(E_STAKE_NOT_ENOUGH));
 
@@ -599,6 +599,18 @@ module propbase::propbase_staking {
 
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, penalty);
         aptos_account::transfer_coins<CoinType>(resource_signer, user_address, bal_after_penalty);
+
+        if (user_state.principal == 0) {
+            if (vector::contains(&mut stake_pool_config.staked_addressess, &user_address)) {
+                let (exists, index) = vector::index_of(&stake_pool_config.staked_addressess, &user_address);
+                if (exists) {
+                    vector::remove(&mut stake_pool_config.staked_addressess, index);
+                    if (!vector::contains(&mut stake_pool_config.exited_addressess, &user_address)) {
+                        vector::push_back(&mut stake_pool_config.exited_addressess, user_address);
+                    };
+                }
+            }
+        };
 
         event::emit_event<UnStakeEvent>(
             &mut user_state.unstake_events,
@@ -925,6 +937,9 @@ module propbase::propbase_staking {
             claim_state,
             false
         );
+        if (!vector::contains(&mut stake_pool_config.exited_addressess, &user_address)) {
+            vector::push_back(&mut stake_pool_config.exited_addressess, user_address);
+        };
         event::emit_event<ClaimPrincipalAndRewardEvent>(
             &mut claim_state.updated_claim_principal_and_reward_events,
             ClaimPrincipalAndRewardEvent {
@@ -1168,6 +1183,15 @@ module propbase::propbase_staking {
     public fun get_staked_addressess(): vector<address> acquires StakePool {
         let staking_pool_config = borrow_global<StakePool>(@propbase);
         staking_pool_config.staked_addressess
+    }
+
+    // This function is a view function that tracks users addresses who exited by withdrawing all principal amount 
+    // Input: none
+    // Output: vector of addresses
+    #[view]
+    public fun get_exited_addressess(): vector<address> acquires StakePool {
+        let staking_pool_config = borrow_global<StakePool>(@propbase);
+        staking_pool_config.exited_addressess
     }
 
     // This function is a view function that tracks UserInfo state variable
