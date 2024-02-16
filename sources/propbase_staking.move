@@ -601,15 +601,7 @@ module propbase::propbase_staking {
         aptos_account::transfer_coins<CoinType>(resource_signer, user_address, bal_after_penalty);
 
         if (user_state.principal == 0) {
-            if (vector::contains(&mut stake_pool_config.staked_addressess, &user_address)) {
-                let (exists, index) = vector::index_of(&stake_pool_config.staked_addressess, &user_address);
-                if (exists) {
-                    vector::remove(&mut stake_pool_config.staked_addressess, index);
-                    if (!vector::contains(&mut stake_pool_config.exited_addressess, &user_address)) {
-                        vector::push_back(&mut stake_pool_config.exited_addressess, user_address);
-                    };
-                }
-            }
+            update_addresses_on_exit(stake_pool_config, user_address);
         };
 
         event::emit_event<UnStakeEvent>(
@@ -622,6 +614,24 @@ module propbase::propbase_staking {
                 unstaked_time: now,
             }
         );
+    }
+
+    // This function removes the given address from staked_addressess and adds to exited_addressess
+    // Input: stake_pool_config - StakePool
+    // Input: user_address - address of the user
+    inline fun update_addresses_on_exit(
+        stake_pool_config: &mut StakePool,
+        user_address: address
+    ) {
+        if (vector::contains(&mut stake_pool_config.staked_addressess, &user_address)) {
+            let (exists, index) = vector::index_of(&stake_pool_config.staked_addressess, &user_address);
+            if (exists) {
+                vector::remove(&mut stake_pool_config.staked_addressess, index);
+                if (!vector::contains(&mut stake_pool_config.exited_addressess, &user_address)) {
+                    vector::push_back(&mut stake_pool_config.exited_addressess, user_address);
+                };
+            }
+        };
     }
 
     // This function allows reward treasurer account to add reward funds to the contract.
@@ -937,9 +947,8 @@ module propbase::propbase_staking {
             claim_state,
             false
         );
-        if (!vector::contains(&mut stake_pool_config.exited_addressess, &user_address)) {
-            vector::push_back(&mut stake_pool_config.exited_addressess, user_address);
-        };
+        update_addresses_on_exit(stake_pool_config, user_address);
+
         event::emit_event<ClaimPrincipalAndRewardEvent>(
             &mut claim_state.updated_claim_principal_and_reward_events,
             ClaimPrincipalAndRewardEvent {
