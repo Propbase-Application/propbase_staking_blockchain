@@ -784,7 +784,7 @@ module propbase::propbase_staking {
         let now = timestamp::now_seconds();
         let admin_address = signer::address_of(admin);
 
-        assert!(now < stake_pool_config.epoch_end_time || !stake_pool_config.is_valid_state, error::out_of_range(E_NOT_IN_STAKING_RANGE));
+        assert!(now < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
         assert!(admin_address == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
         assert!(!contract_config.emergency_locked, error::invalid_argument(E_CONTRACT_ALREADY_EMERGENCY_LOCKED));
 
