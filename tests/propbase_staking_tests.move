@@ -2749,7 +2749,7 @@ module propbase::propbase_staking_tests {
 
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20009, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20025, location = propbase_staking )]
     fun test_failure_add_stake_pool_already_ended(
         resource: &signer,
         admin: &signer,
@@ -2789,7 +2789,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20009, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20025, location = propbase_staking )]
     fun test_failure_add_stake_must_be_one_day_before(
         resource: &signer,
         admin: &signer,
@@ -2829,7 +2829,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20009, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20025, location = propbase_staking )]
     fun test_failure_add_stake_after_pool_ended(
         resource: &signer,
         admin: &signer,
@@ -2911,7 +2911,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20009, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20025, location = propbase_staking )]
     fun test_failure_add_stake_pool_not_started(
         resource: &signer,
         admin: &signer,
@@ -4084,7 +4084,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20000, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20009, location = propbase_staking )]
     fun test_failure_withdraw_stake_out_of_range(
         resource: &signer,
         admin: &signer,
@@ -4172,7 +4172,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20000, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20009, location = propbase_staking )]
     fun test_success_withdraw_stake_after_one_second_of_pool_end_time(
         resource: &signer,
         admin: &signer,
@@ -4216,7 +4216,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20000, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20024, location = propbase_staking )]
     fun test_failure_withdraw_stake_one_day_not_passed(
         resource: &signer,
         admin: &signer,
@@ -4259,7 +4259,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20000, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20024, location = propbase_staking )]
     fun test_failure_withdraw_stake_just_before_one_day_of_first_stake(
         resource: &signer,
         admin: &signer,
@@ -5211,7 +5211,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20000, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20009, location = propbase_staking )]
     fun test_failure_claim_rewards_exactly_at_one_sec_after_pool_end_time(
         resource: &signer,
         admin: &signer,
@@ -5624,7 +5624,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20000, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20009, location = propbase_staking )]
     fun test_failure_claim_rewards_when_claimed_after_epoch_ends(
         resource: &signer,
         admin: &signer,
@@ -6563,7 +6563,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20000, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20018, location = propbase_staking )]
     fun test_failure_withdraw_excess_rewards_pool_not_ended(
         resource: &signer,
         admin: &signer,
@@ -6924,7 +6924,7 @@ module propbase::propbase_staking_tests {
     }
     
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20000, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20019, location = propbase_staking )]
     fun test_failure_withdraw_unclaimed_rewards_five_year_not_passed(
         resource: &signer,
         admin: &signer,
@@ -8150,7 +8150,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20000, location = propbase_staking)]
+    #[expected_failure(abort_code = 0x20018, location = propbase_staking)]
     fun test_failure_of_claim_principal_and_rewards_when_stake_is_in_progress(
         resource: &signer,
         admin: &signer,
@@ -8194,8 +8194,6 @@ module propbase::propbase_staking_tests {
 
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
 
-        propbase_staking::withdraw_excess_rewards<PROPS>(address_1);
-
         let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_2));
         assert!(claimed_rewards == 0, 21);
         fast_forward_secs(200000);
@@ -8203,7 +8201,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20000, location = propbase_staking)]
+    #[expected_failure(abort_code = 0x10007, location = propbase_staking)]
     fun test_failure_of_claim_principal_and_rewards_when_coin_is_not_props(
         resource: &signer,
         admin: &signer,
@@ -8245,8 +8243,7 @@ module propbase::propbase_staking_tests {
         propbase_staking::add_stake<PROPS>(address_2, 10000000000);
 
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
-
-        propbase_staking::withdraw_excess_rewards<PROPS>(address_1);
+        fast_forward_secs(280000);
 
         let claimed_rewards = propbase_staking::get_rewards_claimed_by_user(signer::address_of(address_2));
         assert!(claimed_rewards == 0, 21);
@@ -8637,7 +8634,7 @@ module propbase::propbase_staking_tests {
         vector::push_back(&mut receivers, signer::address_of(address_2));
         setup_prop(resource, receivers);
 
-        let difference = (100000 - 80000);
+        let difference = (170000 - 80000);
         let req_funds = difference * 20000000000 * 15;
         let divisor = 31622400 * 100;
         let required_funds = req_funds / divisor;
@@ -8645,11 +8642,11 @@ module propbase::propbase_staking_tests {
         propbase_staking::set_reward_treasurer(admin, signer::address_of(address_1));
         propbase_staking::add_reward_funds<PROPS>(address_1, required_funds);
         propbase_staking::set_treasury(admin, signer::address_of(address_1));
-        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 100000, 15, 50, 1000000000, 10000000000, 31622400, update_config);
+        propbase_staking::create_or_update_stake_pool(admin,string::utf8(b"Hello"), 20000000000, 80000, 170000, 15, 50, 1000000000, 10000000000, 31622400, update_config);
 
         fast_forward_secs(10000);
         propbase_staking::add_stake<PROPS>(address_2, 10000000000);
-        fast_forward_secs(20000);
+        fast_forward_secs(170000);
         let (_, _, _, _, _, _, isStopped, _, _) = propbase_staking::get_app_config();
         assert!(isStopped ==false, 1);
         propbase_staking::emergency_stop(admin);
