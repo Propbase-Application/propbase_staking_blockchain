@@ -47,6 +47,7 @@ module propbase::propbase_staking {
         unclaimed_reward_withdraw_at: u64,
         staked_addressess: vector<address>,
         exited_addressess: vector<address>,
+        is_valid_state: bool,
     }
 
     struct RewardPool has key {
@@ -166,7 +167,7 @@ module propbase::propbase_staking {
     // Constants
 
     // The address of the PROPS coin is defined to be checked on coin transaction.
-    const PROPS_COIN: vector<u8> = b"0xe50684a338db732d8fb8a3ac71c4b8633878bd0193bca5de2ebc852a83b35099::propbase_coin::PROPS";
+    const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
     const SECONDS_IN_DAY: u64 = 86400;
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
     const SECONDS_IN_LEAP_YEAR: u64 = 31622400;
@@ -206,6 +207,7 @@ module propbase::propbase_staking {
     const E_EXCESS_REWARD_NOT_CALCULATED: u64 = 32;
     const E_EXCESS_REWARD_ALREADY_CALCULATED: u64 = 33;
     const E_CONTRACT_NOT_EMERGENCY_LOCKED: u64 = 34;
+    const E_CONTRACT_NOT_IN_VALID_STATE: u64 = 35;
 
     // This function is invoked automatically when the module is published.
     // Input: resource_account - resource account where the contract lives. This is passed by the publish command when its being deployed.
@@ -255,6 +257,7 @@ module propbase::propbase_staking {
             unclaimed_reward_withdraw_at: 0,
             staked_addressess: vector::empty<address>(),
             exited_addressess: vector::empty<address>(),
+            is_valid_state: false,
         });
         move_to(resource_account, RewardPool {
             available_rewards: 0,
@@ -419,6 +422,7 @@ module propbase::propbase_staking {
         let period = stake_pool_config.epoch_end_time - stake_pool_config.epoch_start_time;
         let required_rewards = apply_reward_formula(stake_pool_config.pool_cap, period, stake_pool_config.interest_rate, stake_pool_config.seconds_in_year);
         assert!(reward_state.available_rewards >= (required_rewards as u64), error::resource_exhausted(E_REWARD_NOT_ENOUGH));
+        validate_state(stake_pool_config);
 
         let setStakePoolEvent = SetStakePoolEvent {
                 pool_name: contract_config.app_name,
@@ -444,6 +448,7 @@ module propbase::propbase_staking {
     ) acquires StakeApp, StakePool {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        assert!(stake_pool_config.is_valid_state, error::permission_denied(E_CONTRACT_NOT_IN_VALID_STATE));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
         stake_pool_config.unclaimed_reward_withdraw_time = DEFAULT_REWARD_EXPIRY_TIME + additional_time;
         stake_pool_config.unclaimed_reward_withdraw_at = stake_pool_config.epoch_end_time + stake_pool_config.unclaimed_reward_withdraw_time;
@@ -461,6 +466,7 @@ module propbase::propbase_staking {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
 
+        assert!(stake_pool_config.is_valid_state, error::permission_denied(E_CONTRACT_NOT_IN_VALID_STATE));
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(amount >= contract_config.min_stake_amount, error::invalid_argument(E_INVALID_AMOUNT));
@@ -778,7 +784,7 @@ module propbase::propbase_staking {
         let now = timestamp::now_seconds();
         let admin_address = signer::address_of(admin);
 
-        assert!(now < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
+        assert!(now < stake_pool_config.epoch_end_time || !stake_pool_config.is_valid_state, error::out_of_range(E_NOT_IN_STAKING_RANGE));
         assert!(admin_address == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
         assert!(!contract_config.emergency_locked, error::invalid_argument(E_CONTRACT_ALREADY_EMERGENCY_LOCKED));
 
@@ -1018,6 +1024,7 @@ module propbase::propbase_staking {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
 
+        assert!(stake_pool_config.is_valid_state, error::permission_denied(E_CONTRACT_NOT_IN_VALID_STATE));
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(signer::address_of(user) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
@@ -1118,6 +1125,15 @@ module propbase::propbase_staking {
 
         reward_state.available_rewards = 0;
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, reward_balance);
+    }
+
+    inline fun validate_state(
+        stake_pool_config: &mut StakePool
+    ){
+        if(stake_pool_config.pool_cap >= 20000000000 && stake_pool_config.epoch_start_time > 0 && stake_pool_config.epoch_end_time > 0 && 
+        stake_pool_config.epoch_start_time < stake_pool_config.epoch_end_time && stake_pool_config.interest_rate > 0 && stake_pool_config.penalty_rate > 0){
+            stake_pool_config.is_valid_state = true;
+        }
     }
 
     // This function is a view function that shows StakeApp variables at given time.
