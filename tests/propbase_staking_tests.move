@@ -4216,7 +4216,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20026, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20024, location = propbase_staking )]
     fun test_failure_withdraw_stake_one_day_not_passed(
         resource: &signer,
         admin: &signer,
@@ -4259,7 +4259,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20026, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20024, location = propbase_staking )]
     fun test_failure_withdraw_stake_just_before_one_day_of_first_stake(
         resource: &signer,
         admin: &signer,
@@ -6563,7 +6563,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20024, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20018, location = propbase_staking )]
     fun test_failure_withdraw_excess_rewards_pool_not_ended(
         resource: &signer,
         admin: &signer,
@@ -6924,7 +6924,7 @@ module propbase::propbase_staking_tests {
     }
     
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB, aptos_framework = @0x1)]
-    #[expected_failure(abort_code = 0x20025, location = propbase_staking )]
+    #[expected_failure(abort_code = 0x20019, location = propbase_staking )]
     fun test_failure_withdraw_unclaimed_rewards_five_year_not_passed(
         resource: &signer,
         admin: &signer,
