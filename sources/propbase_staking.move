@@ -210,6 +210,8 @@ module propbase::propbase_staking {
     const E_CONTRACT_NOT_EMERGENCY_LOCKED: u64 = 34;
     const E_CONTRACT_NOT_IN_VALID_STATE: u64 = 35;
     const E_FIRST_UNSTAKE_CANNOT_HAPPEN_WITHIN_24_HOURS : u64 = 36;
+    const E_NOT_IN_STAKING_RANGE : u64 = 37;
+    const E_STAKE_CANNOT_HAPPEN_LAST_24_HOURS : u64 = 38;
 
     // This function is invoked automatically when the module is published.
     // Input: resource_account - resource account where the contract lives. This is passed by the publish command when its being deployed.
@@ -472,8 +474,8 @@ module propbase::propbase_staking {
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(amount >= contract_config.min_stake_amount, error::invalid_argument(E_INVALID_AMOUNT));
-        assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(E_POOL_ENDED));
-        assert!(now < stake_pool_config.epoch_end_time - SECONDS_IN_DAY, error::out_of_range(E_POOL_ENDED));
+        assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
+        assert!(now < stake_pool_config.epoch_end_time - SECONDS_IN_DAY, error::out_of_range(E_STAKE_CANNOT_HAPPEN_LAST_24_HOURS));
         assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap, error::resource_exhausted(E_STAKE_POOL_EXHAUSTED));
 
         stake_pool_config.staked_amount = stake_pool_config.staked_amount + amount;
