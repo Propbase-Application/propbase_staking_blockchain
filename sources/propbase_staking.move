@@ -167,7 +167,7 @@ module propbase::propbase_staking {
     // Constants
 
     // The address of the PROPS coin is defined to be checked on coin transaction.
-    const PROPS_COIN: vector<u8> = b"0xe50684a338db732d8fb8a3ac71c4b8633878bd0193bca5de2ebc852a83b35099::propbase_coin::PROPS";
+    const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
     const SECONDS_IN_DAY: u64 = 86400;
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
     const SECONDS_IN_LEAP_YEAR: u64 = 31622400;
@@ -208,6 +208,9 @@ module propbase::propbase_staking {
     const E_EXCESS_REWARD_ALREADY_CALCULATED: u64 = 33;
     const E_CONTRACT_NOT_EMERGENCY_LOCKED: u64 = 34;
     const E_CONTRACT_NOT_IN_VALID_STATE: u64 = 35;
+    const E_IN_STAKING_RANGE: u64 = 36;
+    const E_CLAIM_NOT_MATURED: u64 = 37;
+    const E_ONE_DAY_NOT_PASSED_AFTER_FIRST_STAKE : u64 = 38;
 
     // This function is invoked automatically when the module is published.
     // Input: resource_account - resource account where the contract lives. This is passed by the publish command when its being deployed.
@@ -567,9 +570,9 @@ module propbase::propbase_staking {
         let user_state = borrow_global_mut<UserInfo>(user_address);
 
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
-        assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(0));
+        assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
         assert!(amount >= 100000000, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_OR_EQUAL_TO_ONE));
-        assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(0));
+        assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(E_ONE_DAY_NOT_PASSED_AFTER_FIRST_STAKE));
         assert!(user_state.principal >= amount, error::resource_exhausted(E_STAKE_NOT_ENOUGH));
 
         let accumulated_rewards = get_total_rewards_so_far(
@@ -875,7 +878,7 @@ module propbase::propbase_staking {
         let now = timestamp::now_seconds();
 
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
-        assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(0));
+        assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
         assert_props<CoinType>();
         assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(E_NOT_IN_CLAIMING_RANGE));
         assert!(reward_state.available_rewards > 0, error::resource_exhausted(E_REWARD_NOT_ENOUGH));
@@ -1028,7 +1031,7 @@ module propbase::propbase_staking {
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(signer::address_of(user) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
-        assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(0));
+        assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(E_IN_STAKING_RANGE));
         assert!(contract_config.excess_reward_calculated, error::permission_denied(E_EXCESS_REWARD_NOT_CALCULATED));
 
         let reward_balance = get_contract_reward_balance();
@@ -1121,7 +1124,7 @@ module propbase::propbase_staking {
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(signer::address_of(user) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
-        assert!(now > stake_pool_config.unclaimed_reward_withdraw_at, error::out_of_range(0));
+        assert!(now > stake_pool_config.unclaimed_reward_withdraw_at, error::out_of_range(E_CLAIM_NOT_MATURED));
 
         reward_state.available_rewards = 0;
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, reward_balance);
