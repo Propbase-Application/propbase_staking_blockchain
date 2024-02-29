@@ -819,21 +819,6 @@ module propbase::propbase_staking {
         let distributed_addressess = vector::empty<address>();
         let distributed_assets = vector::empty<u64>();
         while (length > 0 && index < length && i < (limit as u64)) {
-            // let user = *vector::borrow(&stake_pool_config.staked_addressess, index);
-            // let user_state = borrow_global_mut<UserInfo>(user);
-            // let (total_returns, _) = transfer_principal_and_rewards<CoinType>(
-            //     user,
-            //     user_state,
-            //     contract_config,
-            //     stake_pool_config,
-            //     reward_state,
-            //     claim_state,
-            //     true
-            // );
-            // vector::push_back(&mut contract_config.emergency_asset_distributed_addressess, user);
-            // vector::push_back(&mut distributed_addressess, user);
-            // vector::push_back(&mut distributed_assets, total_returns);
-
             emergency_asset_distribution_to_slice<CoinType>(
                 stake_pool_config,
                 contract_config,
@@ -861,6 +846,15 @@ module propbase::propbase_staking {
         event::emit(emergency_asset_distribution_events);
     }
 
+    // This helper function allows transfer of principal and rewards during emergency
+    // Input:  stake_pool_config - StakePool
+    // Input:  contract_config - StakeApp
+    // Input:  reward_state - RewardPool
+    // Input:  claim_state - ClaimPool
+    // Input:  index - element position of the user address in staked_addressess
+    // Input:  distributed_addressess - address to which assets are distributed
+    // Input:  distributed_assets - amount of asset distributed
+    // Input:  is_batch - whether called in emergency_asset_distribution for a batch of address
     fun emergency_asset_distribution_to_slice<CoinType>(
         stake_pool_config: &mut StakePool,
         contract_config: &mut StakeApp,
