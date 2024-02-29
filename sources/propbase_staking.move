@@ -10,7 +10,7 @@ module propbase::propbase_staking {
     use std::error;
     use aptos_std::table_with_length::{ Self as Table, TableWithLength };
     use aptos_std::type_info;
-    use aptos_framework::event::{ Self, EventHandle };
+    use aptos_framework::event::{ Self };
     use aptos_framework::aptos_account;
     use aptos_framework::account::{ Self, SignerCapability };
     use aptos_framework::timestamp;
@@ -491,8 +491,6 @@ module propbase::propbase_staking {
                 is_total_earnings_withdrawn: false,
             });
 
-            let user_state = borrow_global_mut<UserInfo>(user_address);
-
             let stake_events = StakeEvent {
                     principal: amount,
                     amount: amount,
@@ -863,7 +861,7 @@ module propbase::propbase_staking {
         event::emit(emergency_asset_distribution_events);
     }
 
-    inline fun emergency_asset_distribution_to_slice<CoinType>(
+    fun emergency_asset_distribution_to_slice<CoinType>(
         stake_pool_config: &mut StakePool,
         contract_config: &mut StakeApp,
         reward_state: &mut RewardPool,
@@ -872,7 +870,7 @@ module propbase::propbase_staking {
         distributed_addressess: vector<address>,
         distributed_assets: vector<u64>,
         is_batch: bool
-    ): u64 acquires UserInfo, StakeApp, StakePool, RewardPool, ClaimPool {
+    ): u64 acquires UserInfo {
         let user = *vector::borrow(&stake_pool_config.staked_addressess, index);
         let user_state = borrow_global_mut<UserInfo>(user);
 
@@ -898,7 +896,7 @@ module propbase::propbase_staking {
             vector::push_back(&mut distributed_addressess, user);
             vector::push_back(&mut distributed_assets, total_returns);
         };
-        return total_returns
+        total_returns
     }
 
     // This function is a helper function this is used by user to claim $PROPS rewards
@@ -964,7 +962,6 @@ module propbase::propbase_staking {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let claim_state = borrow_global_mut<ClaimPool>(@propbase);
 
-        // assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(!user_state.is_total_earnings_withdrawn, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
 
