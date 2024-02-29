@@ -10,7 +10,7 @@ module propbase::propbase_staking {
     use std::error;
     use aptos_std::table_with_length::{ Self as Table, TableWithLength };
     use aptos_std::type_info;
-    use aptos_framework::event::{ Self, EventHandle };
+    use aptos_framework::event::{ Self };
     use aptos_framework::aptos_account;
     use aptos_framework::account::{ Self, SignerCapability };
     use aptos_framework::timestamp;
@@ -501,8 +501,6 @@ module propbase::propbase_staking {
                 is_total_earnings_withdrawn: false,
             });
 
-            let user_state = borrow_global_mut<UserInfo>(user_address);
-
             let stake_events = StakeEvent {
                     principal: amount,
                     amount: amount,
@@ -672,7 +670,7 @@ module propbase::propbase_staking {
         period: u64,
         interest_rate: u64,
         seconds_in_year: u64
-    ): u128 acquires StakePool {
+    ): u128 {
         let interest = ((principal as u128) * (interest_rate as u128));
         let interest_per_sec = interest / (seconds_in_year as u128);
         let remainder = interest % (seconds_in_year as u128);
@@ -700,7 +698,7 @@ module propbase::propbase_staking {
         seconds_in_year: u64,
         epoch_end_time: u64,
         epoch_emergency_stop_time: u64
-    ): u64 acquires StakePool, StakeApp {
+    ): u64 {
         let rewards;
         let now = timestamp::now_seconds();
         if(now > epoch_end_time) {
@@ -831,20 +829,16 @@ module propbase::propbase_staking {
         let distributed_addressess = vector::empty<address>();
         let distributed_assets = vector::empty<u64>();
         while (length > 0 && index < length && i < (limit as u64)) {
-            let user = *vector::borrow(&stake_pool_config.staked_addressess, index);
-            let user_state = borrow_global_mut<UserInfo>(user);
-            let (total_returns, _) = transfer_principal_and_rewards<CoinType>(
-                user,
-                user_state,
-                contract_config,
+            emergency_asset_distribution_to_slice<CoinType>(
                 stake_pool_config,
+                contract_config,
                 reward_state,
                 claim_state,
+                index,
+                distributed_addressess,
+                distributed_assets,
                 true
             );
-            vector::push_back(&mut contract_config.emergency_asset_distributed_addressess, user);
-            vector::push_back(&mut distributed_addressess, user);
-            vector::push_back(&mut distributed_assets, total_returns);
             index = index + 1;
             i = i + 1;
         };
@@ -860,6 +854,53 @@ module propbase::propbase_staking {
                 distributed_assets: distributed_assets
             };
         event::emit(emergency_asset_distribution_events);
+    }
+
+    // This helper function allows transfer of principal and rewards during emergency
+    // Input:  stake_pool_config - StakePool
+    // Input:  contract_config - StakeApp
+    // Input:  reward_state - RewardPool
+    // Input:  claim_state - ClaimPool
+    // Input:  index - element position of the user address in staked_addressess
+    // Input:  distributed_addressess - address to which assets are distributed
+    // Input:  distributed_assets - amount of asset distributed
+    // Input:  is_batch - whether called in emergency_asset_distribution for a batch of address
+    fun emergency_asset_distribution_to_slice<CoinType>(
+        stake_pool_config: &mut StakePool,
+        contract_config: &mut StakeApp,
+        reward_state: &mut RewardPool,
+        claim_state: &mut ClaimPool,
+        index: u64,
+        distributed_addressess: vector<address>,
+        distributed_assets: vector<u64>,
+        is_batch: bool
+    ): u64 acquires UserInfo {
+        let user = *vector::borrow(&stake_pool_config.staked_addressess, index);
+        let user_state = borrow_global_mut<UserInfo>(user);
+
+        if (user_state.is_total_earnings_withdrawn) {
+            if (is_batch) {
+                return 0
+            } else {
+                assert!(false, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
+            };
+        };
+
+        let (total_returns, _) = transfer_principal_and_rewards<CoinType>(
+            user,
+            user_state,
+            contract_config,
+            stake_pool_config,
+            reward_state,
+            claim_state,
+            true
+        );
+        vector::push_back(&mut contract_config.emergency_asset_distributed_addressess, user);
+        if (is_batch) {
+            vector::push_back(&mut distributed_addressess, user);
+            vector::push_back(&mut distributed_assets, total_returns);
+        };
+        total_returns
     }
 
     // This function is a helper function this is used by user to claim $PROPS rewards
@@ -925,27 +966,48 @@ module propbase::propbase_staking {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let claim_state = borrow_global_mut<ClaimPool>(@propbase);
 
-        assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(!user_state.is_total_earnings_withdrawn, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
-        assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(E_STAKE_IN_PROGRESS));
-        let (total_returns, accumulated_rewards) = transfer_principal_and_rewards<CoinType>(
-            user_address,
-            user_state,
-            contract_config,
-            stake_pool_config,
-            reward_state,
-            claim_state,
-            false
-        );
-        update_addresses_on_exit(stake_pool_config, user_address);
 
-        let updated_claim_principal_and_reward_events = ClaimPrincipalAndRewardEvent {
+        if (contract_config.emergency_locked) {
+            let (_, index) = vector::index_of(&stake_pool_config.staked_addressess, &user_address);
+            let total_returns = emergency_asset_distribution_to_slice<CoinType>(
+                stake_pool_config,
+                contract_config,
+                reward_state,
+                claim_state,
+                index,
+                vector::empty<address>(),
+                vector::empty<u64>(),
+                false
+            );
+
+            let emergency_asset_distribution_events = EmergencyAssetDistributionEvent {
+                distributed_addressess: vector::singleton(user_address),
+                distributed_assets: vector::singleton(total_returns)
+            };
+            event::emit(emergency_asset_distribution_events);
+        } else {
+            assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(E_STAKE_IN_PROGRESS));
+            let (total_returns, accumulated_rewards) = transfer_principal_and_rewards<CoinType>(
+                user_address,
+                user_state,
+                contract_config,
+                stake_pool_config,
+                reward_state,
+                claim_state,
+                false
+            );
+            update_addresses_on_exit(stake_pool_config, user_address);
+            let updated_claim_principal_and_reward_events = ClaimPrincipalAndRewardEvent {
                 timestamp: now,
                 claimed_amount: total_returns,
                 reward_amount: accumulated_rewards
             };
-        event::emit(updated_claim_principal_and_reward_events);
+            event::emit(updated_claim_principal_and_reward_events);
+        };
+
+        
     }
 
     // This function is a helper function this is used to transfer $PROPS from contract to user_address 
