@@ -865,7 +865,7 @@ module propbase::propbase_staking {
     // Input:  distributed_addressess - address to which assets are distributed
     // Input:  distributed_assets - amount of asset distributed
     // Input:  is_batch - whether called in emergency_asset_distribution for a batch of address
-    fun emergency_asset_distribution_to_slice<CoinType>(
+    inline fun emergency_asset_distribution_to_slice<CoinType>(
         stake_pool_config: &mut StakePool,
         contract_config: &mut StakeApp,
         reward_state: &mut RewardPool,
@@ -875,30 +875,27 @@ module propbase::propbase_staking {
         distributed_assets: vector<u64>,
         is_batch: bool
     ): u64 acquires UserInfo {
+        let total_returns = 0;
         let user = *vector::borrow(&stake_pool_config.staked_addressess, index);
         let user_state = borrow_global_mut<UserInfo>(user);
 
-        if (user_state.is_total_earnings_withdrawn) {
+        if (!user_state.is_total_earnings_withdrawn) {
+            (total_returns, _) = transfer_principal_and_rewards<CoinType>(
+                user,
+                user_state,
+                contract_config,
+                stake_pool_config,
+                reward_state,
+                claim_state,
+                true
+            );
+            vector::push_back(&mut contract_config.emergency_asset_distributed_addressess, user);
             if (is_batch) {
-                return 0
-            } else {
-                assert!(false, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
+                vector::push_back(&mut distributed_addressess, user);
+                vector::push_back(&mut distributed_assets, total_returns);
             };
-        };
-
-        let (total_returns, _) = transfer_principal_and_rewards<CoinType>(
-            user,
-            user_state,
-            contract_config,
-            stake_pool_config,
-            reward_state,
-            claim_state,
-            true
-        );
-        vector::push_back(&mut contract_config.emergency_asset_distributed_addressess, user);
-        if (is_batch) {
-            vector::push_back(&mut distributed_addressess, user);
-            vector::push_back(&mut distributed_assets, total_returns);
+        } else if (!is_batch) {
+            assert!(false, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
         };
         total_returns
     }
