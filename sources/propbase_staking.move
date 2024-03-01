@@ -10,7 +10,7 @@ module propbase::propbase_staking {
     use std::error;
     use aptos_std::table_with_length::{ Self as Table, TableWithLength };
     use aptos_std::type_info;
-    use aptos_framework::event::{ Self, EventHandle };
+    use aptos_framework::event::{ Self };
     use aptos_framework::aptos_account;
     use aptos_framework::account::{ Self, SignerCapability };
     use aptos_framework::timestamp;
@@ -32,12 +32,6 @@ module propbase::propbase_staking {
         excess_reward_calculated_addresses: vector<address>,
         epoch_emergency_stop_time: u64,
         emergency_asset_distributed_addressess: vector<address>,
-        set_admin_events: EventHandle<SetAdminEvent>,
-        set_treasury_events: EventHandle<SetTreasuryEvent>,
-        set_reward_treasurer_events: EventHandle<address>,
-        set_excess_reward_calculated_event: EventHandle<SetExcessRewardCalculatedEvent>,
-        emergency_stop_events: EventHandle<EmergencyStopEvent>,
-        emergency_asset_distribution_events: EventHandle<EmergencyAssetDistributionEvent>,
     }
 
     struct StakePool has key {
@@ -52,20 +46,18 @@ module propbase::propbase_staking {
         unclaimed_reward_withdraw_time: u64,
         unclaimed_reward_withdraw_at: u64,
         staked_addressess: vector<address>,
-        set_pool_config_events: EventHandle<SetStakePoolEvent>,
+        exited_addressess: vector<address>,
+        is_valid_state: bool,
     }
 
     struct RewardPool has key {
         available_rewards: u64,
-        updated_rewards_events: EventHandle<UpdateRewardsEvent>,
     }
 
     struct ClaimPool has key {
         total_rewards_claimed: u64,
         total_claimed_principal: u64,
         claimed_rewards: TableWithLength<address, u64>,
-        claim_reward_events: EventHandle<ClaimRewardEvent>,
-        updated_claim_principal_and_reward_events: EventHandle<ClaimPrincipalAndRewardEvent>
     }
 
     struct UserInfo has key {
@@ -78,10 +70,9 @@ module propbase::propbase_staking {
         last_staked_time: u64,
         first_staked_time: u64,
         is_total_earnings_withdrawn: bool,
-        stake_events: EventHandle<StakeEvent>,
-        unstake_events: EventHandle<UnStakeEvent>,
     }
 
+    #[event]
     struct StakeEvent has drop, store{
         principal: u64,
         amount: u64,
@@ -89,6 +80,7 @@ module propbase::propbase_staking {
         staked_time: u64,
     }
 
+    #[event]
     struct UnStakeEvent has drop, store{
         withdrawn: u64,
         amount: u64,
@@ -97,37 +89,50 @@ module propbase::propbase_staking {
         unstaked_time: u64,
     }
 
+    #[event]
     struct Stake has drop, store {
         timestamp: u64,
         amount: u64,
     }
 
+    #[event]
     struct ClaimRewardEvent has drop, store {
         timestamp: u64,
         claimed_amount: u64,
     }
 
+    #[event]
     struct ClaimPrincipalAndRewardEvent has drop, store {
         timestamp: u64,
         claimed_amount: u64,
         reward_amount: u64,
     }
 
+    #[event]
     struct SetAdminEvent has drop, store {
         old_admin: address,
         new_admin: address,
     }
 
+    #[event]
     struct SetTreasuryEvent has drop, store {
         old_treasury: address,
         new_treasury: address,
     }
 
+    #[event]
+    struct SetRewardTreasurerEvent has drop, store {
+        old_treasurer: address,
+        new_treasurer: address,
+    }
+
+    #[event]
     struct UpdateRewardsEvent has drop, store {
         old_rewards: u64,
         new_rewards: u64,
     }
 
+    #[event]
     struct SetStakePoolEvent has drop, store {
         pool_name: String,
         pool_cap: u64,
@@ -140,25 +145,26 @@ module propbase::propbase_staking {
         seconds_in_year: u64
     }
 
+    #[event]
     struct EmergencyStopEvent has drop, store {
         time: u64,
         admin: address,
         emergency_locked: bool
     }
 
+    #[event]
     struct SetExcessRewardCalculatedEvent has drop, store {
         required_rewards: u64,
         required_rewards_calculated: bool
     }
 
+    #[event]
     struct EmergencyAssetDistributionEvent has drop, store {
         distributed_addressess: vector<address>,
         distributed_assets: vector<u64>
     }
 
-    //
     // Constants
-    //
 
     // The address of the PROPS coin is defined to be checked on coin transaction.
     const PROPS_COIN: vector<u8> = b"0xe50684a338db732d8fb8a3ac71c4b8633878bd0193bca5de2ebc852a83b35099::propbase_coin::PROPS";
@@ -166,6 +172,7 @@ module propbase::propbase_staking {
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
     const SECONDS_IN_LEAP_YEAR: u64 = 31622400;
     const DEFAULT_REWARD_EXPIRY_TIME: u64 = 31536000 * 2;
+    const DEFAULT_MIN_POOL_CAP: u64 = 20000000000;
 
     const E_NOT_AUTHORIZED: u64 = 1;
     const E_NOT_NOT_A_TREASURER: u64 = 2;
@@ -175,7 +182,7 @@ module propbase::propbase_staking {
     const E_STAKE_ALREADY_STARTED: u64 = 6;
     const E_NOT_PROPS: u64 = 7;
     const E_INVALID_AMOUNT: u64 = 8;
-    const E_NOT_IN_STAKING_RANGE: u64 = 9;
+    const E_POOL_ENDED: u64 = 9;
     const E_NOT_STAKED_USER: u64 = 10;
     const E_ACCOUNT_DOES_NOT_EXIST: u64 = 11;
     const E_STAKE_POOL_INTEREST_OUT_OF_RANGE: u64 = 12;
@@ -186,7 +193,7 @@ module propbase::propbase_staking {
     const E_STAKE_POOL_NAME_CANT_BE_EMPTY: u64 = 17;
     const E_AMOUNT_MUST_BE_GREATER_THAN_ZERO: u64 = 18;
     const E_REWARD_NOT_ENOUGH: u64 = 19;
-    const E_STAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO: u64 = 20;
+    const E_AMOUNT_MUST_BE_GREATER_THAN_OR_EQUAL_TO_ONE: u64 = 20;
     const E_STAKE_NOT_ENOUGH: u64 = 21;
     const E_SECONDS_IN_YEAR_INVALID: u64 = 22;
     const E_NOT_ENOUGH_REWARDS_TRY_AGAIN_LATER: u64 = 23;
@@ -201,6 +208,10 @@ module propbase::propbase_staking {
     const E_EXCESS_REWARD_NOT_CALCULATED: u64 = 32;
     const E_EXCESS_REWARD_ALREADY_CALCULATED: u64 = 33;
     const E_CONTRACT_NOT_EMERGENCY_LOCKED: u64 = 34;
+    const E_CONTRACT_NOT_IN_VALID_STATE: u64 = 35;
+    const E_FIRST_UNSTAKE_CANNOT_HAPPEN_WITHIN_24_HOURS : u64 = 36;
+    const E_NOT_IN_STAKING_RANGE : u64 = 37;
+    const E_STAKE_CANNOT_HAPPEN_LAST_24_HOURS : u64 = 38;
 
     // This function is invoked automatically when the module is published.
     // Input: resource_account - resource account where the contract lives. This is passed by the publish command when its being deployed.
@@ -236,12 +247,6 @@ module propbase::propbase_staking {
             excess_reward_calculated_addresses: vector::empty<address>(),
             epoch_emergency_stop_time: 0,
             emergency_asset_distributed_addressess: vector::empty<address>(),
-            set_admin_events: account::new_event_handle<SetAdminEvent>(resource_account),
-            set_treasury_events: account::new_event_handle<SetTreasuryEvent>(resource_account),
-            set_reward_treasurer_events: account::new_event_handle<address>(resource_account),
-            set_excess_reward_calculated_event: account::new_event_handle<SetExcessRewardCalculatedEvent>(resource_account),
-            emergency_stop_events: account::new_event_handle<EmergencyStopEvent>(resource_account),
-            emergency_asset_distribution_events: account::new_event_handle<EmergencyAssetDistributionEvent>(resource_account),
         });
         move_to(resource_account, StakePool {
             pool_cap: 0,
@@ -255,18 +260,16 @@ module propbase::propbase_staking {
             unclaimed_reward_withdraw_time: DEFAULT_REWARD_EXPIRY_TIME,
             unclaimed_reward_withdraw_at: 0,
             staked_addressess: vector::empty<address>(),
-            set_pool_config_events: account::new_event_handle<SetStakePoolEvent>(resource_account),
+            exited_addressess: vector::empty<address>(),
+            is_valid_state: false,
         });
         move_to(resource_account, RewardPool {
             available_rewards: 0,
-            updated_rewards_events: account::new_event_handle<UpdateRewardsEvent>(resource_account),
         });
         move_to(resource_account, ClaimPool {
             total_rewards_claimed: 0,
             total_claimed_principal: 0,
             claimed_rewards: Table::new(),
-            claim_reward_events: account::new_event_handle<ClaimRewardEvent>(resource_account), 
-            updated_claim_principal_and_reward_events: account::new_event_handle<ClaimPrincipalAndRewardEvent>(resource_account),
         });
     }
     
@@ -283,13 +286,12 @@ module propbase::propbase_staking {
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
 
         contract_config.admin = new_admin_address;
-        event::emit_event<SetAdminEvent>(
-            &mut contract_config.set_admin_events,
-            SetAdminEvent {
+
+        let setAdminEvent = SetAdminEvent {
                 old_admin: old_admin,
                 new_admin: new_admin_address
-            }
-        );
+            };  
+        event::emit(setAdminEvent);
     }
 
     // This function allows a current admin to set a new multisign treasury.
@@ -305,13 +307,12 @@ module propbase::propbase_staking {
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
 
         contract_config.treasury = new_treasury_address;
-        event::emit_event<SetTreasuryEvent>(
-            &mut contract_config.set_treasury_events,
-            SetTreasuryEvent {
+
+        let setTreasuryEvent = SetTreasuryEvent {
                 old_treasury: old_treasury,
                 new_treasury: new_treasury_address
-            }
-        );
+            };
+        event::emit(setTreasuryEvent);
     }
 
     // This function allows a current admin to set a new multisign reward treasury.
@@ -322,14 +323,17 @@ module propbase::propbase_staking {
         new_treasurer: address,
     ) acquires StakeApp {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        let old_treasurer = contract_config.reward_treasurer;
         assert!(account::exists_at(new_treasurer), error::invalid_argument(E_ACCOUNT_DOES_NOT_EXIST));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
 
         contract_config.reward_treasurer = new_treasurer;
-        event::emit_event<address>(
-            &mut contract_config.set_reward_treasurer_events,
-            new_treasurer
-        );
+
+        let setRewardTreasurerEvent = SetRewardTreasurerEvent {
+                old_treasurer: old_treasurer,
+                new_treasurer: new_treasurer
+            };
+        event::emit(setRewardTreasurerEvent);
     }
 
     // This function sets the contract configurations for pool
@@ -378,7 +382,7 @@ module propbase::propbase_staking {
             assert!(epoch_start_time < epoch_end_time, error::invalid_argument(E_STAKE_END_TIME_SHOULD_BE_GREATER_THAN_START_TIME));
         };
         if(set_pool_cap) {
-            assert!(pool_cap >= 20000000000, error::invalid_argument(E_STAKE_POOL_CAP_OUT_OF_RANGE));
+            assert!(pool_cap >= DEFAULT_MIN_POOL_CAP, error::invalid_argument(E_STAKE_POOL_CAP_OUT_OF_RANGE));
             stake_pool_config.pool_cap = pool_cap;          
         };
         if(set_epoch_start_time) {
@@ -406,7 +410,7 @@ module propbase::propbase_staking {
             contract_config.app_name = pool_name;
         };
         if(set_min_stake_amount) {
-            assert!(min_stake_amount > 0, error::invalid_argument(E_STAKE_MIN_STAKE_MUST_BE_GREATER_THAN_ZERO));
+            assert!(min_stake_amount >= 100000000, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_OR_EQUAL_TO_ONE));
             contract_config.min_stake_amount = min_stake_amount;
         };
         if(set_max_stake_amount) {
@@ -422,10 +426,9 @@ module propbase::propbase_staking {
         let period = stake_pool_config.epoch_end_time - stake_pool_config.epoch_start_time;
         let required_rewards = apply_reward_formula(stake_pool_config.pool_cap, period, stake_pool_config.interest_rate, stake_pool_config.seconds_in_year);
         assert!(reward_state.available_rewards >= (required_rewards as u64), error::resource_exhausted(E_REWARD_NOT_ENOUGH));
+        validate_state(stake_pool_config);
 
-        event::emit_event<SetStakePoolEvent>(
-            &mut stake_pool_config.set_pool_config_events,
-            SetStakePoolEvent {
+        let setStakePoolEvent = SetStakePoolEvent {
                 pool_name: contract_config.app_name,
                 pool_cap: stake_pool_config.pool_cap,
                 epoch_start_time: stake_pool_config.epoch_start_time,
@@ -435,8 +438,8 @@ module propbase::propbase_staking {
                 min_stake_amount: contract_config.min_stake_amount,
                 max_stake_amount: contract_config.max_stake_amount,
                 seconds_in_year: stake_pool_config.seconds_in_year
-            }
-        );
+            };
+        event::emit(setStakePoolEvent);
     }
 
     // This function adds more time to default reward expiry time. 
@@ -449,6 +452,7 @@ module propbase::propbase_staking {
     ) acquires StakeApp, StakePool {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
+        assert!(stake_pool_config.is_valid_state, error::permission_denied(E_CONTRACT_NOT_IN_VALID_STATE));
         assert!(signer::address_of(admin) == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
         stake_pool_config.unclaimed_reward_withdraw_time = DEFAULT_REWARD_EXPIRY_TIME + additional_time;
         stake_pool_config.unclaimed_reward_withdraw_at = stake_pool_config.epoch_end_time + stake_pool_config.unclaimed_reward_withdraw_time;
@@ -466,11 +470,12 @@ module propbase::propbase_staking {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
 
+        assert!(stake_pool_config.is_valid_state, error::permission_denied(E_CONTRACT_NOT_IN_VALID_STATE));
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(amount >= contract_config.min_stake_amount, error::invalid_argument(E_INVALID_AMOUNT));
         assert!(now >= stake_pool_config.epoch_start_time && now < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
-        assert!(now < stake_pool_config.epoch_end_time - SECONDS_IN_DAY, error::out_of_range(E_NOT_IN_STAKING_RANGE));
+        assert!(now < stake_pool_config.epoch_end_time - SECONDS_IN_DAY, error::out_of_range(E_STAKE_CANNOT_HAPPEN_LAST_24_HOURS));
         assert!(stake_pool_config.staked_amount + amount <= stake_pool_config.pool_cap, error::resource_exhausted(E_STAKE_POOL_EXHAUSTED));
 
         stake_pool_config.staked_amount = stake_pool_config.staked_amount + amount;
@@ -494,20 +499,15 @@ module propbase::propbase_staking {
                 last_staked_time: now,
                 first_staked_time: now,
                 is_total_earnings_withdrawn: false,
-                stake_events: account::new_event_handle<StakeEvent>(user),
-                unstake_events: account::new_event_handle<UnStakeEvent>(user),
             });
 
-            let user_state = borrow_global_mut<UserInfo>(user_address);
-            event::emit_event<StakeEvent>(
-                &mut user_state.stake_events,
-                StakeEvent {
+            let stake_events = StakeEvent {
                     principal: amount,
                     amount: amount,
                     accumulated_rewards: 0,
                     staked_time: now,
-                }
-            );
+                };
+            event::emit(stake_events);
         } else {
             let user_state = borrow_global_mut<UserInfo>(user_address);
             assert!(user_state.principal + amount <= contract_config.max_stake_amount, error::resource_exhausted(E_USER_STAKE_LIMIT_REACHED));
@@ -528,15 +528,13 @@ module propbase::propbase_staking {
             user_state.rewards_accumulated_at = now;
             vector::push_back(&mut user_state.staked_items, Stake { timestamp: now, amount });
 
-            event::emit_event<StakeEvent>(
-                &mut user_state.stake_events,
-                StakeEvent {
+            let stake_events = StakeEvent {
                     principal: user_state.principal,
                     amount: amount,
                     accumulated_rewards: user_state.accumulated_rewards,
                     staked_time: now,
-                }
-            );
+                };
+            event::emit(stake_events);
         }
     }
 
@@ -571,9 +569,9 @@ module propbase::propbase_staking {
         let user_state = borrow_global_mut<UserInfo>(user_address);
 
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
-        assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(0));
-        assert!(amount > 0, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_ZERO));
-        assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(0));
+        assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(E_POOL_ENDED));
+        assert!(amount >= 100000000, error::invalid_argument(E_AMOUNT_MUST_BE_GREATER_THAN_OR_EQUAL_TO_ONE));
+        assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(E_FIRST_UNSTAKE_CANNOT_HAPPEN_WITHIN_24_HOURS));
         assert!(user_state.principal >= amount, error::resource_exhausted(E_STAKE_NOT_ENOUGH));
 
         let accumulated_rewards = get_total_rewards_so_far(
@@ -600,16 +598,36 @@ module propbase::propbase_staking {
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, penalty);
         aptos_account::transfer_coins<CoinType>(resource_signer, user_address, bal_after_penalty);
 
-        event::emit_event<UnStakeEvent>(
-            &mut user_state.unstake_events,
-            UnStakeEvent {
+        if (user_state.principal == 0) {
+            update_addresses_on_exit(stake_pool_config, user_address);
+        };
+
+        let unstake_events = UnStakeEvent {
                 withdrawn: user_state.withdrawn,
                 amount: amount,
                 penalty: penalty,
                 accumulated_rewards: user_state.accumulated_rewards,
                 unstaked_time: now,
+            };
+        event::emit(unstake_events);
+    }
+
+    // This function removes the given address from staked_addressess and adds to exited_addressess
+    // Input: stake_pool_config - StakePool
+    // Input: user_address - address of the user
+    inline fun update_addresses_on_exit(
+        stake_pool_config: &mut StakePool,
+        user_address: address
+    ) {
+        if (vector::contains(&mut stake_pool_config.staked_addressess, &user_address)) {
+            let (exists, index) = vector::index_of(&stake_pool_config.staked_addressess, &user_address);
+            if (exists) {
+                vector::remove(&mut stake_pool_config.staked_addressess, index);
+                if (!vector::contains(&mut stake_pool_config.exited_addressess, &user_address)) {
+                    vector::push_back(&mut stake_pool_config.exited_addressess, user_address);
+                };
             }
-        );
+        };
     }
 
     // This function allows reward treasurer account to add reward funds to the contract.
@@ -633,13 +651,11 @@ module propbase::propbase_staking {
         contract_config.reward = updated_reward;
         aptos_account::transfer_coins<CoinType>(treasurer, @propbase, amount);
 
-        event::emit_event<UpdateRewardsEvent>(
-            &mut reward_state.updated_rewards_events,
-            UpdateRewardsEvent {
+        let updated_rewards_events = UpdateRewardsEvent {
                 old_rewards: prev_reward,
                 new_rewards: updated_reward
-            }
-        );
+            };
+        event::emit(updated_rewards_events);
     }
 
     // This function is a helper function that calculates the rewards
@@ -654,7 +670,7 @@ module propbase::propbase_staking {
         period: u64,
         interest_rate: u64,
         seconds_in_year: u64
-    ): u128 acquires StakePool {
+    ): u128 {
         let interest = ((principal as u128) * (interest_rate as u128));
         let interest_per_sec = interest / (seconds_in_year as u128);
         let remainder = interest % (seconds_in_year as u128);
@@ -682,7 +698,7 @@ module propbase::propbase_staking {
         seconds_in_year: u64,
         epoch_end_time: u64,
         epoch_emergency_stop_time: u64
-    ): u64 acquires StakePool, StakeApp {
+    ): u64 {
         let rewards;
         let now = timestamp::now_seconds();
         if(now > epoch_end_time) {
@@ -770,20 +786,18 @@ module propbase::propbase_staking {
         let now = timestamp::now_seconds();
         let admin_address = signer::address_of(admin);
 
-        assert!(now < stake_pool_config.epoch_end_time, error::out_of_range(E_NOT_IN_STAKING_RANGE));
+        assert!(now < stake_pool_config.epoch_end_time, error::out_of_range(E_POOL_ENDED));
         assert!(admin_address == contract_config.admin, error::permission_denied(E_NOT_AUTHORIZED));
         assert!(!contract_config.emergency_locked, error::invalid_argument(E_CONTRACT_ALREADY_EMERGENCY_LOCKED));
 
         contract_config.emergency_locked = true;
         contract_config.epoch_emergency_stop_time = now;
-        event::emit_event<EmergencyStopEvent>(
-            &mut contract_config.emergency_stop_events,
-            EmergencyStopEvent {
+        let emergency_stop_events = EmergencyStopEvent {
                 time: now,
                 admin: admin_address,
                 emergency_locked: contract_config.emergency_locked
-            }
-        );
+            };
+        event::emit(emergency_stop_events);
     }
 
     // This function is used by admin to distritbute user staked $PROPS and rewards $PROPS to user.
@@ -815,20 +829,16 @@ module propbase::propbase_staking {
         let distributed_addressess = vector::empty<address>();
         let distributed_assets = vector::empty<u64>();
         while (length > 0 && index < length && i < (limit as u64)) {
-            let user = *vector::borrow(&stake_pool_config.staked_addressess, index);
-            let user_state = borrow_global_mut<UserInfo>(user);
-            let (total_returns, _) = transfer_principal_and_rewards<CoinType>(
-                user,
-                user_state,
-                contract_config,
+            emergency_asset_distribution_to_slice<CoinType>(
                 stake_pool_config,
+                contract_config,
                 reward_state,
                 claim_state,
+                index,
+                distributed_addressess,
+                distributed_assets,
                 true
             );
-            vector::push_back(&mut contract_config.emergency_asset_distributed_addressess, user);
-            vector::push_back(&mut distributed_addressess, user);
-            vector::push_back(&mut distributed_assets, total_returns);
             index = index + 1;
             i = i + 1;
         };
@@ -838,13 +848,59 @@ module propbase::propbase_staking {
             aptos_account::transfer_coins<CoinType>(&resource_signer, contract_config.treasury, contract_balance_new);
             reward_state.available_rewards = 0;
         };
-        event::emit_event<EmergencyAssetDistributionEvent>(
-            &mut contract_config.emergency_asset_distribution_events,
-            EmergencyAssetDistributionEvent {
+
+        let emergency_asset_distribution_events = EmergencyAssetDistributionEvent {
                 distributed_addressess: distributed_addressess,
                 distributed_assets: distributed_assets
-            }
+            };
+        event::emit(emergency_asset_distribution_events);
+    }
+
+    // This helper function allows transfer of principal and rewards during emergency
+    // Input:  stake_pool_config - StakePool
+    // Input:  contract_config - StakeApp
+    // Input:  reward_state - RewardPool
+    // Input:  claim_state - ClaimPool
+    // Input:  index - element position of the user address in staked_addressess
+    // Input:  distributed_addressess - address to which assets are distributed
+    // Input:  distributed_assets - amount of asset distributed
+    // Input:  is_batch - whether called in emergency_asset_distribution for a batch of address
+    fun emergency_asset_distribution_to_slice<CoinType>(
+        stake_pool_config: &mut StakePool,
+        contract_config: &mut StakeApp,
+        reward_state: &mut RewardPool,
+        claim_state: &mut ClaimPool,
+        index: u64,
+        distributed_addressess: vector<address>,
+        distributed_assets: vector<u64>,
+        is_batch: bool
+    ): u64 acquires UserInfo {
+        let user = *vector::borrow(&stake_pool_config.staked_addressess, index);
+        let user_state = borrow_global_mut<UserInfo>(user);
+
+        if (user_state.is_total_earnings_withdrawn) {
+            if (is_batch) {
+                return 0
+            } else {
+                assert!(false, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
+            };
+        };
+
+        let (total_returns, _) = transfer_principal_and_rewards<CoinType>(
+            user,
+            user_state,
+            contract_config,
+            stake_pool_config,
+            reward_state,
+            claim_state,
+            true
         );
+        vector::push_back(&mut contract_config.emergency_asset_distributed_addressess, user);
+        if (is_batch) {
+            vector::push_back(&mut distributed_addressess, user);
+            vector::push_back(&mut distributed_assets, total_returns);
+        };
+        total_returns
     }
 
     // This function is a helper function this is used by user to claim $PROPS rewards
@@ -864,7 +920,7 @@ module propbase::propbase_staking {
         let now = timestamp::now_seconds();
 
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
-        assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(0));
+        assert!(now <= stake_pool_config.epoch_end_time, error::out_of_range(E_POOL_ENDED));
         assert_props<CoinType>();
         assert!(now >= user_state.first_staked_time + SECONDS_IN_DAY, error::out_of_range(E_NOT_IN_CLAIMING_RANGE));
         assert!(reward_state.available_rewards > 0, error::resource_exhausted(E_REWARD_NOT_ENOUGH));
@@ -889,13 +945,11 @@ module propbase::propbase_staking {
         reward_state.available_rewards = reward_state.available_rewards - accumulated_rewards;
         aptos_account::transfer_coins<CoinType>(resource_signer, user_address, accumulated_rewards);
 
-        event::emit_event<ClaimRewardEvent>(
-            &mut claim_state.claim_reward_events,
-            ClaimRewardEvent {
+        let claim_reward_events = ClaimRewardEvent {
                 timestamp: now,
                 claimed_amount: accumulated_rewards
-            }
-        );
+            };
+        event::emit(claim_reward_events);
     }
 
     // This function is a helper function this is used by user to claim principal and rewards 
@@ -912,27 +966,48 @@ module propbase::propbase_staking {
         let stake_pool_config = borrow_global_mut<StakePool>(@propbase);
         let claim_state = borrow_global_mut<ClaimPool>(@propbase);
 
-        assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(!user_state.is_total_earnings_withdrawn, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
-        assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(E_STAKE_IN_PROGRESS));
-        let (total_returns, accumulated_rewards) = transfer_principal_and_rewards<CoinType>(
-            user_address,
-            user_state,
-            contract_config,
-            stake_pool_config,
-            reward_state,
-            claim_state,
-            false
-        );
-        event::emit_event<ClaimPrincipalAndRewardEvent>(
-            &mut claim_state.updated_claim_principal_and_reward_events,
-            ClaimPrincipalAndRewardEvent {
+
+        if (contract_config.emergency_locked) {
+            let (_, index) = vector::index_of(&stake_pool_config.staked_addressess, &user_address);
+            let total_returns = emergency_asset_distribution_to_slice<CoinType>(
+                stake_pool_config,
+                contract_config,
+                reward_state,
+                claim_state,
+                index,
+                vector::empty<address>(),
+                vector::empty<u64>(),
+                false
+            );
+
+            let emergency_asset_distribution_events = EmergencyAssetDistributionEvent {
+                distributed_addressess: vector::singleton(user_address),
+                distributed_assets: vector::singleton(total_returns)
+            };
+            event::emit(emergency_asset_distribution_events);
+        } else {
+            assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(E_STAKE_IN_PROGRESS));
+            let (total_returns, accumulated_rewards) = transfer_principal_and_rewards<CoinType>(
+                user_address,
+                user_state,
+                contract_config,
+                stake_pool_config,
+                reward_state,
+                claim_state,
+                false
+            );
+            update_addresses_on_exit(stake_pool_config, user_address);
+            let updated_claim_principal_and_reward_events = ClaimPrincipalAndRewardEvent {
                 timestamp: now,
                 claimed_amount: total_returns,
                 reward_amount: accumulated_rewards
-            }
-        );
+            };
+            event::emit(updated_claim_principal_and_reward_events);
+        };
+
+        
     }
 
     // This function is a helper function this is used to transfer $PROPS from contract to user_address 
@@ -1015,10 +1090,11 @@ module propbase::propbase_staking {
         let contract_config = borrow_global_mut<StakeApp>(@propbase);
         let stake_pool_config = borrow_global<StakePool>(@propbase);
 
+        assert!(stake_pool_config.is_valid_state, error::permission_denied(E_CONTRACT_NOT_IN_VALID_STATE));
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(signer::address_of(user) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
-        assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(0));
+        assert!(now > stake_pool_config.epoch_end_time, error::out_of_range(E_STAKE_IN_PROGRESS));
         assert!(contract_config.excess_reward_calculated, error::permission_denied(E_EXCESS_REWARD_NOT_CALCULATED));
 
         let reward_balance = get_contract_reward_balance();
@@ -1077,13 +1153,12 @@ module propbase::propbase_staking {
 
         if (index == length) {
             contract_config.excess_reward_calculated = true;
-            event::emit_event<SetExcessRewardCalculatedEvent>(
-                &mut contract_config.set_excess_reward_calculated_event,
-                SetExcessRewardCalculatedEvent {
+
+            let set_excess_reward_calculated_event = SetExcessRewardCalculatedEvent {
                     required_rewards: contract_config.required_rewards,
                     required_rewards_calculated: true,
-                }
-            )
+                };
+            event::emit(set_excess_reward_calculated_event);
         };
     }
 
@@ -1112,10 +1187,19 @@ module propbase::propbase_staking {
         assert!(!contract_config.emergency_locked, error::invalid_state(E_CONTRACT_EMERGENCY_LOCKED));
         assert_props<CoinType>();
         assert!(signer::address_of(user) == contract_config.treasury, error::permission_denied(E_NOT_AUTHORIZED));
-        assert!(now > stake_pool_config.unclaimed_reward_withdraw_at, error::out_of_range(0));
+        assert!(now > stake_pool_config.unclaimed_reward_withdraw_at, error::out_of_range(E_NOT_IN_CLAIMING_RANGE));
 
         reward_state.available_rewards = 0;
         aptos_account::transfer_coins<CoinType>(resource_signer, contract_config.treasury, reward_balance);
+    }
+
+    inline fun validate_state(
+        stake_pool_config: &mut StakePool
+    ){
+        if(stake_pool_config.pool_cap >= DEFAULT_MIN_POOL_CAP && stake_pool_config.epoch_start_time > 0 && stake_pool_config.epoch_end_time > 0 && 
+        stake_pool_config.epoch_start_time < stake_pool_config.epoch_end_time && stake_pool_config.interest_rate > 0 && stake_pool_config.penalty_rate > 0){
+            stake_pool_config.is_valid_state = true;
+        }
     }
 
     // This function is a view function that shows StakeApp variables at given time.
@@ -1168,6 +1252,15 @@ module propbase::propbase_staking {
     public fun get_staked_addressess(): vector<address> acquires StakePool {
         let staking_pool_config = borrow_global<StakePool>(@propbase);
         staking_pool_config.staked_addressess
+    }
+
+    // This function is a view function that tracks users addresses who exited by withdrawing all principal amount 
+    // Input: none
+    // Output: vector of addresses
+    #[view]
+    public fun get_exited_addressess(): vector<address> acquires StakePool {
+        let staking_pool_config = borrow_global<StakePool>(@propbase);
+        staking_pool_config.exited_addressess
     }
 
     // This function is a view function that tracks UserInfo state variable
@@ -1430,5 +1523,10 @@ module propbase::propbase_staking {
     public fun get_emergency_asset_distributed_addressess(): vector<address> acquires StakeApp {
         let staking_app_config = borrow_global<StakeApp>(@propbase);
         staking_app_config.emergency_asset_distributed_addressess
+    }
+
+    #[test_only]
+    public fun extract_unstake_event(event:&UnStakeEvent) : (u64, u64, u64, u64, u64) {
+        (event.withdrawn, event.amount, event.penalty, event.accumulated_rewards, event.unstaked_time)
     }
 }

@@ -169,14 +169,15 @@ aptos move coverage summary --summarize-functions --named-addresses source_addr=
 ## Achieved Test Coverage
 
 ```
-Test result: OK. Total tests: 180; passed: 180; failed: 0
+Test result: OK. Total tests: 205; passed: 205; failed: 0
 +-------------------------+
-| Move Coverage Summary |
+| Move Coverage Summary   |
 +-------------------------+
 Module 0000000000000000000000000000000000000000000000000000000000000001::propbase_staking
->>> % Module coverage: 95.42
+>>> % Module coverage: 94.87
 +-------------------------+
-| % Move Coverage: 95.42  |
+| % Move Coverage: 94.87  |
++-------------------------+
 ```
 
 ## Publish via resource account in Testnet/Devnet
@@ -208,7 +209,7 @@ aptos move create-resource-account-and-publish-package --seed [seed] --address-n
 ## Example Function Invoking commands
 
 ```
-aptos move create-resource-account-and-publish-package --seed 1 --address-name propbase --named-addresses source_addr=12347d47a9b0ac564856168b68fff06408cc5f1c691yur5366c3ab116d76rsdf --included-artifacts none
+aptos move create-resource-account-and-publish-package --seed 1 --address-name propbase --named-addresses source_addr=12347d47a9b0ac564856168b68fff06408cc5f1c691yur5366c3ab116d76rsdf --included-artifacts none --profile admin
 
 ```
 
