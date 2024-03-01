@@ -167,7 +167,7 @@ module propbase::propbase_staking {
     // Constants
 
     // The address of the PROPS coin is defined to be checked on coin transaction.
-    const PROPS_COIN: vector<u8> = b"0xe50684a338db732d8fb8a3ac71c4b8633878bd0193bca5de2ebc852a83b35099::propbase_coin::PROPS";
+    const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
     const SECONDS_IN_DAY: u64 = 86400;
     const SECONDS_IN_NON_LEAP_YEAR: u64 = 31536000;
     const SECONDS_IN_LEAP_YEAR: u64 = 31622400;
@@ -1523,5 +1523,10 @@ module propbase::propbase_staking {
     public fun get_emergency_asset_distributed_addressess(): vector<address> acquires StakeApp {
         let staking_app_config = borrow_global<StakeApp>(@propbase);
         staking_app_config.emergency_asset_distributed_addressess
+    }
+
+    #[test_only]
+    public fun extract_unstake_event(event:&UnStakeEvent) : (u64, u64, u64, u64, u64) {
+        (event.withdrawn, event.amount, event.penalty, event.accumulated_rewards, event.unstaked_time)
     }
 }
