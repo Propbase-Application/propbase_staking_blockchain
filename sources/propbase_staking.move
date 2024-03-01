@@ -1524,4 +1524,9 @@ module propbase::propbase_staking {
         let staking_app_config = borrow_global<StakeApp>(@propbase);
         staking_app_config.emergency_asset_distributed_addressess
     }
+
+    #[test_only]
+    public fun extract_unstake_event(event:&UnStakeEvent) : (u64, u64, u64, u64, u64) {
+        (event.withdrawn, event.amount, event.penalty, event.accumulated_rewards, event.unstaked_time)
+    }
 }
