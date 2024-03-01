@@ -1196,7 +1196,7 @@ module propbase::propbase_staking {
     inline fun validate_state(
         stake_pool_config: &mut StakePool
     ){
-        if(stake_pool_config.pool_cap >= 20000000000 && stake_pool_config.epoch_start_time > 0 && stake_pool_config.epoch_end_time > 0 && 
+        if(stake_pool_config.pool_cap >= DEFAULT_MIN_POOL_CAP && stake_pool_config.epoch_start_time > 0 && stake_pool_config.epoch_end_time > 0 && 
         stake_pool_config.epoch_start_time < stake_pool_config.epoch_end_time && stake_pool_config.interest_rate > 0 && stake_pool_config.penalty_rate > 0){
             stake_pool_config.is_valid_state = true;
         }
