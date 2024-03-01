@@ -69,7 +69,7 @@ module propbase::propbase_staking_tests {
     }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB)]
-    fun test_successful_in_works(
+    fun test_successful_initial_state(
         resource: &signer,
         admin: &signer,
         address_1: &signer,
