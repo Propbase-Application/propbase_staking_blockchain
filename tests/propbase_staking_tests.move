@@ -68,6 +68,25 @@ module propbase::propbase_staking_tests {
         propbase_staking::init_test(resource);
     }
 
+    #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB)]
+    fun test_successful_initial_state(
+        resource: &signer,
+        admin: &signer,
+        address_1: &signer,
+        address_2: &signer,
+    ) {
+        setup_test(resource, admin, address_1, address_2);
+        let (app_name, c_admin, c_treasury, c_reward_treasurer, c_min_sale_amount, c_max_stake_amount, c_emergency_locked, c_reward, rewards_calculated) = propbase_staking::get_app_config();
+        assert!(app_name == string::utf8(b""), 1);
+        assert!(c_admin == signer::address_of(admin), 2);
+        assert!(c_treasury == signer::address_of(admin), 3);
+        assert!(c_reward_treasurer == signer::address_of(admin), 4);
+        assert!(c_min_sale_amount == 0, 5);
+        assert!(c_max_stake_amount == 0, 6);
+        assert!(c_emergency_locked == false, 7);
+        assert!(c_reward == 0, 8);
+        assert!(rewards_calculated == false, 9);
+    }
 
     #[test(resource = @propbase, admin = @source_addr, address_1 = @0xA, address_2 = @0xB)]
     fun test_successful_admin_change(
