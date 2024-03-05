@@ -53,6 +53,12 @@ All the docs are available at [docs](https://github.com/Propbase-Application/pro
 https://aptos.dev/tools/aptos-cli/install-cli/
 ```
 
+## Update Aptos CLI
+
+```
+aptos update
+```
+
 ## Initializing commands:
 
 Initialize package with folder structure - To be done only else if the folder structure is not in place.
@@ -82,7 +88,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 164 with the following line
+Replace Line 170 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -114,7 +120,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 164 with the following line
+Replace Line 170 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -134,7 +140,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 164 with the following line
+Replace Line 170 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -154,7 +160,7 @@ Add the following line in Move.toml under [addresses]
 propbase = "0x1"
 ```
 
-Replace Line 164 with the following line
+Replace Line 170 with the following line
 
 ```
 const PROPS_COIN: vector<u8> = b"0x1::propbase_coin::PROPS";
@@ -169,20 +175,21 @@ aptos move coverage summary --summarize-functions --named-addresses source_addr=
 ## Achieved Test Coverage
 
 ```
-Test result: OK. Total tests: 180; passed: 180; failed: 0
+Test result: OK. Total tests: 216; passed: 216; failed: 0
 +-------------------------+
-| Move Coverage Summary |
+| Move Coverage Summary   |
 +-------------------------+
 Module 0000000000000000000000000000000000000000000000000000000000000001::propbase_staking
->>> % Module coverage: 95.42
+>>> % Module coverage: 95.09
 +-------------------------+
-| % Move Coverage: 95.42  |
+| % Move Coverage: 95.09  |
++-------------------------+
 ```
 
 ## Publish via resource account in Testnet/Devnet
 
 Make sure all local changes are reverted.
-Replace line 164 with actual PROPS coin address
+Replace line 170 with actual PROPS coin address
 
 ```
 0xd8221ad202d71302027adab3706f9e8731b76b870bc1a163b0922ac5d91a905f::propbase_coin::TEST_PROPS
@@ -195,7 +202,7 @@ aptos move create-resource-account-and-publish-package --seed [seed] --address-n
 ## Publish via resource account in Mainnet
 
 Make sure all local changes are reverted.
-Replace line 164 with actual PROPS coin address
+Replace line 170 with actual PROPS coin address
 
 ```
 0xe50684a338db732d8fb8a3ac71c4b8633878bd0193bca5de2ebc852a83b35099::propbase_coin::PROPS
@@ -208,7 +215,7 @@ aptos move create-resource-account-and-publish-package --seed [seed] --address-n
 ## Example Function Invoking commands
 
 ```
-aptos move create-resource-account-and-publish-package --seed 1 --address-name propbase --named-addresses source_addr=12347d47a9b0ac564856168b68fff06408cc5f1c691yur5366c3ab116d76rsdf --included-artifacts none
+aptos move create-resource-account-and-publish-package --seed 1 --address-name propbase --named-addresses source_addr=12347d47a9b0ac564856168b68fff06408cc5f1c691yur5366c3ab116d76rsdf --included-artifacts none --profile admin
 
 ```
 
