@@ -423,11 +423,10 @@ module propbase::propbase_staking {
             stake_pool_config.seconds_in_year = seconds_in_year;
         };
 
-        validate_state(stake_pool_config, contract_config);
         let period = stake_pool_config.epoch_end_time - stake_pool_config.epoch_start_time;
         let required_rewards = apply_reward_formula(stake_pool_config.pool_cap, period, stake_pool_config.interest_rate, stake_pool_config.seconds_in_year);
         assert!(reward_state.available_rewards >= (required_rewards as u64), error::resource_exhausted(E_REWARD_NOT_ENOUGH));
-        
+        validate_state(stake_pool_config, contract_config);
 
         let setStakePoolEvent = SetStakePoolEvent {
                 pool_name: contract_config.app_name,
