@@ -426,7 +426,7 @@ module propbase::propbase_staking {
         let period = stake_pool_config.epoch_end_time - stake_pool_config.epoch_start_time;
         let required_rewards = apply_reward_formula(stake_pool_config.pool_cap, period, stake_pool_config.interest_rate, stake_pool_config.seconds_in_year);
         assert!(reward_state.available_rewards >= (required_rewards as u64), error::resource_exhausted(E_REWARD_NOT_ENOUGH));
-        validate_state(stake_pool_config);
+        validate_state(stake_pool_config, contract_config);
 
         let setStakePoolEvent = SetStakePoolEvent {
                 pool_name: contract_config.app_name,
@@ -1194,10 +1194,11 @@ module propbase::propbase_staking {
     }
 
     inline fun validate_state(
-        stake_pool_config: &mut StakePool
+        stake_pool_config: &mut StakePool,
+        contract_config: &mut StakeApp
     ){
-        if(stake_pool_config.pool_cap >= DEFAULT_MIN_POOL_CAP && stake_pool_config.epoch_start_time > 0 && stake_pool_config.epoch_end_time > 0 && 
-        stake_pool_config.epoch_start_time < stake_pool_config.epoch_end_time && stake_pool_config.interest_rate > 0 && stake_pool_config.penalty_rate > 0){
+        if(stake_pool_config.pool_cap >= DEFAULT_MIN_POOL_CAP && stake_pool_config.epoch_start_time > 0 && stake_pool_config.epoch_end_time > 0 && contract_config.max_stake_amount > 0 &&
+        stake_pool_config.epoch_start_time < stake_pool_config.epoch_end_time && stake_pool_config.interest_rate > 0 && stake_pool_config.penalty_rate > 0 && contract_config.min_stake_amount > 0){
             stake_pool_config.is_valid_state = true;
         }
     }
