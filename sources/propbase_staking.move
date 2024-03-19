@@ -818,31 +818,27 @@ module propbase::propbase_staking {
         let contract_balance = coin::balance<CoinType>(@propbase);
         assert!(contract_balance > 0, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
 
-        let distributed_addressess_length = vector::length(&contract_config.emergency_asset_distributed_addressess);
-        let length = vector::length(&stake_pool_config.staked_addressess);
         let limit = 20;
         if (user_limit > 0) {
             limit = user_limit;
         };
-        let index = distributed_addressess_length;
         let i = 0;
         let distributed_addressess = vector::empty<address>();
         let distributed_assets = vector::empty<u64>();
-        while (length > 0 && index < length && i < (limit as u64)) {
+        while (vector::length(&stake_pool_config.staked_addressess) > 0 && i < (limit as u64)) {
             emergency_asset_distribution_to_slice<CoinType>(
                 stake_pool_config,
                 contract_config,
                 reward_state,
                 claim_state,
-                index,
+                0,
                 distributed_addressess,
                 distributed_assets,
                 true
             );
-            index = index + 1;
             i = i + 1;
         };
-        if (index == length) {
+        if (vector::length(&stake_pool_config.staked_addressess) == 0) {
             let resource_signer = account::create_signer_with_capability(&contract_config.signer_cap);
             let contract_balance_new = coin::balance<CoinType>(@propbase);
             aptos_account::transfer_coins<CoinType>(&resource_signer, contract_config.treasury, contract_balance_new);
@@ -885,6 +881,7 @@ module propbase::propbase_staking {
                 assert!(false, error::permission_denied(E_EARNINGS_ALREADY_WITHDRAWN));
             };
         };
+        update_addresses_on_exit(stake_pool_config, user);
 
         let (total_returns, _) = transfer_principal_and_rewards<CoinType>(
             user,
